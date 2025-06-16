@@ -1,0 +1,15 @@
+{
+  "originHash" : "cda98f3e82b610a97e2c86eaf25f8705dd2b15e3439007584689b7ef31cb8203",
+  "pins" : [
+    {
+      "identity" : "openseasui",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Florian-Rh/OpenSeasUI.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "e49449107e4abc40618a6fdc03bc01f3e695994c"
+      }
+    }
+  ],
+  "version" : 3
+}
