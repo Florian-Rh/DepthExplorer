@@ -18,26 +18,28 @@ struct OceanView: View {
                 WaveView(
                     amplitude: 20,
                     waveLength: 0.5,
+                    waterLevel: 0.8,
                     animationBehaviour: .backAndForth(duration: 3.0, distance: 1),
                     startPhase: 1.0
                 )
-                .foregroundStyle(.oceanBlue)
+                .foregroundStyle(.waveBlue)
                 WaveView(
                     amplitude: 15,
                     waveLength: 0.5,
+                    waterLevel: 0.8,
                     animationBehaviour: .backAndForth(duration: 5.0, distance: 1),
                     rotation: .pi * 0
                 )
-                .foregroundStyle(.waveBlue)
+                .foregroundStyle(.oceanBlue)
             }
             .frame(height: UIScreen.main.bounds.height)
             Rectangle()
                 .frame(height: depthInPixels)
                 .foregroundStyle(
                     LinearGradient(
-                        gradient: .deepOceanGradient,
-                        startPoint: .bottom,
-                        endPoint: .top
+                        gradient: .midnightAbyssGradient,
+                        startPoint: .top,
+                        endPoint: .bottom
                     )
                 )
         }
