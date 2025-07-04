@@ -16,19 +16,20 @@ struct ScrollOffsetPreferenceKey: PreferenceKey {
 }
 
 struct ContentView: View {
+
     @State private var visibleItems: Set<String> = []
     @State private var scrollPosition: CGFloat = 0
     let maximumDepth = 11500.0
     let scalingFactor = 10.0
 
-    private var depthInPixel: Double {
+    private var maximumDepthInPixels: Double {
         self.maximumDepth * self.scalingFactor
     }
 
     private var currentDepth: Int {
         Int(abs(scrollPosition) / scalingFactor)
     }
-    
+
     private var currentPressure: Double {
         // Pressure increases by 1 atm (101.325 kPa) per 10 meters
         let depthInMeters = Double(currentDepth)
@@ -41,44 +42,17 @@ struct ContentView: View {
     }
 
     var body: some View {
-        ZStack {
-            LinearGradient(
-                gradient: .coralSunsetGradient,
-                startPoint: .bottom,
-                endPoint: .top
-            )
+        ScrollViewReader { scrollViewReader in
+            ZStack {
+                LinearGradient(
+                    gradient: .coralSunsetGradient,
+                    startPoint: .bottom,
+                    endPoint: .top
+                )
 
-            GeometryReader { geometry in
                 ScrollView {
                     ZStack {
-                        VStack(spacing: 0) {
-                            ZStack {
-                                WaveView(
-                                    amplitude: 20,
-                                    waveLength: 0.5,
-                                    animationBehaviour: .backAndForth(duration: 3.0, distance: 1),
-                                    startPhase: 1.0
-                                )
-                                .foregroundStyle(.oceanBlue)
-                                WaveView(
-                                    amplitude: 15,
-                                    waveLength: 0.5,
-                                    animationBehaviour: .backAndForth(duration: 5.0, distance: 1),
-                                    rotation: .pi * 0
-                                )
-                                .foregroundStyle(.waveBlue)
-                            }
-                            .frame(height: geometry.size.height)
-                            Rectangle()
-                                .frame(height: depthInPixel)
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        gradient: .deepOceanGradient,
-                                        startPoint: .bottom,
-                                        endPoint: .top
-                                    )
-                                )
-                        }
+                        OceanView(depthInPixels: maximumDepthInPixels)
 
                         ForEach(Array(Item.allItems.enumerated()), id: \.element.id) { index, item in
                             ItemView(
@@ -88,10 +62,10 @@ struct ContentView: View {
                             )
                             .offset(y: 50)
                         }
-                        .offset(y: geometry.size.height / 2)
+                        .offset(y: UIScreen.main.bounds.height / 2)
 
                         DepthScale(maximumDepth: maximumDepth, factor: self.scalingFactor)
-                            .offset(y: geometry.size.height / 2 + 15)
+                            .offset(y: UIScreen.main.bounds.height / 2 + 15)
                     }
                     .background(
                         GeometryReader { proxy in
@@ -103,32 +77,47 @@ struct ContentView: View {
                         }
                     )
                 }
+                .scrollDisabled(true)
                 .coordinateSpace(name: "scroll")
                 .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
                     scrollPosition = value.y
                 }
-            }
 
-            // Scroll position label
-            VStack {
-                VStack(spacing: 4) {
-                    Text("Depth: \(currentDepth)m")
-                    Text("Pressure: \(String(format: "%.1f", currentPressure)) atm")
+                Button("Gehe zu 10ß") {
+                    withAnimation {
+                        scrollViewReader.scrollTo(OceanView.viewId, anchor: .init(x: 0, y: self.scrollPositionForDepth(Double(currentDepth) + 20.0)))
+                    }
                 }
-                .font(.system(.headline, design: .rounded))
-                .foregroundColor(.white)
-                .padding()
-                .background(.ultraThinMaterial)
-                .cornerRadius(10)
-                .padding(.top, 50)
-                Spacer()
+
+                // Scroll position label
+                VStack {
+                    VStack(spacing: 4) {
+                        Text("Depth: \(currentDepth)m")
+                        Text("Pressure: \(String(format: "%.1f", currentPressure)) atm")
+                    }
+                    .font(.system(.headline, design: .rounded))
+                    .foregroundColor(.white)
+                    .padding()
+                    .background(.ultraThinMaterial)
+                    .cornerRadius(10)
+                    .padding(.top, 50)
+                    Spacer()
+                }
+                .padding(16)
             }
-            .padding(16)
         }
         .ignoresSafeArea()
+    }
+
+    func scrollPositionForDepth(_ depth: Double) -> Double {
+        let depthInPixels = depth * self.scalingFactor
+
+        return depthInPixels / self.maximumDepthInPixels
     }
 }
 
 #Preview {
     ContentView()
 }
+
+
