@@ -18,7 +18,7 @@ struct OceanView: View {
                 WaveView(
                     amplitude: 20,
                     waveLength: 0.5,
-                    waterLevel: 0.8,
+                    waterLevel: 0.66,
                     animationBehaviour: .backAndForth(duration: 3.0, distance: 1),
                     startPhase: 1.0
                 )
@@ -26,7 +26,7 @@ struct OceanView: View {
                 WaveView(
                     amplitude: 15,
                     waveLength: 0.5,
-                    waterLevel: 0.8,
+                    waterLevel: 0.66,
                     animationBehaviour: .backAndForth(duration: 5.0, distance: 1),
                     rotation: .pi * 0
                 )

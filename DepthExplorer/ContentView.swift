@@ -12,6 +12,8 @@ struct ScrollOffsetPreferenceKey: PreferenceKey {
     static var defaultValue: CGPoint = .zero
 
     static func reduce(value: inout CGPoint, nextValue: () -> CGPoint) {
+        let previous = value
+        let next = nextValue()
     }
 }
 
@@ -70,20 +72,14 @@ struct ContentView: View {
                     viewModel.updateScrollPosition(value)
                 }
 
+                ScubaDiverView(orientation: viewModel.diverOrientation)
+                    .frame(width: 50, height: 150)
+                    .position(x: UIScreen.main.bounds.width / 2, y: UIScreen.main.bounds.height / 3)
+
                 // Scroll position label
                 VStack {
                     Spacer()
-                    StatusPanel(
-                        currentDepth: .constant(viewModel.currentDepth),
-                        currentPressure: .constant(viewModel.currentPressure),
-                        selectedMixture: $viewModel.selectedMixture,
-                        availableMixtures: viewModel.availableMixtures,
-                        timerActive: $viewModel.timerActive,
-                        diveStart: $viewModel.diveStart,
-                        timeAtCurrentDepth: $viewModel.timeAtCurrentDepth,
-                        tissue: $viewModel.tissue,
-                        timeScale: viewModel.timeScale
-                    )
+                    StatusPanel(viewModel: viewModel)
                 }
                 .padding(16)
             }

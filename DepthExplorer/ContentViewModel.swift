@@ -2,24 +2,19 @@ import Foundation
 import SwiftUI
 
 class ContentViewModel: ObservableObject {
-    // UI State
-    @Published var visibleItems: Set<String> = []
-    @Published var scrollPosition: CGFloat = 0
+    // UI State (exposed to the view)
     @Published var selectedMixture: GasMixture = .air
-    @Published var timerActive: Bool = false
-    @Published var diveStart: Date = Date()
-    @Published var timeAtCurrentDepth: Double = 0 // seconds
-    @Published var tissue = TissueCompartment(halfTime: 60, nitrogenPressure: 0.79)
-    @Published var depthHistory: [(depth: Int, seconds: Int, mixture: GasMixture)] = []
-    @Published var lastUpdate: Date = Date()
-    @Published var lastDepth: Int = 0
-    @Published var lastTimerDepth: Int = 0
-    @Published var timer: Timer? = nil
+    @Published private(set) var diveActive: Bool = false
+    @Published private(set) var diveStart: Date = Date()
+    @Published private(set) var timeAtCurrentDepth: Double = 0 // seconds
+    @Published private(set) var saturation: TissueSaturationModel = HaldaneTissueSaturation(halfTime: 60, nitrogenPressure: 0.79)
+    @Published private(set) var depthHistory: [(depth: Int, seconds: Int, mixture: GasMixture)] = []
+    @Published private(set) var diverOrientation = ScubaDiverView.Orientation.upwards
+    @Published private var scrollPosition: CGFloat = 0
 
     let maximumDepth = 11500.0
     let scalingFactor = 10.0
     let timeScale: Double = 60.0
-    let timerInterval: Double = 0.1 // 100 ms
     let availableMixtures: [(name: String, mixture: GasMixture)] = [
         ("Air", .air),
         ("Pure Oxygen", .oxygen),
@@ -28,6 +23,9 @@ class ContentViewModel: ObservableObject {
         ("Nitrox 40", .nitrox40),
         ("Trimix 21/35", .trimix2135),
     ]
+
+    private var timer: Timer? = nil
+    private let timerInterval: Double = 0.1 // 100 ms
 
     var maximumDepthInPixels: Double {
         self.maximumDepth * self.scalingFactor
@@ -45,13 +43,7 @@ class ContentViewModel: ObservableObject {
     }
 
     func startDiveSimulation() {
-        diveStart = Date()
-        lastTimerDepth = currentDepth
-        timeAtCurrentDepth = 0
-        timer?.invalidate()
-        depthHistory = []
-        tissue = TissueCompartment(halfTime: 60, nitrogenPressure: 0.79)
-        timerActive = false
+        self.resetDiveSimulation()
         timer = Timer.scheduledTimer(withTimeInterval: timerInterval, repeats: true) { [weak self] _ in
             self?.timerTick()
         }
@@ -62,34 +54,29 @@ class ContentViewModel: ObservableObject {
     }
 
     func updateScrollPosition(_ value: CGPoint) {
-        let now = Date()
-        let deltaT = now.timeIntervalSince(lastUpdate) / 60.0 // minutes
-        let ambientN2 = selectedMixture.partialPressure(of: .nitrogen, at: currentPressure)
-        lastUpdate = now
-        lastDepth = currentDepth
         scrollPosition = value.y
     }
 
     private func timerTick() {
+        // Update depth history
+        if let last = depthHistory.last, abs(currentDepth - last.depth) <= 5, selectedMixture == last.mixture {
+            depthHistory[depthHistory.count - 1].seconds += Int(timeScale * timerInterval)
+        } else {
+            depthHistory.append((currentDepth, Int(timeScale * timerInterval), selectedMixture))
+        }
+        // Update the existing tissue instance in place
+        saturation.updateNitrogenPressure(history: depthHistory)
+
         // Only run simulation if below 3m
         if currentDepth >= 3 {
-            if !timerActive {
+            if !diveActive {
                 // Start timing
                 diveStart = Date()
-                lastTimerDepth = currentDepth
                 timeAtCurrentDepth = 0
-                depthHistory = [(currentDepth, Int(timeScale * timerInterval), selectedMixture)]
-                tissue = TissueCompartment(halfTime: 60, nitrogenPressure: 0.79)
-                timerActive = true
+//                depthHistory = [(currentDepth, Int(timeScale * timerInterval), selectedMixture)]
+                diverOrientation = .downwards
+                diveActive = true
             } else {
-                // Update depth history
-                if let last = depthHistory.last, abs(currentDepth - last.depth) <= 5, selectedMixture == last.mixture {
-                    depthHistory[depthHistory.count - 1].seconds += Int(timeScale * timerInterval)
-                } else {
-                    depthHistory.append((currentDepth, Int(timeScale * timerInterval), selectedMixture))
-                }
-                // Update the existing tissue instance in place
-                tissue.updateNitrogenPressure(history: depthHistory)
                 // Update time at current depth
                 if let last = depthHistory.last {
                     if abs(currentDepth - last.depth) <= 5 && selectedMixture == last.mixture {
@@ -99,15 +86,21 @@ class ContentViewModel: ObservableObject {
                     }
                 }
             }
-        } else {
+        } else if currentDepth == 0 {
             // If at surface (0m), reset everything
-            if currentDepth == 0 {
-                timerActive = false
-                diveStart = Date()
-                timeAtCurrentDepth = 0
-                depthHistory = []
-                tissue = TissueCompartment(halfTime: 60, nitrogenPressure: 0.79)
+            if diveActive {
+                resetDiveSimulation()
             }
         }
     }
-} 
+
+    private func resetDiveSimulation() {
+        diveStart = Date()
+        timeAtCurrentDepth = 0
+        diveActive = false
+    }
+}
+
+#Preview {
+    ContentView()
+}
