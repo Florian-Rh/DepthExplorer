@@ -21,8 +21,8 @@ struct StatusPanel: View {
             HStack(spacing: 8) {
                 Text("Gas Mixture:")
                 Picker("Gas Mixture", selection: $viewModel.selectedMixture) {
-                    ForEach(viewModel.availableMixtures, id: \.mixture) { option in
-                        Text(option.name).tag(option.mixture)
+                    ForEach(viewModel.availableMixtures, id: \.name) { option in
+                        Text(option.name).tag(option.mixture as GasMixture)
                     }
                 }
                 .pickerStyle(.menu)
@@ -38,3 +38,12 @@ struct StatusPanel: View {
         .padding(.top, 64)
     }
 } 
+
+#Preview {
+    @Previewable @StateObject var viewModel: ContentViewModel = .init()
+
+    StatusPanel(viewModel: viewModel)
+        .onAppear {
+            viewModel.startDiveSimulation()
+        }
+}

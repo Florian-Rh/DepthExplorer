@@ -11,10 +11,7 @@ import SwiftUI
 struct ScrollOffsetPreferenceKey: PreferenceKey {
     static var defaultValue: CGPoint = .zero
 
-    static func reduce(value: inout CGPoint, nextValue: () -> CGPoint) {
-        let previous = value
-        let next = nextValue()
-    }
+    static func reduce(value: inout CGPoint, nextValue: () -> CGPoint) {}
 }
 
 struct ContentView: View {
@@ -22,6 +19,7 @@ struct ContentView: View {
 
     init() {
         UIScrollView.appearance().bounces = false
+        UIScrollView.appearance().showsVerticalScrollIndicator = false
     }
 
     var body: some View {
@@ -72,16 +70,16 @@ struct ContentView: View {
                     viewModel.updateScrollPosition(value)
                 }
 
-                ScubaDiverView(orientation: viewModel.diverOrientation)
-                    .frame(width: 50, height: 150)
-                    .position(x: UIScreen.main.bounds.width / 2, y: UIScreen.main.bounds.height / 3)
+                ScubaDiverView(tilt: 90.0)
+                    .scaleEffect(0.6)
+                    .position(x: UIScreen.main.bounds.width / 2, y: UIScreen.main.bounds.height / 3 + 30)
 
-                // Scroll position label
-                VStack {
-                    Spacer()
-                    StatusPanel(viewModel: viewModel)
-                }
-                .padding(16)
+//                // Scroll position label
+//                VStack {
+//                    Spacer()
+//                    StatusPanel(viewModel: viewModel)
+//                }
+//                .padding(16)
             }
         }
         .ignoresSafeArea()

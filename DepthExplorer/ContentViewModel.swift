@@ -9,7 +9,6 @@ class ContentViewModel: ObservableObject {
     @Published private(set) var timeAtCurrentDepth: Double = 0 // seconds
     @Published private(set) var saturation: TissueSaturationModel = HaldaneTissueSaturation(halfTime: 60, nitrogenPressure: 0.79)
     @Published private(set) var depthHistory: [(depth: Int, seconds: Int, mixture: GasMixture)] = []
-    @Published private(set) var diverOrientation = ScubaDiverView.Orientation.upwards
     @Published private var scrollPosition: CGFloat = 0
 
     let maximumDepth = 11500.0
@@ -25,7 +24,7 @@ class ContentViewModel: ObservableObject {
     ]
 
     private var timer: Timer? = nil
-    private let timerInterval: Double = 0.1 // 100 ms
+    private let timerInterval: Double = 0.2 // 200 ms
 
     var maximumDepthInPixels: Double {
         self.maximumDepth * self.scalingFactor
@@ -73,8 +72,6 @@ class ContentViewModel: ObservableObject {
                 // Start timing
                 diveStart = Date()
                 timeAtCurrentDepth = 0
-//                depthHistory = [(currentDepth, Int(timeScale * timerInterval), selectedMixture)]
-                diverOrientation = .downwards
                 diveActive = true
             } else {
                 // Update time at current depth
