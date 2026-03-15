@@ -12,12 +12,74 @@ class ContentViewModel: ObservableObject {
     /// Content offset driven by the joystick (positive = scrolled down = deeper)
     @Published var contentOffset: CGFloat = 0
 
-    // Diver position controlled by joystick
+    // Diver position controlled by joystick (raw targets)
+    var diverOffsetTarget: CGSize = .zero
+    var diverTiltTarget: Double = 90.0
+
+    // Smoothed diver state (displayed values, lerped toward targets each frame)
     @Published var diverOffset: CGSize = .zero
     @Published var diverTilt: Double = 90.0
 
-    /// Normalized joystick vertical component: -1..+1
+    /// Normalized joystick components: -1..+1
     var joystickVertical: CGFloat = 0
+    var joystickHorizontal: CGFloat = 0
+
+    /// Tracks whether the joystick was last in the right half (true) or left half (false)
+    private var lastJoystickWasRight: Bool = true
+
+    /// Horizontal position of the diver, accumulated from joystick input each frame
+    @Published var diverX: CGFloat = 0
+
+    /// Called every display frame to smoothly interpolate diver state toward targets.
+    func updateDiverSmoothing() {
+        let smoothing: CGFloat = 0.96 // 0 = instant, 1 = no movement
+
+        let atSurface = currentDepth == 0
+        let screenWidth = UIScreen.main.bounds.width
+        let maxX = screenWidth / 2 - 30 // leave a small margin at edges
+
+        // Horizontal: velocity-based, joystick controls speed
+        let joystickReleased = abs(joystickHorizontal) <= 0.05 && abs(joystickVertical) <= 0.05
+
+        // Track which side the joystick was last on
+        if abs(joystickHorizontal) > 0.1 {
+            lastJoystickWasRight = joystickHorizontal > 0
+        }
+
+        if atSurface || joystickReleased {
+            // Smoothly return to center
+            diverX += (0 - diverX) * (1 - smoothing)
+        } else {
+            let hSpeed: CGFloat = 4.0 // max pts per frame
+            diverX += joystickHorizontal * hSpeed
+            diverX = max(-maxX, min(diverX, maxX))
+        }
+
+        // Vertical offset: smoothly lerp toward target, clamped to not rise above surface
+        let rawTargetY = diverOffsetTarget.height
+        let clampedY = max(rawTargetY, -contentOffset)
+        diverOffset.height += (clampedY - diverOffset.height) * (1 - smoothing)
+
+        // Tilt: lerp using shortest angular path
+        let targetTilt: Double
+        if atSurface {
+            targetTilt = 90.0 // face up
+        } else if joystickReleased {
+            targetTilt = lastJoystickWasRight ? 180.0 : 0.0 // face horizontal
+        } else {
+            targetTilt = diverTiltTarget
+        }
+        var delta = targetTilt - diverTilt
+        // Normalize delta to -180...180 for shortest path
+        delta = delta.truncatingRemainder(dividingBy: 360)
+        if delta > 180 { delta -= 360 }
+        if delta < -180 { delta += 360 }
+        diverTilt += delta * (1 - smoothing)
+
+        // Robust normalization to 0..<360
+        diverTilt = diverTilt.truncatingRemainder(dividingBy: 360)
+        if diverTilt < 0 { diverTilt += 360 }
+    }
 
     let autoSurfaceDepth = 10 // meters — diver auto-surfaces when shallower than this
     let maximumDepth = 11500.0
@@ -33,7 +95,7 @@ class ContentViewModel: ObservableObject {
     ]
 
     private var timer: Timer? = nil
-    private let timerInterval: Double = 0.2 // 200 ms
+    private let timerInterval: Double = 0.2 // 1000 ms
 
     var maximumDepthInPixels: Double {
         self.maximumDepth * self.scalingFactor

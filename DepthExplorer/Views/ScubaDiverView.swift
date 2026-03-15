@@ -109,7 +109,7 @@ private struct OceanScene {
         var dc = ctx
         dc.translateBy(x: diverCenter.x, y: diverCenter.y)
         dc.rotate(by: .degrees(bodyTilt))
-        if bodyTilt > 100.0 && bodyTilt < 260.0 {
+        if bodyTilt > 90.0 && bodyTilt < 270.0 {
             dc.scaleBy(x: 1.0, y: -1.0)
         }
         // dc is now in body-local space.

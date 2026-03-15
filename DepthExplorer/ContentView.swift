@@ -50,7 +50,7 @@ struct ContentView: View {
             ScubaDiverView(tilt: viewModel.diverTilt, submersed: viewModel.currentDepth > 0)
                 .scaleEffect(0.6)
                 .position(
-                    x: UIScreen.main.bounds.width / 2 + viewModel.diverOffset.width,
+                    x: UIScreen.main.bounds.width / 2 + viewModel.diverX,
                     y: UIScreen.main.bounds.height / 3 + 30 + viewModel.diverOffset.height
                 )
 
@@ -60,11 +60,12 @@ struct ContentView: View {
                 HStack {
                     Spacer()
                     JoystickView { offset, angle in
-                        viewModel.diverOffset = offset
+                        viewModel.diverOffsetTarget = offset
                         if let angle {
-                            viewModel.diverTilt = angle
+                            viewModel.diverTiltTarget = angle
                         }
                         viewModel.joystickVertical = offset.height / 50.0
+                        viewModel.joystickHorizontal = offset.width / 50.0
                     }
                 }
                 .padding(.trailing, 24)
@@ -107,6 +108,9 @@ private class JoystickScrollDriver {
 
     @objc private func tick() {
         guard let vm = viewModel else { return }
+
+        // Smooth diver position and tilt every frame
+        vm.updateDiverSmoothing()
 
         let vertical = vm.joystickVertical
 
