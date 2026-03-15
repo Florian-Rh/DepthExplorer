@@ -5,14 +5,15 @@ import SwiftUI
 // ══════════════════════════════════════════════════════════════════════════
 
 struct ScubaDiverView: View {
-    @State var tilt: Double = 0.0
+    var tilt: Double = 0.0
+    var submersed: Bool = true
 
     var body: some View {
         ZStack {
             TimelineView(.animation) { tl in
                 let t = tl.date.timeIntervalSinceReferenceDate * 0.4
                 Canvas { ctx, size in
-                    OceanScene(size: size, t: t).draw(ctx, bodyTilt: tilt, submersed: true)
+                    OceanScene(size: size, t: t).draw(ctx, bodyTilt: tilt, submersed: submersed)
                 }
             }
         }

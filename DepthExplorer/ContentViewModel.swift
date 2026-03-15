@@ -9,8 +9,17 @@ class ContentViewModel: ObservableObject {
     @Published private(set) var timeAtCurrentDepth: Double = 0 // seconds
     @Published private(set) var saturation: TissueSaturationModel = HaldaneTissueSaturation(halfTime: 60, nitrogenPressure: 0.79)
     @Published private(set) var depthHistory: [(depth: Int, seconds: Int, mixture: GasMixture)] = []
-    @Published private var scrollPosition: CGFloat = 0
+    /// Content offset driven by the joystick (positive = scrolled down = deeper)
+    @Published var contentOffset: CGFloat = 0
 
+    // Diver position controlled by joystick
+    @Published var diverOffset: CGSize = .zero
+    @Published var diverTilt: Double = 90.0
+
+    /// Normalized joystick vertical component: -1..+1
+    var joystickVertical: CGFloat = 0
+
+    let autoSurfaceDepth = 10 // meters — diver auto-surfaces when shallower than this
     let maximumDepth = 11500.0
     let scalingFactor = 10.0
     let timeScale: Double = 60.0
@@ -31,7 +40,7 @@ class ContentViewModel: ObservableObject {
     }
 
     var currentDepth: Int {
-        Int(abs(scrollPosition) / scalingFactor)
+        Int(contentOffset / scalingFactor)
     }
 
     var currentPressure: Double {
@@ -44,16 +53,12 @@ class ContentViewModel: ObservableObject {
     func startDiveSimulation() {
         self.resetDiveSimulation()
         timer = Timer.scheduledTimer(withTimeInterval: timerInterval, repeats: true) { [weak self] _ in
-            self?.timerTick()
+             self?.timerTick()
         }
     }
 
     func stopDiveSimulation() {
         timer?.invalidate()
-    }
-
-    func updateScrollPosition(_ value: CGPoint) {
-        scrollPosition = value.y
     }
 
     private func timerTick() {

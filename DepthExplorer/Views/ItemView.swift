@@ -22,9 +22,8 @@ struct ItemView: View {
     let item: Item
     let isLeftSide: Bool
     let scalingFactor: Double
+    let contentOffset: Double
     private let hPadding = 60.0
-    @State private var isVisible = false
-    @State private var scrollPosition: Double = .zero
     @State private var isExpanded = false
 
     var yPosition: Double {
@@ -33,6 +32,12 @@ struct ItemView: View {
     
     var xPosition: Double {
         isLeftSide ? hPadding : UIScreen.main.bounds.width - hPadding
+    }
+
+    /// The item is visible when it's within ~300pts of the visible area
+    var isVisible: Bool {
+        let itemScreenY = yPosition - contentOffset + UIScreen.main.bounds.height / 3
+        return itemScreenY > -300 && itemScreenY < UIScreen.main.bounds.height + 300
     }
 
     var body: some View {
@@ -55,10 +60,7 @@ struct ItemView: View {
                         .scaledToFit()
                         .padding(8)
                         .frame(width: 50, height: 50)
-                        .clipShape(
-                            Circle()
-
-                        )
+                        .clipShape(.circle)
                 }
 
                 Text(item.name)
@@ -84,17 +86,6 @@ struct ItemView: View {
         .position(x: xPosition, y: yPosition)
         .offset(x: isVisible ? 0 : (isLeftSide ? -200 : 200))
         .animation(.spring(response: 0.5, dampingFraction: 0.7), value: isVisible)
-        .background(
-            GeometryReader { geometry in
-                Color.clear
-                    .preference(key: ScrollOffsetPreferenceKey.self, value: geometry.frame(in: .named("scroll")).origin)
-            }
-        )
-        .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
-            self.scrollPosition = abs(value.y - UIScreen.main.bounds.height / 2)
-            let visibilityThreshold = scrollPosition + 300
-            self.isVisible = visibilityThreshold > item.depth * scalingFactor
-        }
     }
 }
 
@@ -108,7 +99,8 @@ struct ItemView: View {
                 description: "This"
             ),
             isLeftSide: true,
-            scalingFactor: 1
+            scalingFactor: 1,
+            contentOffset: 0
         )
         
         ItemView(
@@ -119,7 +111,8 @@ struct ItemView: View {
                 description: "eScooter, die ins Meer geworfen werden, stellen ein ernsthaftes Umweltproblem dar. Ihre Batterien enthalten Schwermetalle und Chemikalien, die ins Wasser gelangen und Meerestiere sowie das Ökosystem schädigen können. Zudem verschmutzen sie den Lebensraum und verursachen Kosten für Bergung und Entsorgung."
             ),
             isLeftSide: false,
-            scalingFactor: 1
+            scalingFactor: 1,
+            contentOffset: 0
         )
     }
     .background(Color.abyssBlue)
