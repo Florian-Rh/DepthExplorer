@@ -59,8 +59,6 @@
 - [ ] **Implement barotrauma from ambient pressure**
   Hard-gated by level depth limit (player can't reach barotrauma depths without appropriate gear). Add as a safety net for edge cases.
 
-- [ ] **~~Implement hard depth limit per level~~** → moved to Phase 2
-
 - [ ] **Implement Knowledgeable Item discovery**
   Detect proximity between diver and item. Trigger discovery animation/reveal. Mark as discovered in session state (committed to glossary on safe surfacing).
 
