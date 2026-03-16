@@ -22,8 +22,8 @@
 - [x] **Remove `UIScreen.main` dependencies**
   Added `screenSize` to `LevelViewModel`, fed from `GeometryReader` in `LevelView`. Passed to `KnowledgeableItemView` and `OceanView` as parameters. `DepthScale` uses its own internal `GeometryReader`. `JoystickScrollDriver` reads from `vm.screenSize`.
 
-- [ ] **Extract JoystickScrollDriver from LevelView**
-  `JoystickScrollDriver` is a `CADisplayLink`-based class defined as a private class inside `LevelView.swift`. It mixes input handling (joystick deadzone, auto-surfacing) with frame-driven updates (smoothing). Extract it into its own file and clarify its role as the frame-update coordinator.
+- [x] **Extract JoystickScrollDriver from LevelView**
+  Extracted to `FrameUpdateDriver.swift` (renamed to reflect its broader role: diver smoothing + scroll offset). `LevelView` now references `FrameUpdateDriver` as `@State private var frameDriver`.
 
 ### Testing
 
