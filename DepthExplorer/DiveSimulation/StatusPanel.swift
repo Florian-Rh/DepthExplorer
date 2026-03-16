@@ -53,6 +53,8 @@ struct StatusPanel: View {
                     .pickerStyle(.menu)
                 }
                 Text("Air: \(String(format: "%.0f", sim.airSupply.remainingBar)) / \(Int(GameConstants.tankCapacity)) bar (\(String(format: "%.0f", sim.airSupply.fraction * 100))%)")
+                Text("Ascent: \(String(format: "%.1f", sim.ascentSpeed)) m/s (safe: \(String(format: "%.1f", GameConstants.safeAscentSpeed)) m/s)")
+                Text("Body temp: \(String(format: "%.1f", sim.thermalModel.bodyTemperature))°C (water: \(String(format: "%.1f", ThermalModel.waterTemperature(atDepth: viewModel.currentDepth)))°C)")
                 Text("pO\u{2082}: \(String(format: "%.2f", ppo2)) atm")
                 Text("Tissue N\u{2082}: \(String(format: "%.2f", sim.saturation.nitrogenPressure)) atm")
 

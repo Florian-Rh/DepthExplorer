@@ -47,11 +47,11 @@
 - [x] **Implement air supply mechanic**
   Created `AirSupply` model (200 bar default capacity, SAC rate × ambient pressure consumption). Integrated into `DiveSimulation` tick: consumes air while diving, evaluates warnings (caution at 50 bar, critical at 10 bar, fatal at 0 bar), triggers rescue on empty. Displayed in StatusPanel. Tank refills on each new dive.
 
-- [ ] **Implement thermal model**
+- [x] **Implement thermal model**
   Water temperature decreases with depth. Track cumulative cold exposure. Gear (dry suit) and depth determine cooling rate. Warn and eventually rescue the player on hypothermia.
 
-- [ ] **Implement DCS risk from ascent speed**
-  Track ascent rate (already partially modeled via `safeDesaturationSpeed`). Warn when ascending too fast. Trigger rescue on sustained unsafe ascent.
+- [x] **Implement DCS risk from ascent speed**
+  Track ascent speed (m/s real time) each simulation tick by comparing depth changes. Smoothed with exponential moving average (separate buildup/decay rates) so brief movements don't kill instantly. Evaluated against a game-tuned `safeAscentSpeed` constant with configurable thresholds (caution at 80%, critical at 100%, fatal/rescue at 150%). Time-scale independent — measures physical screen movement, not simulated time. Displayed in StatusPanel alongside safe speed.
 
 - [ ] **Implement narcosis from nitrogen partial pressure**
   Already have partial pressure calculation and tissue saturation. Add threshold detection, warning, and failure state.
@@ -139,6 +139,9 @@
 
 - [ ] **Tune movement and controls**
   Smoothing factor, joystick sensitivity, auto-surface threshold, movement speed per gear tier.
-
+  
+- [ ] **Add legal disclaimer**
+  Explain that the game, while trying to mimicing real diving physics, changed safety thresholds for a more enjoyable game pace. Make it clear that values from the game should under no circumstanbces be applied to real world diving, and that anyone who wishes to go scuba diving, should get licensed through a professional diving instructor.
+   
 - [ ] **Expand content**
   Add new Knowledgeable Items, trash types, gear, skills, and cosmetics as ongoing maintenance.
