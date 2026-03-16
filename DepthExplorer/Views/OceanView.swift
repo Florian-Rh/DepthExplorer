@@ -1,9 +1,3 @@
-//
-//  OceanView.swift
-//  DepthExplorer
-//
-//  Created by Florian Rhein on 03.07.25.
-//
 import SwiftUI
 import OpenSeasUI
 
