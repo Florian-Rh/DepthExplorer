@@ -74,6 +74,22 @@ enum GameConstants {
     /// Consecutive entries within this range and same mixture are merged.
     static let depthGroupingThreshold: Int = 5
 
+    // MARK: - Air Supply
+
+    /// Default tank capacity in bar.
+    /// A standard scuba cylinder. Will vary by gear in Phase 2.
+    static let tankCapacity: Double = 200.0
+
+    /// Surface air consumption rate in bar per simulated minute.
+    /// At depth, actual consumption is `sacRate * ambientPressure`.
+    static let sacRate: Double = 1.0
+
+    /// Air pressure (bar) at which a caution warning is triggered.
+    static let airWarningThreshold: Double = 50.0
+
+    /// Air pressure (bar) at which a critical warning is triggered.
+    static let airCriticalThreshold: Double = 10.0
+
     // MARK: - Gas Mixtures
 
     /// Available gas mixtures. Will eventually be determined by player inventory.

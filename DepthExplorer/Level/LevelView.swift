@@ -4,6 +4,7 @@ import SwiftUI
 struct LevelView: View {
     @StateObject var viewModel = LevelViewModel()
     @State private var frameDriver = FrameUpdateDriver()
+    @State private var showDebugPanel = false
 
     var body: some View {
         ZStack {
@@ -70,7 +71,32 @@ struct LevelView: View {
                 .padding(.bottom, 40)
             }
 
-            StatusPanel(viewModel: viewModel)
+            VStack {
+                HStack {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showDebugPanel.toggle()
+                        }
+                    } label: {
+                        Image(systemName: "ladybug")
+                            .font(.title2)
+                            .foregroundStyle(.white)
+                            .padding(10)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
+                    }
+                    .padding(.leading, 12)
+                    .padding(.top, 60)
+                    Spacer()
+                }
+
+                if showDebugPanel {
+                    StatusPanel(viewModel: viewModel)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+
+                Spacer()
+            }
         }
         .clipped()
         .ignoresSafeArea()

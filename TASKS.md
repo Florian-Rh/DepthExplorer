@@ -36,16 +36,16 @@
 
 ### Architecture
 
-- [ ] **Build the session lifecycle manager**
-  Implement the dive session state machine: Surface (idle) → Diving → Surfaced Safely (rewards credited) / Rescued (items lost) / Quit (items lost). This drives when items are committed to persistent storage.
+- [x] **Build the session lifecycle manager**
+  Created `DiveSession` with state machine (`surface` → `diving` → `surfacedSafely` / `rescued`). Tracks ephemeral session inventory (discovered items, sand dollars). `commitRewards(to:)` persists to `ProfileStore` on safe surfacing, `discard()` drops everything. `DiveSimulation` delegates lifecycle transitions to `DiveSession`.
 
-- [ ] **Build the warning/alert system**
-  When the player approaches a soft limit (low air, cold exposure, fast ascent), display a warning before failure. Design a generic system for triggering, displaying, and clearing warnings that can accommodate new survival factors later.
+- [x] **Build the warning/alert system**
+  Created `DiveWarning.swift` with `DiveWarningKind` (per survival factor), `DiveWarningSeverity` (caution → critical → fatal), and `DiveWarningSystem` (set/clear/clearAll). Wired into `LevelViewModel`. Survival factors will call `warningSystem.set(...)` and `warningSystem.clear(...)` during their tick.
 
 ### Features
 
-- [ ] **Implement air supply mechanic**
-  Add a finite air supply that depletes over time based on depth (higher pressure = faster consumption), gear (tank size, rebreather), and skills (breathing techniques). Display remaining air in the HUD.
+- [x] **Implement air supply mechanic**
+  Created `AirSupply` model (200 bar default capacity, SAC rate × ambient pressure consumption). Integrated into `DiveSimulation` tick: consumes air while diving, evaluates warnings (caution at 50 bar, critical at 10 bar, fatal at 0 bar), triggers rescue on empty. Displayed in StatusPanel. Tank refills on each new dive.
 
 - [ ] **Implement thermal model**
   Water temperature decreases with depth. Track cumulative cold exposure. Gear (dry suit) and depth determine cooling rate. Warn and eventually rescue the player on hypothermia.
@@ -118,6 +118,9 @@
 
 - [ ] **Polish the glossary**
   Categories, search/filter, detail views with illustrations, progress indicators per category.
+
+- [ ] **Add warning and rescue animations**
+  Visual feedback for warning escalation (screen tint, vignette, shake) and a rescue animation sequence (diver pulled to surface) instead of the current instant snap to surface.
 
 - [ ] **Add visual depth zones** (optional)
   Distinct visual environments at depth ranges (coral reef, open water, twilight zone, abyss). The architecture should already support this from the continuous OceanView design.

@@ -8,6 +8,8 @@ class LevelViewModel: ObservableObject {
 
     let diverController = DiverController()
     let diveSimulation = DiveSimulation()
+    let diveSession = DiveSession()
+    let warningSystem = DiveWarningSystem()
     let level: LevelDefinition
 
     private var cancellables: Set<AnyCancellable> = []
@@ -36,10 +38,16 @@ class LevelViewModel: ObservableObject {
         diveSimulation.objectWillChange
             .sink { [weak self] in self?.objectWillChange.send() }
             .store(in: &cancellables)
+        diveSession.objectWillChange
+            .sink { [weak self] in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+        warningSystem.objectWillChange
+            .sink { [weak self] in self?.objectWillChange.send() }
+            .store(in: &cancellables)
     }
 
     func startSimulation() {
-        diveSimulation.start()
+        diveSimulation.start(session: diveSession, warningSystem: warningSystem)
     }
 
     func stopSimulation() {

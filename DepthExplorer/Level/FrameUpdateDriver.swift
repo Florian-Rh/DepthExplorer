@@ -23,6 +23,13 @@ class FrameUpdateDriver {
 
         vm.update()
 
+        // On rescue, snap the diver back to the surface.
+        // TODO: Phase 3 — replace with a rescue animation.
+        if case .rescued = vm.diveSession.state {
+            vm.contentOffset = 0
+            return
+        }
+
         let vertical = vm.diverController.joystickVertical
 
         // Auto-surface when ascending near the surface
