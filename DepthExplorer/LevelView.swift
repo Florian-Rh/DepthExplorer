@@ -18,10 +18,10 @@ struct LevelView: View {
                     OceanView(depthInPixels: viewModel.maximumDepthInPixels)
 
                     ForEach(
-                        Array(Item.allItems.enumerated()),
+                        Array(KnowledgeableItem.allItems.enumerated()),
                         id: \.element.id
                     ) { index, item in
-                        ItemView(
+                        KnowledgeableItemView(
                             item: item,
                             isLeftSide: index.isMultiple(of: 2),
                             scalingFactor: viewModel.scalingFactor,
