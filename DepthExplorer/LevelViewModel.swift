@@ -4,6 +4,7 @@ import Combine
 
 class LevelViewModel: ObservableObject {
     @Published var contentOffset: CGFloat = 0
+    @Published var screenSize: CGSize = .zero
 
     let diverController = DiverController()
     let diveSimulation = DiveSimulation()
@@ -46,11 +47,11 @@ class LevelViewModel: ObservableObject {
     }
 
     /// Called every display frame by the scroll driver.
-    func update(screenWidth: CGFloat) {
+    func update() {
         diverController.updateSmoothing(
             contentOffset: contentOffset,
             currentDepth: currentDepth,
-            screenWidth: screenWidth
+            screenWidth: screenSize.width
         )
         diveSimulation.updateDepth(currentDepth)
     }

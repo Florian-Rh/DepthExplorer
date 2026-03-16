@@ -5,6 +5,7 @@ struct KnowledgeableItemView: View {
     let isLeftSide: Bool
     let scalingFactor: Double
     let contentOffset: Double
+    let screenSize: CGSize
 
     private let hPadding = 60.0
 
@@ -13,12 +14,12 @@ struct KnowledgeableItemView: View {
     }
 
     var xPosition: Double {
-        isLeftSide ? hPadding : UIScreen.main.bounds.width - hPadding
+        isLeftSide ? hPadding : screenSize.width - hPadding
     }
 
     var isVisible: Bool {
-        let itemScreenY = yPosition - contentOffset + UIScreen.main.bounds.height / 3
-        return itemScreenY > -300 && itemScreenY < UIScreen.main.bounds.height + 300
+        let itemScreenY = yPosition - contentOffset + screenSize.height / 3
+        return itemScreenY > -300 && itemScreenY < screenSize.height + 300
     }
 
     var body: some View {
@@ -56,20 +57,24 @@ struct KnowledgeableItemView: View {
 }
 
 #Preview {
-    VStack {
-        KnowledgeableItemView(
-            item: KnowledgeableItem.allItems[0],
-            isLeftSide: true,
-            scalingFactor: 1,
-            contentOffset: 0
-        )
+    GeometryReader { geo in
+        VStack {
+            KnowledgeableItemView(
+                item: KnowledgeableItem.allItems[0],
+                isLeftSide: true,
+                scalingFactor: 1,
+                contentOffset: 0,
+                screenSize: geo.size
+            )
 
-        KnowledgeableItemView(
-            item: KnowledgeableItem.allItems[3],
-            isLeftSide: false,
-            scalingFactor: 1,
-            contentOffset: 0
-        )
+            KnowledgeableItemView(
+                item: KnowledgeableItem.allItems[3],
+                isLeftSide: false,
+                scalingFactor: 1,
+                contentOffset: 0,
+                screenSize: geo.size
+            )
+        }
     }
     .background(Color.abyssBlue)
 }

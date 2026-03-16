@@ -14,8 +14,10 @@ struct LevelView: View {
             )
 
             GeometryReader { geo in
+                let screenSize = geo.size
+
                 ZStack {
-                    OceanView(depthInPixels: viewModel.maximumDepthInPixels)
+                    OceanView(depthInPixels: viewModel.maximumDepthInPixels, screenHeight: screenSize.height)
 
                     ForEach(
                         Array(KnowledgeableItem.allItems.enumerated()),
@@ -25,27 +27,30 @@ struct LevelView: View {
                             item: item,
                             isLeftSide: index.isMultiple(of: 2),
                             scalingFactor: viewModel.scalingFactor,
-                            contentOffset: viewModel.contentOffset
+                            contentOffset: viewModel.contentOffset,
+                            screenSize: screenSize
                         )
                         .offset(y: 50)
                     }
-                    .offset(y: geo.size.height / 3)
+                    .offset(y: screenSize.height / 3)
 
                     DepthScale(
                         maximumDepth: GameConstants.maximumDepth,
                         factor: viewModel.scalingFactor
                     )
-                    .offset(y: geo.size.height / 3 + 15)
+                    .offset(y: screenSize.height / 3 + 15)
                 }
                 .offset(y: -viewModel.contentOffset)
+                .onAppear { viewModel.screenSize = screenSize }
+                .onChange(of: screenSize) { _, newSize in viewModel.screenSize = newSize }
             }
             .clipped()
 
             ScubaDiverView(tilt: viewModel.diverController.tilt, submersed: viewModel.currentDepth > 0)
                 .scaleEffect(0.6)
                 .position(
-                    x: UIScreen.main.bounds.width / 2 + viewModel.diverController.x,
-                    y: UIScreen.main.bounds.height / 3 + 30 + viewModel.diverController.offset.height
+                    x: viewModel.screenSize.width / 2 + viewModel.diverController.x,
+                    y: viewModel.screenSize.height / 3 + 30 + viewModel.diverController.offset.height
                 )
 
             VStack {
@@ -100,8 +105,7 @@ private class JoystickScrollDriver {
     @objc private func tick() {
         guard let vm = viewModel else { return }
 
-        let screenWidth = UIScreen.main.bounds.width
-        vm.update(screenWidth: screenWidth)
+        vm.update()
 
         let vertical = vm.diverController.joystickVertical
 

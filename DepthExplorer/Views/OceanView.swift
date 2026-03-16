@@ -5,6 +5,7 @@ struct OceanView: View {
     static let viewId = "oceanView"
 
     let depthInPixels: Double
+    let screenHeight: CGFloat
 
     var body: some View {
         VStack(spacing: 0) {
@@ -26,7 +27,7 @@ struct OceanView: View {
                 )
                 .foregroundStyle(.oceanBlue)
             }
-            .frame(height: UIScreen.main.bounds.height)
+            .frame(height: screenHeight)
             Rectangle()
                 .frame(height: depthInPixels)
                 .foregroundStyle(

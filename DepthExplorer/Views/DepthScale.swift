@@ -15,22 +15,24 @@ struct DepthScale: View {
     }
 
     var body: some View {
-        ZStack(alignment: .center) {
-            ForEach(depths, id: \.self) { depth in
-                HStack(spacing: 4) {
-                    Rectangle()
-                        .fill(.white.opacity(0.5))
-                        .frame(width: 50, height: 2)
+        GeometryReader { geo in
+            ZStack(alignment: .center) {
+                ForEach(depths, id: \.self) { depth in
+                    HStack(spacing: 4) {
+                        Rectangle()
+                            .fill(.white.opacity(0.5))
+                            .frame(width: 50, height: 2)
 
-                    Text("\(depth)m")
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.7))
+                        Text("\(depth)m")
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.7))
 
-                    Rectangle()
-                        .fill(.white.opacity(0.5))
-                        .frame(width: 50, height: 2)
+                        Rectangle()
+                            .fill(.white.opacity(0.5))
+                            .frame(width: 50, height: 2)
+                    }
+                    .position(x: geo.size.width / 2, y: Double(depth) * factor)
                 }
-                .position(x: UIScreen.main.bounds.width / 2, y: Double(depth) * factor)
             }
         }
         .frame(maxWidth: .infinity, alignment: .center)
