@@ -7,25 +7,28 @@ class LevelViewModel: ObservableObject {
 
     let diverController = DiverController()
     let diveSimulation = DiveSimulation()
-    let autoSurfaceDepth = 10
-    let maximumDepth = 11500.0
-    let scalingFactor = 10.0
+    let level: LevelDefinition
 
     private var cancellables: Set<AnyCancellable> = []
 
+    var scalingFactor: Double {
+        level.scalingFactor
+    }
+
     var maximumDepthInPixels: Double {
-        maximumDepth * scalingFactor
+        GameConstants.maximumDepth * level.scalingFactor
     }
 
     var currentDepth: Int {
-        Int(contentOffset / scalingFactor)
+        Int(contentOffset / level.scalingFactor)
     }
 
     var currentPressure: Double {
         1.0 + (Double(currentDepth) / 10.0)
     }
 
-    init() {
+    init(level: LevelDefinition = .default) {
+        self.level = level
         diverController.objectWillChange
             .sink { [weak self] in self?.objectWillChange.send() }
             .store(in: &cancellables)

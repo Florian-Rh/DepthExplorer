@@ -10,23 +10,12 @@ class DiveSimulation: ObservableObject {
     @Published private(set) var saturation: TissueSaturationModel = HaldaneTissueSaturation(halfTime: 60, nitrogenPressure: 0.79)
     @Published private(set) var depthHistory: [(depth: Int, seconds: Int, mixture: GasMixture)] = []
 
-    let timeScale: Double = 60.0
-    let availableMixtures: [(name: String, mixture: GasMixture)] = [
-        ("Air", .air),
-        ("Pure Oxygen", .oxygen),
-        ("Nitrox 32", .nitrox32),
-        ("Nitrox 36", .nitrox36),
-        ("Nitrox 40", .nitrox40),
-        ("Trimix 21/35", .trimix2135),
-    ]
-
     private var timer: Timer?
-    private let timerInterval: Double = 0.2
     private var currentDepth: Int = 0
 
     func start() {
         reset()
-        timer = Timer.scheduledTimer(withTimeInterval: timerInterval, repeats: true) { [weak self] _ in
+        timer = Timer.scheduledTimer(withTimeInterval: GameConstants.simulationInterval, repeats: true) { [weak self] _ in
             self?.tick()
         }
     }
@@ -42,24 +31,29 @@ class DiveSimulation: ObservableObject {
     }
 
     private func tick() {
-        if let last = depthHistory.last, abs(currentDepth - last.depth) <= 5, selectedMixture == last.mixture {
-            depthHistory[depthHistory.count - 1].seconds += Int(timeScale * timerInterval)
+        let timeIncrement = Int(GameConstants.timeScale * GameConstants.simulationInterval)
+
+        if let last = depthHistory.last,
+           abs(currentDepth - last.depth) <= GameConstants.depthGroupingThreshold,
+           selectedMixture == last.mixture {
+            depthHistory[depthHistory.count - 1].seconds += timeIncrement
         } else {
-            depthHistory.append((currentDepth, Int(timeScale * timerInterval), selectedMixture))
+            depthHistory.append((currentDepth, timeIncrement, selectedMixture))
         }
         saturation.updateNitrogenPressure(history: depthHistory)
 
-        if currentDepth >= 3 {
+        if currentDepth >= GameConstants.diveActivationDepth {
             if !diveActive {
                 diveStart = Date()
                 timeAtCurrentDepth = 0
                 diveActive = true
             } else {
                 if let last = depthHistory.last {
-                    if abs(currentDepth - last.depth) <= 5 && selectedMixture == last.mixture {
+                    if abs(currentDepth - last.depth) <= GameConstants.depthGroupingThreshold
+                        && selectedMixture == last.mixture {
                         timeAtCurrentDepth = Double(last.seconds)
                     } else {
-                        timeAtCurrentDepth = timeScale * timerInterval
+                        timeAtCurrentDepth = Double(timeIncrement)
                     }
                 }
             }

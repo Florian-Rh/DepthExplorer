@@ -5,7 +5,7 @@ struct StatusPanel: View {
 
     var body: some View {
         let sim = viewModel.diveSimulation
-        let totalDiveTime = sim.diveActive ? Int(Date().timeIntervalSince(sim.diveStart) * sim.timeScale) : 0
+        let totalDiveTime = sim.diveActive ? Int(Date().timeIntervalSince(sim.diveStart) * GameConstants.timeScale) : 0
         let minutes = totalDiveTime / 60
         let seconds = totalDiveTime % 60
         let atDepthMinutes = Int(sim.timeAtCurrentDepth) / 60
@@ -25,7 +25,7 @@ struct StatusPanel: View {
                     get: { viewModel.diveSimulation.selectedMixture },
                     set: { viewModel.diveSimulation.selectedMixture = $0 }
                 )) {
-                    ForEach(sim.availableMixtures, id: \.name) { option in
+                    ForEach(GameConstants.availableMixtures, id: \.name) { option in
                         Text(option.name).tag(option.mixture as GasMixture)
                     }
                 }

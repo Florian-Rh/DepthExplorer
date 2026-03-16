@@ -32,7 +32,7 @@ struct LevelView: View {
                     .offset(y: geo.size.height / 3)
 
                     DepthScale(
-                        maximumDepth: viewModel.maximumDepth,
+                        maximumDepth: GameConstants.maximumDepth,
                         factor: viewModel.scalingFactor
                     )
                     .offset(y: geo.size.height / 3 + 15)
@@ -106,14 +106,14 @@ private class JoystickScrollDriver {
         let vertical = vm.diverController.joystickVertical
 
         // Auto-surface when ascending near the surface
-        if vm.currentDepth < vm.autoSurfaceDepth && vm.currentDepth > 0 && vertical <= 0 {
-            vm.contentOffset = max(0, vm.contentOffset - 4.0)
+        if vm.currentDepth < vm.level.autoSurfaceDepth && vm.currentDepth > 0 && vertical <= 0 {
+            vm.contentOffset = max(0, vm.contentOffset - vm.level.autoSurfaceSpeed)
             return
         }
 
-        guard abs(vertical) > 0.05 else { return }
+        guard abs(vertical) > GameConstants.joystickDeadzone else { return }
 
-        let delta = vertical * 8.0
+        let delta = vertical * GameConstants.scrollSpeed
         let newOffset = max(0, min(vm.contentOffset + delta, vm.maximumDepthInPixels))
         vm.contentOffset = newOffset
     }

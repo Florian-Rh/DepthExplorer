@@ -4,43 +4,34 @@ import SwiftUI
 /// Manages diver position, tilt, and smoothing based on joystick input.
 /// Updated every display frame by the scroll driver.
 class DiverController: ObservableObject {
-    // Smoothed diver state (displayed values, lerped toward targets each frame)
     @Published private(set) var offset: CGSize = .zero
     @Published private(set) var tilt: Double = 90.0
     @Published private(set) var x: CGFloat = 0
 
-    // Raw joystick targets (set by JoystickView callback)
     var offsetTarget: CGSize = .zero
     var tiltTarget: Double = 90.0
-
-    /// Normalized joystick components: -1..+1
     var joystickVertical: CGFloat = 0
     var joystickHorizontal: CGFloat = 0
 
     private var lastJoystickWasRight: Bool = true
 
     /// Called every display frame to smoothly interpolate diver state toward targets.
-    /// - Parameters:
-    ///   - contentOffset: The current scroll offset in pixels (needed to clamp vertical position)
-    ///   - currentDepth: The current depth in meters (needed for surface behavior)
-    ///   - screenWidth: The available screen width (needed for horizontal clamping)
     func updateSmoothing(contentOffset: CGFloat, currentDepth: Int, screenWidth: CGFloat) {
-        let smoothing: CGFloat = 0.96 // 0 = instant, 1 = no movement
-
+        let smoothing = GameConstants.diverSmoothing
         let atSurface = currentDepth == 0
-        let maxX = screenWidth / 2 - 30
+        let maxX = screenWidth / 2 - GameConstants.diverEdgeMargin
 
-        let joystickReleased = abs(joystickHorizontal) <= 0.05 && abs(joystickVertical) <= 0.05
+        let joystickReleased = abs(joystickHorizontal) <= GameConstants.joystickDeadzone
+                            && abs(joystickVertical) <= GameConstants.joystickDeadzone
 
-        if abs(joystickHorizontal) > 0.1 {
+        if abs(joystickHorizontal) > GameConstants.joystickDirectionThreshold {
             lastJoystickWasRight = joystickHorizontal > 0
         }
 
         if atSurface || joystickReleased {
             x += (0 - x) * (1 - smoothing)
         } else {
-            let hSpeed: CGFloat = 4.0
-            x += joystickHorizontal * hSpeed
+            x += joystickHorizontal * GameConstants.diverHorizontalSpeed
             x = max(-maxX, min(x, maxX))
         }
 
