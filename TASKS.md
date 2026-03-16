@@ -17,13 +17,21 @@
   - **Gear/skill base values** (dynamic per player loadout): movement speed modifier, air consumption modifier, thermal resistance, risk thresholds. The actual movement speed in meters/second comes from gear and skills, not from the level.
   Currently these are scattered as hardcoded values in ContentViewModel (`scalingFactor`, `maximumDepth`, etc.).
 
-- [ ] **Define the Item/Collectible data model**
-  `Item` is currently a flat struct with `depth`, `name`, `image`, `description` and a static array of placeholder items. It needs to support:
-  - Distinct types: Knowledgeable Items (with category: species, oceanography, history, human impact) vs. Trash (with Sand Dollar value)
+- [ ] **Define the Knowledgeable Item data model**
+  `Item` is currently a flat struct with `depth`, `name`, `image`, `description` and a static array of placeholder items. Replace with a dedicated `KnowledgeableItem` model:
+  - Category (species, oceanography, human history, human impact)
   - Fixed depth placement based on real-world data
+  - Name, image, description (educational content)
   - Discovery state (discovered vs. redacted in glossary)
-  - Pickup interaction (proximity to diver triggers collection)
+  - Discovered by proximity — not "picked up," but unlocked when the diver reaches it
   The existing `Item` TODO ("rename more appropriately") confirms this is known tech debt.
+
+- [ ] **Define the Trash data model**
+  Separate model from Knowledgeable Items. Trash is:
+  - Randomly placed (not at fixed depths)
+  - Has a Sand Dollar value (may vary by type)
+  - No image or description — simple pickup collectible
+  - Physically picked up by the diver (proximity interaction)
 
 - [ ] **Design the persistence layer**
   Persistent player data (inventory, XP, level, unlocked gear, discovered Knowledgeables, currency) must survive across sessions. Session data (current dive state) is ephemeral. Choose and set up the storage approach (SwiftData, or plain Codable + file storage for simplicity). Define the persistent model types.
@@ -70,11 +78,11 @@
 
 - [ ] **~~Implement hard depth limit per level~~** → moved to Phase 2
 
-- [ ] **Implement Knowledgeable Item pickup**
-  Detect proximity between diver and item. Trigger collection animation. Add to session inventory (committed on safe surface).
+- [ ] **Implement Knowledgeable Item discovery**
+  Detect proximity between diver and item. Trigger discovery animation/reveal. Mark as discovered in session state (committed to glossary on safe surfacing).
 
 - [ ] **Implement trash pickup and Sand Dollar reward**
-  Same proximity mechanic as Knowledgeables, but awards currency instead of XP.
+  Randomly place trash at varying depths each dive. Detect proximity, trigger pickup. Award Sand Dollars (committed on safe surfacing).
 
 - [ ] **Build the glossary view**
   Display all Knowledgeable Items: discovered ones with full content, undiscovered ones as redacted entries. Accessible from a menu/settings screen.

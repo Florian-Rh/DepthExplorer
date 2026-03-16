@@ -33,17 +33,17 @@ Each dive is a **fresh run**. Items and XP collected during a dive are only cred
 
 ### Collectibles
 
-Along the way, the player can pick up trash and find **Knowledgeable Items**. These are real-world facts about interesting species, oceanography, the history of human ocean exploration, or the impact of humans on the health of the sea.
+There are two types of collectibles:
 
-Knowledgeable Items appear at **fixed depths** corresponding to real-world data. For example, "The deepest scuba dive ever performed" always appears at 332m (the actual record depth).
+**Knowledgeable Items** are real-world facts about interesting species, oceanography, the history of human ocean exploration, or the impact of humans on the health of the sea. They appear at **fixed depths** corresponding to real-world data (e.g., "The deepest scuba dive ever performed" always appears at 332m). Knowledgeables are not picked up — they are **discovered** when the diver reaches them. All discovered Knowledgeables can be found in a glossary, alongside "redacted" entries for yet-undiscovered items.
 
-Examples of Knowledgeable Items:
+Examples:
 - The deepest dive ever performed by a human in scuba gear at 332m (human history)
 - Brine pools (oceanography)
 - Mantis shrimp (species)
 - Coral bleaching (human impact)
 
-All collected Knowledgeables can be found in a glossary, alongside "redacted" entries for yet-undiscovered items.
+**Trash** is randomly placed at varying depths each dive. Trash is picked up by the diver on proximity and awards Sand Dollars. It has no image or description — it is a simple collectible with a varying currency value.
 
 ### Currency and Progression
 
