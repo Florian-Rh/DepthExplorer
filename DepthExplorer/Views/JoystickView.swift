@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct JoystickView: View {
+    @State private var dragOffset: CGSize = .zero
+
     /// Called continuously with the joystick's offset (clamped to the radius)
     /// and the angle in degrees (0° = up, 90° = right, 180° = down, 270° = left).
     /// When the joystick is released, offset is .zero and angle is nil.
@@ -9,11 +11,8 @@ struct JoystickView: View {
     private let radius: CGFloat = 50
     private let knobRadius: CGFloat = 24
 
-    @State private var dragOffset: CGSize = .zero
-
     var body: some View {
         ZStack {
-            // Base ring
             Circle()
                 .fill(Color.white.opacity(0.08))
                 .frame(width: radius * 2, height: radius * 2)
@@ -22,7 +21,6 @@ struct JoystickView: View {
                         .stroke(Color.white.opacity(0.25), lineWidth: 2)
                 )
 
-            // Knob
             Circle()
                 .fill(.ultraThinMaterial)
                 .overlay(
@@ -62,14 +60,10 @@ struct JoystickView: View {
         return CGSize(width: dx * scale, height: dy * scale)
     }
 
-    /// Returns the angle in degrees where 0° = right, going clockwise.
-    /// This maps directly to the diver's body tilt.
     private func angleDegrees(from offset: CGSize) -> Double? {
         let dx = offset.width
         let dy = offset.height
         guard abs(dx) > 1 || abs(dy) > 1 else { return nil }
-        // atan2 gives angle from +x axis, counter-clockwise positive.
-        // We want clockwise from +x (right), which matches the diver's tilt convention.
         let radians = atan2(dy, dx)
         var degrees = radians * 180.0 / .pi + 180.0
         degrees = degrees.truncatingRemainder(dividingBy: 360.0)
@@ -81,8 +75,6 @@ struct JoystickView: View {
 #Preview {
     ZStack {
         Color.blue.opacity(0.3)
-        JoystickView { offset, angle in
-            // preview handler
-        }
+        JoystickView { _, _ in }
     }
 }

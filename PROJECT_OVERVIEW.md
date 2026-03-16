@@ -153,6 +153,58 @@ The ocean is a single continuous environment rendered as a gradient that fades t
 
 Session-scoped state (current dive: air, depth, collected items) lives in memory and is discarded on rescue or quit. Persistent state (inventory, XP, unlocks, glossary) is stored across sessions using SwiftData or similar.
 
+## Code Style
+
+### Access Control
+
+Always use the lowest possible access control level:
+- A function used only within its own type is always `private`.
+- A property that is read externally but only written internally is always `private(set)`.
+- Properties that are never modified after initialization are always `let`, not `var`.
+
+### Type Member Ordering
+
+Members within a type are ordered as follows:
+
+1. **Subtypes and typealiases**
+2. **Stored properties** — wrapper properties (`@State`, `@Published`, etc.) are grouped together
+3. **Computed properties**
+4. **Functions** — initializers always come first
+5. **Protocol conformances** — properties and functions belonging to a protocol conformance are grouped at the end of the type, preceded by a `// MARK: - ProtocolName` comment
+
+Within each group, members are ordered by visibility (most visible first). `static` members are considered highest visibility, even if `private`.
+
+**Exceptions:**
+- In a SwiftUI `View`, the `body` property takes the position of an initializer: below other properties, but before other functions.
+- Members with a strict logical connection may be grouped together regardless of category.
+
+### Example
+
+```swift
+struct ExampleView: View {
+    // Stored properties (wrappers grouped)
+    @State private var isExpanded = false
+    @State private var offset: CGFloat = 0
+
+    let title: String
+    private let spacing: CGFloat = 8
+
+    // Computed properties
+    var subtitle: String { "Details for \(title)" }
+    private var isVisible: Bool { offset > 0 }
+
+    // body (takes initializer position in Views)
+    var body: some View { ... }
+
+    // Functions
+    func reset() { ... }
+    private func calculateLayout() { ... }
+
+    // MARK: - Hashable
+    func hash(into hasher: inout Hasher) { ... }
+}
+```
+
 ## Dependencies
 
 <!-- External packages (e.g., OpenSeasUI) and why they're used -->

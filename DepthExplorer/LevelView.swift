@@ -1,15 +1,9 @@
-//
-//  ContentView.swift
-//  DepthExplorer
-//
-//  Created by Florian Rhein on 11.06.25.
-//
-
 import OpenSeasUI
 import SwiftUI
 
-struct ContentView: View {
-    @StateObject var viewModel = ContentViewModel()
+struct LevelView: View {
+    @StateObject var viewModel = LevelViewModel()
+    @State private var scrollDriver = JoystickScrollDriver()
 
     var body: some View {
         ZStack {
@@ -47,25 +41,24 @@ struct ContentView: View {
             }
             .clipped()
 
-            ScubaDiverView(tilt: viewModel.diverTilt, submersed: viewModel.currentDepth > 0)
+            ScubaDiverView(tilt: viewModel.diverController.tilt, submersed: viewModel.currentDepth > 0)
                 .scaleEffect(0.6)
                 .position(
-                    x: UIScreen.main.bounds.width / 2 + viewModel.diverX,
-                    y: UIScreen.main.bounds.height / 3 + 30 + viewModel.diverOffset.height
+                    x: UIScreen.main.bounds.width / 2 + viewModel.diverController.x,
+                    y: UIScreen.main.bounds.height / 3 + 30 + viewModel.diverController.offset.height
                 )
 
-            // Joystick control
             VStack {
                 Spacer()
                 HStack {
                     Spacer()
                     JoystickView { offset, angle in
-                        viewModel.diverOffsetTarget = offset
+                        viewModel.diverController.offsetTarget = offset
                         if let angle {
-                            viewModel.diverTiltTarget = angle
+                            viewModel.diverController.tiltTarget = angle
                         }
-                        viewModel.joystickVertical = offset.height / 50.0
-                        viewModel.joystickHorizontal = offset.width / 50.0
+                        viewModel.diverController.joystickVertical = offset.height / 50.0
+                        viewModel.diverController.joystickHorizontal = offset.width / 50.0
                     }
                 }
                 .padding(.trailing, 24)
@@ -77,24 +70,22 @@ struct ContentView: View {
         .clipped()
         .ignoresSafeArea()
         .onAppear {
-            viewModel.startDiveSimulation()
+            viewModel.startSimulation()
             scrollDriver.start(viewModel: viewModel)
         }
         .onDisappear {
-            viewModel.stopDiveSimulation()
+            viewModel.stopSimulation()
             scrollDriver.stop()
         }
     }
-
-    @State private var scrollDriver = JoystickScrollDriver()
 }
 
 /// Drives `contentOffset` on every display frame based on the joystick's vertical component.
 private class JoystickScrollDriver {
     private var displayLink: CADisplayLink?
-    private weak var viewModel: ContentViewModel?
+    private weak var viewModel: LevelViewModel?
 
-    func start(viewModel: ContentViewModel) {
+    func start(viewModel: LevelViewModel) {
         self.viewModel = viewModel
         let link = CADisplayLink(target: self, selector: #selector(tick))
         link.add(to: .main, forMode: .common)
@@ -109,12 +100,12 @@ private class JoystickScrollDriver {
     @objc private func tick() {
         guard let vm = viewModel else { return }
 
-        // Smooth diver position and tilt every frame
-        vm.updateDiverSmoothing()
+        let screenWidth = UIScreen.main.bounds.width
+        vm.update(screenWidth: screenWidth)
 
-        let vertical = vm.joystickVertical
+        let vertical = vm.diverController.joystickVertical
 
-        // Snap to surface: when ascending and within threshold, auto-surface
+        // Auto-surface when ascending near the surface
         if vm.currentDepth < vm.autoSurfaceDepth && vm.currentDepth > 0 && vertical <= 0 {
             vm.contentOffset = max(0, vm.contentOffset - 4.0)
             return
@@ -122,14 +113,12 @@ private class JoystickScrollDriver {
 
         guard abs(vertical) > 0.05 else { return }
 
-        // Max speed: 8 pts per frame (~480 pts/sec at 60fps)
         let delta = vertical * 8.0
-        let maxOffset = vm.maximumDepthInPixels
-        let newOffset = max(0, min(vm.contentOffset + delta, maxOffset))
+        let newOffset = max(0, min(vm.contentOffset + delta, vm.maximumDepthInPixels))
         vm.contentOffset = newOffset
     }
 }
 
 #Preview {
-    ContentView()
+    LevelView()
 }

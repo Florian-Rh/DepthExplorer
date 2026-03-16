@@ -1,40 +1,23 @@
 import SwiftUI
 
-struct ItemDescription: View {
-    let text: String
-    
-    var body: some View {
-        Text(text)
-            .frame(width: 240)
-            .font(.subheadline)
-            .foregroundStyle(.white)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background {
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(.ultraThinMaterial)
-            }
-            .transition(.scale(scale: 0.8).combined(with: .opacity))
-    }
-}
-
 struct ItemView: View {
+    @State private var isExpanded = false
+
     let item: Item
     let isLeftSide: Bool
     let scalingFactor: Double
     let contentOffset: Double
+
     private let hPadding = 60.0
-    @State private var isExpanded = false
 
     var yPosition: Double {
         item.depth * scalingFactor
     }
-    
+
     var xPosition: Double {
         isLeftSide ? hPadding : UIScreen.main.bounds.width - hPadding
     }
 
-    /// The item is visible when it's within ~300pts of the visible area
     var isVisible: Bool {
         let itemScreenY = yPosition - contentOffset + UIScreen.main.bounds.height / 3
         return itemScreenY > -300 && itemScreenY < UIScreen.main.bounds.height + 300
@@ -45,7 +28,7 @@ struct ItemView: View {
             if isExpanded, let description = item.description, !isLeftSide {
                 ItemDescription(text: description)
             }
-            
+
             VStack(spacing: 12) {
                 ZStack {
                     Circle()
@@ -73,7 +56,7 @@ struct ItemView: View {
                             .fill(.ultraThinMaterial)
                     }
             }
-            
+
             if isExpanded, let description = item.description, isLeftSide {
                 ItemDescription(text: description)
             }
@@ -86,6 +69,24 @@ struct ItemView: View {
         .position(x: xPosition, y: yPosition)
         .offset(x: isVisible ? 0 : (isLeftSide ? -200 : 200))
         .animation(.spring(response: 0.5, dampingFraction: 0.7), value: isVisible)
+    }
+}
+
+private struct ItemDescription: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .frame(width: 240)
+            .font(.subheadline)
+            .foregroundStyle(.white)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background {
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(.ultraThinMaterial)
+            }
+            .transition(.scale(scale: 0.8).combined(with: .opacity))
     }
 }
 
@@ -102,7 +103,7 @@ struct ItemView: View {
             scalingFactor: 1,
             contentOffset: 0
         )
-        
+
         ItemView(
             item: Item(
                 depth: 200,
