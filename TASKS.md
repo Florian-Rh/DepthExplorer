@@ -4,35 +4,26 @@
 
 ### Architecture
 
-- [ ] **Split ContentViewModel into focused components**
-  ContentViewModel currently handles diver control (position, tilt, smoothing), dive simulation (timer, depth history, saturation), UI state (gas mixture selection), and game constants — all in one class. Separate into distinct responsibilities:
-  - `DiverController` — joystick input, position smoothing, tilt, movement
-  - `DiveSession` — session lifecycle, survival factor tracking, timer, depth history
-  - `GameState` / `PlayerProfile` — persistent state (XP, currency, inventory, unlocks)
-  Decide on ownership model: single `@StateObject` that composes these, or independent objects passed through the environment.
+- [x] **Split ContentViewModel into focused components**
+  Split into `DiverController` (joystick input, position smoothing, tilt), `DiveSimulation` (timer, depth history, saturation), and `LevelViewModel` (thin coordinator). Renamed `ContentView` → `LevelView`.
 
-- [ ] **Define a game configuration data model**
-  Consolidate game parameters into structured, static definitions that a developer can easily adjust for balancing. Two categories:
-  - **Level definitions** (static per level): hard depth limit, available gear, depth scaling (px/m). Depth scaling is the key difficulty lever — it determines how much ocean fits on screen and thus how fast the player *appears* to move.
-  - **Gear/skill base values** (dynamic per player loadout): movement speed modifier, air consumption modifier, thermal resistance, risk thresholds. The actual movement speed in meters/second comes from gear and skills, not from the level.
-  Currently these are scattered as hardcoded values in ContentViewModel (`scalingFactor`, `maximumDepth`, etc.).
+- [x] **Define a game configuration data model**
+  Created `LevelDefinition` (depth limit, scaling factor, auto-surface) and `GameConstants` (movement, joystick, simulation tuning knobs) in `GameConfig.swift`. Wired into all consuming types.
 
-- [ ] **Define the Item/Collectible data model**
-  `Item` is currently a flat struct with `depth`, `name`, `image`, `description` and a static array of placeholder items. It needs to support:
-  - Distinct types: Knowledgeable Items (with category: species, oceanography, history, human impact) vs. Trash (with Sand Dollar value)
-  - Fixed depth placement based on real-world data
-  - Discovery state (discovered vs. redacted in glossary)
-  - Pickup interaction (proximity to diver triggers collection)
-  The existing `Item` TODO ("rename more appropriately") confirms this is known tech debt.
+- [x] **Define the Knowledgeable Item data model**
+  Replaced `Item` with `KnowledgeableItem` (category, fixed depth, name, image, description). Renamed `ItemView` → `KnowledgeableItemView`, removed tap/expand logic. Removed old `Item.swift`.
 
-- [ ] **Design the persistence layer**
-  Persistent player data (inventory, XP, level, unlocked gear, discovered Knowledgeables, currency) must survive across sessions. Session data (current dive state) is ephemeral. Choose and set up the storage approach (SwiftData, or plain Codable + file storage for simplicity). Define the persistent model types.
+- [x] **Define the Trash data model**
+  Created `TrashItem` with random depth placement and Sand Dollar value. Separate model from `KnowledgeableItem`.
 
-- [ ] **Remove `UIScreen.main` dependencies**
-  `ContentView`, `ContentViewModel`, `ItemView`, `DepthScale`, and `OceanView` all reference `UIScreen.main.bounds` directly. This breaks on iPad (split screen, Stage Manager) and makes previews unreliable. Pass screen/container dimensions through `GeometryReader` or environment values instead.
+- [x] **Design the persistence layer**
+  Codable + JSON file approach. Created `PlayerProfile` (sand dollars, XP, discovered items) and `ProfileStore` (load/save to documents directory, mutation methods). Session state remains ephemeral in memory.
 
-- [ ] **Extract JoystickScrollDriver from ContentView**
-  `JoystickScrollDriver` is a `CADisplayLink`-based class defined as a private class inside `ContentView.swift`. It mixes input handling (joystick deadzone, auto-surfacing) with frame-driven updates (smoothing). Extract it into its own file and clarify its role as the frame-update coordinator.
+- [x] **Remove `UIScreen.main` dependencies**
+  Added `screenSize` to `LevelViewModel`, fed from `GeometryReader` in `LevelView`. Passed to `KnowledgeableItemView` and `OceanView` as parameters. `DepthScale` uses its own internal `GeometryReader`. `JoystickScrollDriver` reads from `vm.screenSize`.
+
+- [x] **Extract JoystickScrollDriver from LevelView**
+  Extracted to `FrameUpdateDriver.swift` (renamed to reflect its broader role: diver smoothing + scroll offset). `LevelView` now references `FrameUpdateDriver` as `@State private var frameDriver`.
 
 ### Testing
 
@@ -68,19 +59,17 @@
 - [ ] **Implement barotrauma from ambient pressure**
   Hard-gated by level depth limit (player can't reach barotrauma depths without appropriate gear). Add as a safety net for edge cases.
 
-- [ ] **~~Implement hard depth limit per level~~** → moved to Phase 2
-
-- [ ] **Implement Knowledgeable Item pickup**
-  Detect proximity between diver and item. Trigger collection animation. Add to session inventory (committed on safe surface).
+- [ ] **Implement Knowledgeable Item discovery**
+  Detect proximity between diver and item. Trigger discovery animation/reveal. Mark as discovered in session state (committed to glossary on safe surfacing).
 
 - [ ] **Implement trash pickup and Sand Dollar reward**
-  Same proximity mechanic as Knowledgeables, but awards currency instead of XP.
+  Randomly place trash at varying depths each dive. Detect proximity, trigger pickup. Award Sand Dollars (committed on safe surfacing).
 
 - [ ] **Build the glossary view**
   Display all Knowledgeable Items: discovered ones with full content, undiscovered ones as redacted entries. Accessible from a menu/settings screen.
 
 - [ ] **Build the dive HUD**
-  Replace the current StatusPanel with an in-game HUD showing: depth, air remaining, dive time, active warnings. The StatusPanel is currently commented out in ContentView.
+  Replace the current StatusPanel with an in-game HUD showing: depth, air remaining, dive time, active warnings. The StatusPanel is currently commented out in LevelView.
 
 - [ ] **Implement session end flow**
   On safe surfacing: animate return, credit collected items and XP to persistent store, show summary. On rescue: play rescue animation, show what was lost, return to surface.
@@ -114,6 +103,9 @@
 ## Phase 3: Content and Polish
 
 ### Features
+
+- [ ] **Load Knowledgeable Items from a JSON file**
+  Move item definitions out of the compiled `KnowledgeableItem.allItems` array and into a bundled JSON resource. Add `Codable` conformance to `KnowledgeableItem` and `KnowledgeableCategory`. Load and decode at startup.
 
 - [ ] **Populate Knowledgeable Items**
   Research and write real-world content for all items across categories (species, oceanography, human history, human impact), placed at accurate depths.

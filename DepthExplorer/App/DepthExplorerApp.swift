@@ -11,7 +11,7 @@ import SwiftUI
 struct DepthExplorerApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            LevelView()
         }
     }
 }

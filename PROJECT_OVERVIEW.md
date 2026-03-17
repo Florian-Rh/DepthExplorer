@@ -33,17 +33,17 @@ Each dive is a **fresh run**. Items and XP collected during a dive are only cred
 
 ### Collectibles
 
-Along the way, the player can pick up trash and find **Knowledgeable Items**. These are real-world facts about interesting species, oceanography, the history of human ocean exploration, or the impact of humans on the health of the sea.
+There are two types of collectibles:
 
-Knowledgeable Items appear at **fixed depths** corresponding to real-world data. For example, "The deepest scuba dive ever performed" always appears at 332m (the actual record depth).
+**Knowledgeable Items** are real-world facts about interesting species, oceanography, the history of human ocean exploration, or the impact of humans on the health of the sea. They appear at **fixed depths** corresponding to real-world data (e.g., "The deepest scuba dive ever performed" always appears at 332m). Knowledgeables are not picked up — they are **discovered** when the diver reaches them. All discovered Knowledgeables can be found in a glossary, alongside "redacted" entries for yet-undiscovered items.
 
-Examples of Knowledgeable Items:
+Examples:
 - The deepest dive ever performed by a human in scuba gear at 332m (human history)
 - Brine pools (oceanography)
 - Mantis shrimp (species)
 - Coral bleaching (human impact)
 
-All collected Knowledgeables can be found in a glossary, alongside "redacted" entries for yet-undiscovered items.
+**Trash** is randomly placed at varying depths each dive. Trash is picked up by the diver on proximity and awards Sand Dollars. It has no image or description — it is a simple collectible with a varying currency value.
 
 ### Currency and Progression
 
@@ -152,6 +152,58 @@ The ocean is a single continuous environment rendered as a gradient that fades t
 ### Persistence
 
 Session-scoped state (current dive: air, depth, collected items) lives in memory and is discarded on rescue or quit. Persistent state (inventory, XP, unlocks, glossary) is stored across sessions using SwiftData or similar.
+
+## Code Style
+
+### Access Control
+
+Always use the lowest possible access control level:
+- A function used only within its own type is always `private`.
+- A property that is read externally but only written internally is always `private(set)`.
+- Properties that are never modified after initialization are always `let`, not `var`.
+
+### Type Member Ordering
+
+Members within a type are ordered as follows:
+
+1. **Subtypes and typealiases**
+2. **Stored properties** — wrapper properties (`@State`, `@Published`, etc.) are grouped together
+3. **Computed properties**
+4. **Functions** — initializers always come first
+5. **Protocol conformances** — properties and functions belonging to a protocol conformance are grouped at the end of the type, preceded by a `// MARK: - ProtocolName` comment
+
+Within each group, members are ordered by visibility (most visible first). `static` members are considered highest visibility, even if `private`.
+
+**Exceptions:**
+- In a SwiftUI `View`, the `body` property takes the position of an initializer: below other properties, but before other functions.
+- Members with a strict logical connection may be grouped together regardless of category.
+
+### Example
+
+```swift
+struct ExampleView: View {
+    // Stored properties (wrappers grouped)
+    @State private var isExpanded = false
+    @State private var offset: CGFloat = 0
+
+    let title: String
+    private let spacing: CGFloat = 8
+
+    // Computed properties
+    var subtitle: String { "Details for \(title)" }
+    private var isVisible: Bool { offset > 0 }
+
+    // body (takes initializer position in Views)
+    var body: some View { ... }
+
+    // Functions
+    func reset() { ... }
+    private func calculateLayout() { ... }
+
+    // MARK: - Hashable
+    func hash(into hasher: inout Hasher) { ... }
+}
+```
 
 ## Dependencies
 
