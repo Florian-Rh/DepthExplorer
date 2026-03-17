@@ -17,6 +17,7 @@ class LevelViewModel: ObservableObject {
         let totalDiveTimeBefore: Int
         let isDepthRecord: Bool
         let isTimeRecord: Bool
+        let experienceBreakdown: ExperienceBreakdown
     }
 
     /// Set when the diver is rescued; cleared after the overlay is dismissed.
@@ -109,6 +110,9 @@ class LevelViewModel: ObservableObject {
 
     /// Commit rewards and reset session after the dive complete overlay is dismissed.
     func dismissDiveComplete() {
+        if let breakdown = diveCompleteStats?.experienceBreakdown {
+            profileStore.addExperience(breakdown.totalXP)
+        }
         diveSession.commitRewards(to: profileStore)
         discoveredItemNames = profileStore.profile.discoveredItems
         diveSimulation.resetSimulationData()
@@ -171,11 +175,23 @@ class LevelViewModel: ObservableObject {
             maxDepthReached = 0
         }
 
-        // Detect safe surfacing → persist dive records, capture stats, show overlay
+        // Detect safe surfacing → persist dive records, compute XP, capture stats, show overlay
         if previousSessionState == .diving && currentState == .surfacedSafely {
             let diveTime = Int(Date().timeIntervalSince(diveSimulation.diveStart) * GameConstants.timeScale)
             let totalDivesBefore = profileStore.profile.totalDives
             let totalTimeBefore = profileStore.profile.totalDiveTimeSeconds
+            let isFirstDive = totalDivesBefore == 0
+
+            // Build XP input before updating records
+            let diveResult = DiveResult(
+                maxDepthMeters: maxDepthReached,
+                diveTimeSeconds: diveTime,
+                discoveredItems: diveSession.discoveredItemRecords,
+                previousRecordDepth: isFirstDive ? nil : profileStore.profile.recordMaxDepth,
+                previousRecordTime: isFirstDive ? nil : profileStore.profile.recordDiveTimeSeconds
+            )
+            let xpBreakdown = ExperienceCalculator().calculate(from: diveResult)
+
             let records = profileStore.recordCompletedDive(diveTimeSeconds: diveTime, maxDepth: maxDepthReached)
 
             diveCompleteStats = DiveCompleteStats(
@@ -186,7 +202,8 @@ class LevelViewModel: ObservableObject {
                 totalDivesBefore: totalDivesBefore,
                 totalDiveTimeBefore: totalTimeBefore,
                 isDepthRecord: records.newDepthRecord,
-                isTimeRecord: records.newTimeRecord
+                isTimeRecord: records.newTimeRecord,
+                experienceBreakdown: xpBreakdown
             )
             trashItems = []
         }
@@ -241,7 +258,7 @@ class LevelViewModel: ObservableObject {
                 hPadding: 60
             )
             guard distance(diverPos, itemPos) <= radius else { continue }
-            diveSession.discoverItem(named: item.name)
+            diveSession.discoverItem(named: item.name, atDepth: item.depth)
             profileStore.discoverItem(named: item.name)
             discoveredItemNames.insert(item.name)
         }
