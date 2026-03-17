@@ -56,9 +56,16 @@ struct LevelView: View {
 
             VStack {
                 Spacer()
-                HStack {
-                    Spacer()
-                    JoystickView { offset, angle in
+                DiveHUDView(
+                    depth: viewModel.currentDepth,
+                    diveTimeSeconds: viewModel.diveTimeSeconds,
+                    remainingBar: viewModel.diveSimulation.airSupply.remainingBar,
+                    tankCapacity: GameConstants.tankCapacity,
+                    ascentSpeed: viewModel.diveSimulation.ascentSpeed,
+                    bodyTemperature: viewModel.diveSimulation.thermalModel.bodyTemperature,
+                    warnings: viewModel.warningSystem.activeWarnings,
+                    isDiving: viewModel.diveSession.state == .diving,
+                    onJoystickChanged: { offset, angle in
                         viewModel.diverController.offsetTarget = offset
                         if let angle {
                             viewModel.diverController.tiltTarget = angle
@@ -66,8 +73,8 @@ struct LevelView: View {
                         viewModel.diverController.joystickVertical = offset.height / 50.0
                         viewModel.diverController.joystickHorizontal = offset.width / 50.0
                     }
-                }
-                .padding(.trailing, 24)
+                )
+                .padding(.horizontal, 16)
                 .padding(.bottom, 40)
             }
 

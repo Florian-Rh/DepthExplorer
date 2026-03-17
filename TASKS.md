@@ -68,7 +68,7 @@
 - [ ] **Build the glossary view**
   Display all Knowledgeable Items: discovered ones with full content, undiscovered ones as redacted entries. Accessible from a menu/settings screen.
 
-- [ ] **Build the dive HUD**
+- [x] **Build the dive HUD**
   Replace the current StatusPanel with an in-game HUD showing: depth, air remaining, dive time, active warnings. The StatusPanel is currently commented out in LevelView.
 
 - [ ] **Implement session end flow**

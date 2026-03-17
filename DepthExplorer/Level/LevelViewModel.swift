@@ -30,6 +30,13 @@ class LevelViewModel: ObservableObject {
         1.0 + (Double(currentDepth) / 10.0)
     }
 
+    /// Total dive time in simulated seconds since the current dive began.
+    /// Returns 0 when not actively diving.
+    var diveTimeSeconds: Int {
+        guard diveSession.state == .diving else { return 0 }
+        return Int(Date().timeIntervalSince(diveSimulation.diveStart) * GameConstants.timeScale)
+    }
+
     init(level: LevelDefinition = .default) {
         self.level = level
         diverController.objectWillChange
