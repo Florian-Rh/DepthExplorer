@@ -8,8 +8,21 @@ class LevelViewModel: ObservableObject {
         let lostSandDollars: Int
     }
 
+    struct DiveCompleteStats {
+        let diveTimeSeconds: Int
+        let maxDepth: Int
+        let sandDollarsCollected: Int
+        let itemsDiscovered: Int
+        let totalDivesBefore: Int
+        let totalDiveTimeBefore: Int
+        let isDepthRecord: Bool
+        let isTimeRecord: Bool
+    }
+
     /// Set when the diver is rescued; cleared after the overlay is dismissed.
     @Published var rescueInfo: RescueInfo?
+    /// Set when the diver surfaces safely; cleared after the overlay is dismissed.
+    @Published var diveCompleteStats: DiveCompleteStats?
     @Published var screenSize: CGSize = .zero
     @Published var trashItems: [TrashItem] = []
 
@@ -27,6 +40,7 @@ class LevelViewModel: ObservableObject {
 
     private var cancellables: Set<AnyCancellable> = []
     private var previousSessionState: DiveSessionState = .surface
+    private var maxDepthReached: Int = 0
 
     var scalingFactor: Double {
         level.scalingFactor
@@ -82,6 +96,14 @@ class LevelViewModel: ObservableObject {
         discoveredItemNames = []
     }
 
+    /// Commit rewards and reset session after the dive complete overlay is dismissed.
+    func dismissDiveComplete() {
+        diveSession.commitRewards(to: profileStore)
+        discoveredItemNames = profileStore.profile.discoveredItems
+        diveSimulation.resetSimulationData()
+        diveCompleteStats = nil
+    }
+
     /// Reset diver and session state back to surface. Called while the rescue overlay is still opaque.
     func resetToSurface() {
         diveSession.discard()
@@ -99,6 +121,9 @@ class LevelViewModel: ObservableObject {
             screenWidth: screenSize.width
         )
         diveSimulation.updateDepth(currentDepth)
+        if currentDepth > maxDepthReached {
+            maxDepthReached = currentDepth
+        }
         checkSessionTransitions()
         checkProximity()
         updateContentOffset()
@@ -129,15 +154,29 @@ class LevelViewModel: ObservableObject {
     private func checkSessionTransitions() {
         let currentState = diveSession.state
 
-        // Detect dive start → spawn trash
+        // Detect dive start → spawn trash, reset max depth
         if previousSessionState == .surface && currentState == .diving {
             trashItems = TrashItem.spawnForDive()
+            maxDepthReached = 0
         }
 
-        // Detect safe surfacing → commit rewards
+        // Detect safe surfacing → persist dive records, capture stats, show overlay
         if previousSessionState == .diving && currentState == .surfacedSafely {
-            diveSession.commitRewards(to: profileStore)
-            discoveredItemNames = profileStore.profile.discoveredItems
+            let diveTime = Int(Date().timeIntervalSince(diveSimulation.diveStart) * GameConstants.timeScale)
+            let totalDivesBefore = profileStore.profile.totalDives
+            let totalTimeBefore = profileStore.profile.totalDiveTimeSeconds
+            let records = profileStore.recordCompletedDive(diveTimeSeconds: diveTime, maxDepth: maxDepthReached)
+
+            diveCompleteStats = DiveCompleteStats(
+                diveTimeSeconds: diveTime,
+                maxDepth: maxDepthReached,
+                sandDollarsCollected: diveSession.collectedSandDollars,
+                itemsDiscovered: diveSession.discoveredItemNames.count,
+                totalDivesBefore: totalDivesBefore,
+                totalDiveTimeBefore: totalTimeBefore,
+                isDepthRecord: records.newDepthRecord,
+                isTimeRecord: records.newTimeRecord
+            )
             trashItems = []
         }
 

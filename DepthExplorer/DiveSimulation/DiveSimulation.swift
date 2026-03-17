@@ -137,7 +137,6 @@ class DiveSimulation: ObservableObject {
             if session.state == .diving {
                 session.completeDive()
                 warningSystem?.clearAll()
-                resetSimulationData()
             }
         }
     }

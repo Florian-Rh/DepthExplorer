@@ -157,6 +157,14 @@ struct LevelView: View {
 
                 Spacer()
             }
+            // Dive complete overlay — always in the tree, manages its own visibility
+            DiveCompleteOverlayView(
+                stats: $viewModel.diveCompleteStats,
+                onDismiss: {
+                    viewModel.dismissDiveComplete()
+                }
+            )
+
             // Rescue overlay — always in the tree, manages its own visibility
             RescueOverlayView(
                 rescueInfo: $viewModel.rescueInfo,

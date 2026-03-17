@@ -13,6 +13,18 @@ struct PlayerProfile: Codable {
     /// Uses `KnowledgeableItem.name` as the stable identifier.
     var discoveredItems: Set<String> = []
 
+    /// Total number of dives completed successfully.
+    var totalDives: Int = 0
+
+    /// Accumulated dive time across all successful dives, in simulated seconds.
+    var totalDiveTimeSeconds: Int = 0
+
+    /// Personal record: deepest depth reached in a successful dive, in meters.
+    var recordMaxDepth: Int = 0
+
+    /// Personal record: longest single dive, in simulated seconds.
+    var recordDiveTimeSeconds: Int = 0
+
     // TODO: Phase 2 — purchased gear inventory
     // TODO: Phase 2 — equipped loadout
     // TODO: Phase 2 — acquired skills

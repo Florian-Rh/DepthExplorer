@@ -59,7 +59,7 @@
 - [ ] **Implement barotrauma from ambient pressure**
   Hard-gated by level depth limit (player can't reach barotrauma depths without appropriate gear). Add as a safety net for edge cases.
 
-- [ ] **Implement Knowledgeable Item discovery**
+- [x] **Implement Knowledgeable Item discovery**
   Detect proximity between diver and item. Trigger discovery animation/reveal. Mark as discovered in session state (committed to glossary on safe surfacing).
 
 - [x] **Implement trash pickup and Sand Dollar reward**
@@ -71,7 +71,7 @@
 - [x] **Build the dive HUD**
   Replace the current StatusPanel with an in-game HUD showing: depth, air remaining, dive time, active warnings. The StatusPanel is currently commented out in LevelView.
 
-- [ ] **Implement session end flow**
+- [x] **Implement session end flow**
   On safe surfacing: animate return, credit collected items and XP to persistent store, show summary. On rescue: play rescue animation, show what was lost, return to surface.
 
 ---
