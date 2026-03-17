@@ -33,6 +33,10 @@ struct StatusPanel: View {
                     Text("Collected: \(session.collectedSandDollars) SD, \(session.discoveredItemNames.count) items")
                 }
 
+                let profile = viewModel.profileStore.profile
+                Text("Profile: \(profile.sandDollars) SD, \(profile.discoveredItems.count) discovered")
+                    .foregroundStyle(.cyan)
+
                 Divider().background(.white.opacity(0.3))
 
                 // MARK: - Dive Data

@@ -142,6 +142,24 @@ enum GameConstants {
     /// Body temperature (°C) at which the diver is rescued (fatal).
     static let hypothermiaFatalThreshold: Double = 34.0
 
+    // MARK: - Discovery & Collectibles
+
+    /// Pickup radius in screen points. The diver must be within this distance
+    /// (2D Euclidean, in points) of an item to discover or collect it.
+    /// Will be upgradeable through gear in Phase 2.
+    static let pickupRadius: CGFloat = 80
+
+    /// Number of trash items spawned at the start of each dive.
+    static let trashCountPerDive: Int = 10
+
+    /// Depth range (meters) in which trash is randomly placed.
+    static let trashMinDepth: Double = 5
+    static let trashMaxDepth: Double = 500
+
+    /// Sand Dollar value range for each trash item.
+    static let trashMinValue: Int = 1
+    static let trashMaxValue: Int = 5
+
     // MARK: - Gas Mixtures
 
     /// Available gas mixtures. Will eventually be determined by player inventory.

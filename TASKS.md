@@ -62,7 +62,7 @@
 - [ ] **Implement Knowledgeable Item discovery**
   Detect proximity between diver and item. Trigger discovery animation/reveal. Mark as discovered in session state (committed to glossary on safe surfacing).
 
-- [ ] **Implement trash pickup and Sand Dollar reward**
+- [x] **Implement trash pickup and Sand Dollar reward**
   Randomly place trash at varying depths each dive. Detect proximity, trigger pickup. Award Sand Dollars (committed on safe surfacing).
 
 - [ ] **Build the glossary view**

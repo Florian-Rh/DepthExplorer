@@ -2,9 +2,15 @@ import OpenSeasUI
 import SwiftUI
 
 struct LevelView: View {
-    @StateObject var viewModel = LevelViewModel()
+    @ObservedObject var profileStore: ProfileStore
+    @StateObject var viewModel: LevelViewModel
     @State private var frameDriver = FrameUpdateDriver()
     @State private var showDebugPanel = false
+
+    init(profileStore: ProfileStore) {
+        self.profileStore = profileStore
+        _viewModel = StateObject(wrappedValue: LevelViewModel(profileStore: profileStore))
+    }
 
     var body: some View {
         ZStack {
@@ -27,6 +33,18 @@ struct LevelView: View {
                         KnowledgeableItemView(
                             item: item,
                             isLeftSide: index.isMultiple(of: 2),
+                            scalingFactor: viewModel.scalingFactor,
+                            contentOffset: viewModel.contentOffset,
+                            screenSize: screenSize,
+                            isDiscovered: viewModel.discoveredItemNames.contains(item.name)
+                        )
+                        .offset(y: 50)
+                    }
+                    .offset(y: screenSize.height / 3)
+
+                    ForEach(viewModel.trashItems) { item in
+                        TrashItemView(
+                            item: item,
                             scalingFactor: viewModel.scalingFactor,
                             contentOffset: viewModel.contentOffset,
                             screenSize: screenSize
@@ -119,5 +137,5 @@ struct LevelView: View {
 }
 
 #Preview {
-    LevelView()
+    LevelView(profileStore: ProfileStore())
 }

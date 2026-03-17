@@ -1,17 +1,12 @@
-//
-//  DepthExplorerApp.swift
-//  DepthExplorer
-//
-//  Created by Florian Rhein on 11.06.25.
-//
-
 import SwiftUI
 
 @main
 struct DepthExplorerApp: App {
+    @StateObject private var profileStore = ProfileStore()
+
     var body: some Scene {
         WindowGroup {
-            LevelView()
+            LevelView(profileStore: profileStore)
         }
     }
 }
