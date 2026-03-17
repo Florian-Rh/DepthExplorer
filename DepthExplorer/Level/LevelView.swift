@@ -80,10 +80,10 @@ struct LevelView: View {
                 DiveHUDView(
                     depth: viewModel.currentDepth,
                     diveTimeSeconds: viewModel.diveTimeSeconds,
-                    remainingBar: viewModel.diveSimulation.airSupply.remainingBar,
+                    remainingBar: viewModel.diveSimulation.vitals.remainingBar ?? GameConstants.tankCapacity,
                     tankCapacity: GameConstants.tankCapacity,
-                    ascentSpeed: viewModel.diveSimulation.ascentSpeed,
-                    bodyTemperature: viewModel.diveSimulation.thermalModel.bodyTemperature,
+                    ascentSpeed: viewModel.diveSimulation.vitals.ascentSpeed ?? 0,
+                    bodyTemperature: viewModel.diveSimulation.vitals.bodyTemperature ?? GameConstants.normalBodyTemperature,
                     warnings: viewModel.warningSystem.activeWarnings,
                     isDiving: viewModel.diveSession.state == .diving,
                     onJoystickChanged: { offset, angle in

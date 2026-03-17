@@ -32,7 +32,7 @@ class LevelViewModel: ObservableObject {
 
 
     let diverController = DiverController()
-    let diveSimulation = DiveSimulation()
+    let diveSimulation: DiveSimulation
     let diveSession = DiveSession()
     let warningSystem = DiveWarningSystem()
     let level: LevelDefinition
@@ -65,9 +65,20 @@ class LevelViewModel: ObservableObject {
         return Int(Date().timeIntervalSince(diveSimulation.diveStart) * GameConstants.timeScale)
     }
 
-    init(level: LevelDefinition = .default, profileStore: ProfileStore = ProfileStore()) {
+    init(
+        level: LevelDefinition = .default,
+        profileStore: ProfileStore = ProfileStore(),
+        limitationModels: [any DiveLimitationModel]? = nil
+    ) {
         self.level = level
         self.profileStore = profileStore
+        self.diveSimulation = DiveSimulation(
+            limitationModels: limitationModels ?? [
+                AirSupplyModel(),
+                ThermalModel(),
+                DecompressionModel(),
+            ]
+        )
         discoveredItemNames = profileStore.profile.discoveredItems
         diverController.objectWillChange
             .sink { [weak self] in self?.objectWillChange.send() }

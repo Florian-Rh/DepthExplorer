@@ -6,7 +6,7 @@ import Foundation
 /// The diver's body temperature drops over time proportionally to the temperature
 /// difference between the body and the water. Gear (dry suit) will provide a
 /// protection factor in Phase 2.
-class ThermalModel: ObservableObject {
+class ThermalModel: ObservableObject, DiveLimitationModel {
     @Published private(set) var bodyTemperature: Double
 
     /// Normal body temperature in °C.
@@ -26,12 +26,27 @@ class ThermalModel: ObservableObject {
         return max(minimum, cooled)
     }
 
+    func tick(context: DiveTickContext, warningSystem: DiveWarningSystem) -> DiveLimitationResult {
+        update(simulatedSeconds: context.simulatedSeconds, depthMeters: context.depthMeters)
+        return evaluateWarnings(warningSystem: warningSystem)
+    }
+
+    func updateVitals(_ vitals: inout DiveVitals) {
+        vitals.bodyTemperature = bodyTemperature
+    }
+
+    func reset() {
+        bodyTemperature = normalTemperature
+    }
+
+    // MARK: - Private
+
     /// Update body temperature for this tick.
     /// - Parameters:
     ///   - simulatedSeconds: Number of simulated seconds elapsed this tick.
     ///   - depthMeters: Current depth in meters.
     ///   - protectionFactor: Thermal protection from gear (0 = none, 1 = full insulation). Phase 2.
-    func update(simulatedSeconds: Int, depthMeters: Int, protectionFactor: Double = 0) {
+    private func update(simulatedSeconds: Int, depthMeters: Int, protectionFactor: Double = 0) {
         let waterTemp = Self.waterTemperature(atDepth: depthMeters)
         let difference = bodyTemperature - waterTemp // positive when body is warmer than water
 
@@ -44,13 +59,14 @@ class ThermalModel: ObservableObject {
     }
 
     /// Evaluate current body temperature and update the warning system accordingly.
-    func evaluateWarnings(warningSystem: DiveWarningSystem) {
+    private func evaluateWarnings(warningSystem: DiveWarningSystem) -> DiveLimitationResult {
         if bodyTemperature <= GameConstants.hypothermiaFatalThreshold {
             warningSystem.set(DiveWarning(
                 kind: .thermal,
                 severity: .fatal,
                 message: "Severe hypothermia! (\(String(format: "%.1f", bodyTemperature))°C)"
             ))
+            return .rescue("Hypothermia")
         } else if bodyTemperature <= GameConstants.hypothermiaCriticalThreshold {
             warningSystem.set(DiveWarning(
                 kind: .thermal,
@@ -66,10 +82,6 @@ class ThermalModel: ObservableObject {
         } else {
             warningSystem.clear(.thermal)
         }
-    }
-
-    /// Reset to normal body temperature for a new dive.
-    func reset() {
-        bodyTemperature = normalTemperature
+        return .ok
     }
 }

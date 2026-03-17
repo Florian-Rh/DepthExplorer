@@ -1,0 +1,71 @@
+import Foundation
+
+/// Models decompression sickness (DCS) risk based on ascent speed.
+///
+/// Tracks a smoothed ascent speed and compares it against a safe threshold.
+/// Ascending too quickly triggers escalating warnings and ultimately a rescue.
+class DecompressionModel: ObservableObject, DiveLimitationModel {
+    /// Smoothed ascent speed in meters per real second. Positive = ascending.
+    @Published private(set) var ascentSpeed: Double = 0
+
+    func tick(context: DiveTickContext, warningSystem: DiveWarningSystem) -> DiveLimitationResult {
+        updateAscentSpeed(instantaneousSpeed: context.instantaneousAscentSpeed)
+
+        if ascentSpeed > 0 {
+            return evaluateWarning(warningSystem: warningSystem)
+        } else {
+            warningSystem.clear(.decompression)
+            return .ok
+        }
+    }
+
+    func updateVitals(_ vitals: inout DiveVitals) {
+        vitals.ascentSpeed = ascentSpeed
+    }
+
+    func reset() {
+        ascentSpeed = 0
+    }
+
+    // MARK: - Private
+
+    private func updateAscentSpeed(instantaneousSpeed: Double) {
+        if instantaneousSpeed > 0 {
+            // Ascending: blend toward instantaneous speed
+            ascentSpeed += (instantaneousSpeed - ascentSpeed) * GameConstants.ascentSpeedBuildupRate
+        } else {
+            // Stopped or descending: decay toward 0
+            ascentSpeed *= (1.0 - GameConstants.ascentSpeedDecayRate)
+            if ascentSpeed < 0.5 { ascentSpeed = 0 }
+        }
+    }
+
+    private func evaluateWarning(warningSystem: DiveWarningSystem) -> DiveLimitationResult {
+        let safeSpeed = GameConstants.safeAscentSpeed
+        let ratio = ascentSpeed / safeSpeed
+
+        if ratio >= GameConstants.dcsFatalFraction {
+            warningSystem.set(DiveWarning(
+                kind: .decompression,
+                severity: .fatal,
+                message: "Ascending way too fast! (\(String(format: "%.1f", ascentSpeed)) m/s)"
+            ))
+            return .rescue("Decompression sickness")
+        } else if ratio >= GameConstants.dcsCriticalFraction {
+            warningSystem.set(DiveWarning(
+                kind: .decompression,
+                severity: .critical,
+                message: "Ascending too fast! (\(String(format: "%.1f", ascentSpeed)) m/s)"
+            ))
+        } else if ratio >= GameConstants.dcsWarningFraction {
+            warningSystem.set(DiveWarning(
+                kind: .decompression,
+                severity: .caution,
+                message: "Slow your ascent (\(String(format: "%.1f", ascentSpeed)) m/s)"
+            ))
+        } else {
+            warningSystem.clear(.decompression)
+        }
+        return .ok
+    }
+}

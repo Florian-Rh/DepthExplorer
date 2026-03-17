@@ -3,7 +3,7 @@ import Foundation
 /// Tracks the diver's remaining air supply in bar.
 /// Consumption increases with depth following Boyle's law:
 /// actual consumption = SAC rate × ambient pressure.
-class AirSupply: ObservableObject {
+class AirSupplyModel: ObservableObject, DiveLimitationModel {
     @Published private(set) var remainingBar: Double
 
     private let capacity: Double
@@ -18,11 +18,24 @@ class AirSupply: ObservableObject {
         remainingBar / capacity
     }
 
+    func tick(context: DiveTickContext, warningSystem: DiveWarningSystem) -> DiveLimitationResult {
+        consume(simulatedSeconds: context.simulatedSeconds, depthMeters: context.depthMeters)
+        return evaluateWarnings(warningSystem: warningSystem)
+    }
+
+    func updateVitals(_ vitals: inout DiveVitals) {
+        vitals.remainingBar = remainingBar
+        vitals.airFraction = fraction
+    }
+
+    func reset() {
+        remainingBar = capacity
+    }
+
+    // MARK: - Private
+
     /// Consume air for a given simulated time increment at the specified depth.
-    /// - Parameters:
-    ///   - simulatedSeconds: Number of simulated seconds elapsed this tick.
-    ///   - depthMeters: Current depth in meters.
-    func consume(simulatedSeconds: Int, depthMeters: Int) {
+    private func consume(simulatedSeconds: Int, depthMeters: Int) {
         let ambientPressure = 1.0 + Double(depthMeters) / 10.0
         let consumptionPerMinute = GameConstants.sacRate * ambientPressure
         let consumed = consumptionPerMinute * (Double(simulatedSeconds) / 60.0)
@@ -30,13 +43,14 @@ class AirSupply: ObservableObject {
     }
 
     /// Evaluate current air level and update the warning system accordingly.
-    func evaluateWarnings(warningSystem: DiveWarningSystem) {
+    private func evaluateWarnings(warningSystem: DiveWarningSystem) -> DiveLimitationResult {
         if remainingBar <= 0 {
             warningSystem.set(DiveWarning(
                 kind: .airSupply,
                 severity: .fatal,
                 message: "Out of air!"
             ))
+            return .rescue("Out of air")
         } else if remainingBar <= GameConstants.airCriticalThreshold {
             warningSystem.set(DiveWarning(
                 kind: .airSupply,
@@ -52,10 +66,6 @@ class AirSupply: ObservableObject {
         } else {
             warningSystem.clear(.airSupply)
         }
-    }
-
-    /// Reset to full capacity for a new dive.
-    func refill() {
-        remainingBar = capacity
+        return .ok
     }
 }

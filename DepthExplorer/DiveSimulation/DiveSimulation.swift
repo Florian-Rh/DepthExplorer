@@ -4,17 +4,25 @@ import Foundation
 /// Manages the dive simulation: timer, depth history, tissue saturation, and physics tick.
 /// Runs on a repeating Timer and receives the current depth from the view model each tick.
 /// Lifecycle transitions (begin dive, surface, rescue) are delegated to `DiveSession`.
+///
+/// Limitation models (air supply, thermal, decompression, etc.) are evaluated generically
+/// via the `DiveLimitationModel` protocol. Pass whichever models are appropriate for the
+/// current equipment when constructing the simulation.
 class DiveSimulation: ObservableObject {
     @Published var selectedMixture: GasMixture = .air
     @Published private(set) var diveStart: Date = Date()
     @Published private(set) var timeAtCurrentDepth: Double = 0
     @Published private(set) var saturation: TissueSaturationModel = HaldaneTissueSaturation(halfTime: 60, nitrogenPressure: 0.79)
     @Published private(set) var depthHistory: [(depth: Int, seconds: Int, mixture: GasMixture)] = []
-    /// Current ascent speed in meters per real second. Positive = ascending.
-    @Published private(set) var ascentSpeed: Double = 0
 
-    let airSupply = AirSupply()
-    let thermalModel = ThermalModel()
+    /// Aggregated HUD-visible readings from all active limitation models.
+    /// Updated every tick after all models have been evaluated.
+    @Published private(set) var vitals = DiveVitals()
+
+    // MARK: - Limitation models
+
+    /// The active limitation models, evaluated each tick in order.
+    let limitationModels: [any DiveLimitationModel]
 
     private var timer: Timer?
     private var cancellables: Set<AnyCancellable> = []
@@ -23,13 +31,11 @@ class DiveSimulation: ObservableObject {
     private weak var session: DiveSession?
     private weak var warningSystem: DiveWarningSystem?
 
-    init() {
-        airSupply.objectWillChange
-            .sink { [weak self] in self?.objectWillChange.send() }
-            .store(in: &cancellables)
-        thermalModel.objectWillChange
-            .sink { [weak self] in self?.objectWillChange.send() }
-            .store(in: &cancellables)
+    init(limitationModels: [any DiveLimitationModel]) {
+        self.limitationModels = limitationModels
+        for model in limitationModels {
+            forwardChanges(from: model)
+        }
     }
 
     func start(session: DiveSession, warningSystem: DiveWarningSystem) {
@@ -49,15 +55,32 @@ class DiveSimulation: ObservableObject {
     func resetSimulationData() {
         diveStart = Date()
         timeAtCurrentDepth = 0
-        ascentSpeed = 0
         previousDepth = 0
-        airSupply.refill()
-        thermalModel.reset()
+        for model in limitationModels {
+            model.reset()
+        }
+        rebuildVitals()
     }
 
     /// Called by the view model to keep the simulation in sync with the current depth.
     func updateDepth(_ depth: Int) {
         currentDepth = depth
+    }
+
+    // MARK: - Private
+
+    private func forwardChanges(from model: some DiveLimitationModel) {
+        model.objectWillChange
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+    }
+
+    private func rebuildVitals() {
+        var snapshot = DiveVitals()
+        for model in limitationModels {
+            model.updateVitals(&snapshot)
+        }
+        vitals = snapshot
     }
 
     private func tick() {
@@ -89,84 +112,39 @@ class DiveSimulation: ObservableObject {
                     }
                 }
 
-                // Air consumption
-                airSupply.consume(simulatedSeconds: timeIncrement, depthMeters: currentDepth)
-                if let warningSystem {
-                    airSupply.evaluateWarnings(warningSystem: warningSystem)
-                }
-                if airSupply.remainingBar <= 0 {
-                    session.rescue(reason: "Out of air")
-                    warningSystem?.clearAll()
-                    return
-                }
-
-                // Thermal exposure
-                thermalModel.update(simulatedSeconds: timeIncrement, depthMeters: currentDepth)
-                if let warningSystem {
-                    thermalModel.evaluateWarnings(warningSystem: warningSystem)
-                }
-                if thermalModel.bodyTemperature <= GameConstants.hypothermiaFatalThreshold {
-                    session.rescue(reason: "Hypothermia")
-                    warningSystem?.clearAll()
-                    return
-                }
-
-                // Ascent speed & DCS risk (smoothed)
+                // Compute instantaneous ascent speed for this tick.
                 // Measured in m/s of real time — how fast the diver is physically moving
                 // on screen. Compared against a game-tuned safe speed, not a real-world one.
                 let depthChange = Double(previousDepth - currentDepth) // positive = ascending
-                let instantaneousSpeed = depthChange / GameConstants.simulationInterval // m/s real time
+                let instantaneousSpeed = depthChange / GameConstants.simulationInterval
                 previousDepth = currentDepth
 
-                if instantaneousSpeed > 0 {
-                    // Ascending: blend toward instantaneous speed
-                    ascentSpeed += (instantaneousSpeed - ascentSpeed) * GameConstants.ascentSpeedBuildupRate
-                } else {
-                    // Stopped or descending: decay toward 0
-                    ascentSpeed *= (1.0 - GameConstants.ascentSpeedDecayRate)
-                    if ascentSpeed < 0.5 { ascentSpeed = 0 }
+                let context = DiveTickContext(
+                    simulatedSeconds: timeIncrement,
+                    depthMeters: currentDepth,
+                    instantaneousAscentSpeed: instantaneousSpeed
+                )
+
+                // Evaluate all limitation models.
+                if let warningSystem {
+                    for model in limitationModels {
+                        let result = model.tick(context: context, warningSystem: warningSystem)
+                        if let reason = result.rescueReason {
+                            session.rescue(reason: reason)
+                            warningSystem.clearAll()
+                            rebuildVitals()
+                            return
+                        }
+                    }
                 }
 
-                if ascentSpeed > 0 {
-                    evaluateDCSWarning()
-                } else {
-                    warningSystem?.clear(.decompression)
-                }
+                rebuildVitals()
             }
         } else if currentDepth == 0 {
             if session.state == .diving {
                 session.completeDive()
                 warningSystem?.clearAll()
             }
-        }
-    }
-
-    private func evaluateDCSWarning() {
-        let safeSpeed = GameConstants.safeAscentSpeed
-        let ratio = ascentSpeed / safeSpeed
-
-        if ratio >= GameConstants.dcsFatalFraction {
-            warningSystem?.set(DiveWarning(
-                kind: .decompression,
-                severity: .fatal,
-                message: "Ascending way too fast! (\(String(format: "%.1f", ascentSpeed)) m/s)"
-            ))
-            session?.rescue(reason: "Decompression sickness")
-            warningSystem?.clearAll()
-        } else if ratio >= GameConstants.dcsCriticalFraction {
-            warningSystem?.set(DiveWarning(
-                kind: .decompression,
-                severity: .critical,
-                message: "Ascending too fast! (\(String(format: "%.1f", ascentSpeed)) m/s)"
-            ))
-        } else if ratio >= GameConstants.dcsWarningFraction {
-            warningSystem?.set(DiveWarning(
-                kind: .decompression,
-                severity: .caution,
-                message: "Slow your ascent (\(String(format: "%.1f", ascentSpeed)) m/s)"
-            ))
-        } else {
-            warningSystem?.clear(.decompression)
         }
     }
 }
