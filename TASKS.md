@@ -65,7 +65,7 @@
 - [x] **Implement trash pickup and Sand Dollar reward**
   Randomly place trash at varying depths each dive. Detect proximity, trigger pickup. Award Sand Dollars (committed on safe surfacing).
 
-- [ ] **Build the glossary view**
+- [x] **Build the glossary view**
   Display all Knowledgeable Items: discovered ones with full content, undiscovered ones as redacted entries. Accessible from a menu/settings screen.
 
 - [x] **Build the dive HUD**

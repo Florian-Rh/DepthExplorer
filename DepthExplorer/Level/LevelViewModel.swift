@@ -3,11 +3,20 @@ import SwiftUI
 import Combine
 
 class LevelViewModel: ObservableObject {
-    @Published var contentOffset: CGFloat = 0
+    struct RescueInfo {
+        let reason: String
+        let lostSandDollars: Int
+    }
+
+    /// Set when the diver is rescued; cleared after the overlay is dismissed.
+    @Published var rescueInfo: RescueInfo?
     @Published var screenSize: CGSize = .zero
     @Published var trashItems: [TrashItem] = []
+
     /// Names of items discovered this session or previously (for UI display).
     @Published private(set) var discoveredItemNames: Set<String> = []
+    @Published private(set) var contentOffset: CGFloat = 0
+
 
     let diverController = DiverController()
     let diveSimulation = DiveSimulation()
@@ -68,6 +77,20 @@ class LevelViewModel: ObservableObject {
         diveSimulation.stop()
     }
 
+    func resetProfile() {
+        profileStore.resetProfile()
+        discoveredItemNames = []
+    }
+
+    /// Reset diver and session state back to surface. Called while the rescue overlay is still opaque.
+    func resetToSurface() {
+        diveSession.discard()
+        warningSystem.clearAll()
+        diveSimulation.resetSimulationData()
+        contentOffset = 0
+        diverController.reset()
+    }
+
     /// Called every display frame by the scroll driver.
     func update() {
         diverController.updateSmoothing(
@@ -78,6 +101,27 @@ class LevelViewModel: ObservableObject {
         diveSimulation.updateDepth(currentDepth)
         checkSessionTransitions()
         checkProximity()
+        updateContentOffset()
+    }
+
+    // MARK: - Screen control
+
+    private func updateContentOffset() {
+        guard diveSession.state == .diving || diveSession.state == .surface else { return }
+
+        let vertical = diverController.joystickVertical
+
+        // Auto-surface when ascending near the surface
+        if currentDepth < level.autoSurfaceDepth && currentDepth > 0 && vertical <= 0 {
+            contentOffset = max(0, contentOffset - level.autoSurfaceSpeed)
+            return
+        }
+
+        guard abs(vertical) > GameConstants.joystickDeadzone else { return }
+
+        let delta = vertical * GameConstants.scrollSpeed
+        let newOffset = max(0, min(contentOffset + delta, maximumDepthInPixels))
+        contentOffset = newOffset
     }
 
     // MARK: - Session lifecycle
@@ -97,8 +141,12 @@ class LevelViewModel: ObservableObject {
             trashItems = []
         }
 
-        // Detect rescue → clear trash
-        if case .rescued = currentState, previousSessionState == .diving {
+        // Detect rescue → show overlay, clear trash
+        if case .rescued(let reason) = currentState, previousSessionState == .diving {
+            rescueInfo = RescueInfo(
+                reason: reason,
+                lostSandDollars: diveSession.collectedSandDollars
+            )
             trashItems = []
         }
 
@@ -144,6 +192,7 @@ class LevelViewModel: ObservableObject {
             )
             guard distance(diverPos, itemPos) <= radius else { continue }
             diveSession.discoverItem(named: item.name)
+            profileStore.discoverItem(named: item.name)
             discoveredItemNames.insert(item.name)
         }
 

@@ -6,6 +6,7 @@ struct LevelView: View {
     @StateObject var viewModel: LevelViewModel
     @State private var frameDriver = FrameUpdateDriver()
     @State private var showDebugPanel = false
+    @State private var showGlossary = false
 
     init(profileStore: ProfileStore) {
         self.profileStore = profileStore
@@ -30,15 +31,17 @@ struct LevelView: View {
                         Array(KnowledgeableItem.allItems.enumerated()),
                         id: \.element.id
                     ) { index, item in
-                        KnowledgeableItemView(
-                            item: item,
-                            isLeftSide: index.isMultiple(of: 2),
-                            scalingFactor: viewModel.scalingFactor,
-                            contentOffset: viewModel.contentOffset,
-                            screenSize: screenSize,
-                            isDiscovered: viewModel.discoveredItemNames.contains(item.name)
-                        )
-                        .offset(y: 50)
+                        if !viewModel.discoveredItemNames.contains(item.name) {
+                            KnowledgeableItemView(
+                                item: item,
+                                isLeftSide: index.isMultiple(of: 2),
+                                scalingFactor: viewModel.scalingFactor,
+                                contentOffset: viewModel.contentOffset,
+                                screenSize: screenSize,
+                                isDiscovered: false
+                            )
+                            .offset(y: 50)
+                        }
                     }
                     .offset(y: screenSize.height / 3)
 
@@ -112,7 +115,39 @@ struct LevelView: View {
                     }
                     .padding(.leading, 12)
                     .padding(.top, 60)
+
                     Spacer()
+
+                    // Sand Dollar balance — will double as gear shop button later
+                    HStack(spacing: 5) {
+                        Image(systemName: "dollarsign.circle.fill")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.yellow)
+                        Text("\(profileStore.profile.sandDollars)")
+                            .font(.system(size: 16, weight: .bold, design: .monospaced))
+                            .foregroundStyle(.white)
+                            .monospacedDigit()
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .overlay(Capsule().strokeBorder(Color.white.opacity(0.18), lineWidth: 1))
+                    .padding(.top, 60)
+
+                    Spacer()
+
+                    Button {
+                        showGlossary = true
+                    } label: {
+                        Image(systemName: showGlossary ? "book" : "book.closed")
+                            .font(.title2)
+                            .foregroundStyle(.white)
+                            .padding(10)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
+                    }
+                    .padding(.trailing, 12)
+                    .padding(.top, 60)
                 }
 
                 if showDebugPanel {
@@ -122,6 +157,13 @@ struct LevelView: View {
 
                 Spacer()
             }
+            // Rescue overlay — always in the tree, manages its own visibility
+            RescueOverlayView(
+                rescueInfo: $viewModel.rescueInfo,
+                onResetPosition: {
+                    viewModel.resetToSurface()
+                }
+            )
         }
         .clipped()
         .ignoresSafeArea()
@@ -132,6 +174,9 @@ struct LevelView: View {
         .onDisappear {
             viewModel.stopSimulation()
             frameDriver.stop()
+        }
+        .sheet(isPresented: $showGlossary) {
+            GlossaryView(discoveredItems: viewModel.discoveredItemNames)
         }
     }
 }

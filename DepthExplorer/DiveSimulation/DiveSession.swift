@@ -52,11 +52,10 @@ class DiveSession: ObservableObject {
     }
 
     /// Commit session rewards to the persistent profile and reset for the next dive.
+    /// Note: Discovered items are committed immediately on discovery (knowledge persists
+    /// even after rescue). Only Sand Dollars require safe surfacing.
     func commitRewards(to store: ProfileStore) {
         guard state == .surfacedSafely else { return }
-        for name in discoveredItemNames {
-            store.discoverItem(named: name)
-        }
         if collectedSandDollars > 0 {
             store.addSandDollars(collectedSandDollars)
         }

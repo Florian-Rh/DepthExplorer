@@ -19,29 +19,6 @@ class FrameUpdateDriver {
     }
 
     @objc private func tick() {
-        guard let vm = viewModel else { return }
-
-        vm.update()
-
-        // On rescue, snap the diver back to the surface.
-        // TODO: Phase 3 — replace with a rescue animation.
-        if case .rescued = vm.diveSession.state {
-            vm.contentOffset = 0
-            return
-        }
-
-        let vertical = vm.diverController.joystickVertical
-
-        // Auto-surface when ascending near the surface
-        if vm.currentDepth < vm.level.autoSurfaceDepth && vm.currentDepth > 0 && vertical <= 0 {
-            vm.contentOffset = max(0, vm.contentOffset - vm.level.autoSurfaceSpeed)
-            return
-        }
-
-        guard abs(vertical) > GameConstants.joystickDeadzone else { return }
-
-        let delta = vertical * GameConstants.scrollSpeed
-        let newOffset = max(0, min(vm.contentOffset + delta, vm.maximumDepthInPixels))
-        vm.contentOffset = newOffset
+        viewModel?.update()
     }
 }

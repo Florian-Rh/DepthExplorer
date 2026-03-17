@@ -46,6 +46,15 @@ class DiveSimulation: ObservableObject {
         timer = nil
     }
 
+    func resetSimulationData() {
+        diveStart = Date()
+        timeAtCurrentDepth = 0
+        ascentSpeed = 0
+        previousDepth = 0
+        airSupply.refill()
+        thermalModel.reset()
+    }
+
     /// Called by the view model to keep the simulation in sync with the current depth.
     func updateDepth(_ depth: Int) {
         currentDepth = depth
@@ -88,7 +97,6 @@ class DiveSimulation: ObservableObject {
                 if airSupply.remainingBar <= 0 {
                     session.rescue(reason: "Out of air")
                     warningSystem?.clearAll()
-                    resetSimulationData()
                     return
                 }
 
@@ -100,7 +108,6 @@ class DiveSimulation: ObservableObject {
                 if thermalModel.bodyTemperature <= GameConstants.hypothermiaFatalThreshold {
                     session.rescue(reason: "Hypothermia")
                     warningSystem?.clearAll()
-                    resetSimulationData()
                     return
                 }
 
@@ -131,10 +138,6 @@ class DiveSimulation: ObservableObject {
                 session.completeDive()
                 warningSystem?.clearAll()
                 resetSimulationData()
-            } else if session.state != .surface {
-                // Auto-reset terminal states (surfacedSafely, rescued) so a new dive can begin.
-                // TODO: Phase 1 — replace with explicit session end flow UI.
-                session.discard()
             }
         }
     }
@@ -151,7 +154,6 @@ class DiveSimulation: ObservableObject {
             ))
             session?.rescue(reason: "Decompression sickness")
             warningSystem?.clearAll()
-            resetSimulationData()
         } else if ratio >= GameConstants.dcsCriticalFraction {
             warningSystem?.set(DiveWarning(
                 kind: .decompression,
@@ -167,14 +169,5 @@ class DiveSimulation: ObservableObject {
         } else {
             warningSystem?.clear(.decompression)
         }
-    }
-
-    private func resetSimulationData() {
-        diveStart = Date()
-        timeAtCurrentDepth = 0
-        ascentSpeed = 0
-        previousDepth = 0
-        airSupply.refill()
-        thermalModel.reset()
     }
 }

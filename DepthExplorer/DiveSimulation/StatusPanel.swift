@@ -34,8 +34,16 @@ struct StatusPanel: View {
                 }
 
                 let profile = viewModel.profileStore.profile
-                Text("Profile: \(profile.sandDollars) SD, \(profile.discoveredItems.count) discovered")
-                    .foregroundStyle(.cyan)
+                HStack {
+                    Text("Profile: \(profile.sandDollars) SD, \(profile.discoveredItems.count) discovered")
+                        .foregroundStyle(.cyan)
+                    Spacer()
+                    Button("Reset") {
+                        viewModel.resetProfile()
+                    }
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.red)
+                }
 
                 Divider().background(.white.opacity(0.3))
 
