@@ -7,6 +7,12 @@ import Foundation
 class DecompressionModel: ObservableObject, DiveLimitationModel {
     /// Smoothed ascent speed in meters per real second. Positive = ascending.
     @Published private(set) var ascentSpeed: Double = 0
+    /// Warning threshold tolerance (1.0 = default, >1.0 = thresholds shift up, more tolerant).
+    private let warningTolerance: Double
+
+    init(warningTolerance: Double = 1.0) {
+        self.warningTolerance = warningTolerance
+    }
 
     func tick(context: DiveTickContext, warningSystem: DiveWarningSystem) -> DiveLimitationResult {
         updateAscentSpeed(instantaneousSpeed: context.instantaneousAscentSpeed)
@@ -44,20 +50,21 @@ class DecompressionModel: ObservableObject, DiveLimitationModel {
         let safeSpeed = GameConstants.safeAscentSpeed
         let ratio = ascentSpeed / safeSpeed
 
-        if ratio >= GameConstants.dcsFatalFraction {
+        // Tolerance > 1 multiplies the fraction thresholds, requiring higher speed to trigger.
+        if ratio >= GameConstants.dcsFatalFraction * warningTolerance {
             warningSystem.set(DiveWarning(
                 kind: .decompression,
                 severity: .fatal,
                 message: "Ascending way too fast! (\(String(format: "%.1f", ascentSpeed)) m/s)"
             ))
             return .rescue("Decompression sickness")
-        } else if ratio >= GameConstants.dcsCriticalFraction {
+        } else if ratio >= GameConstants.dcsCriticalFraction * warningTolerance {
             warningSystem.set(DiveWarning(
                 kind: .decompression,
                 severity: .critical,
                 message: "Ascending too fast! (\(String(format: "%.1f", ascentSpeed)) m/s)"
             ))
-        } else if ratio >= GameConstants.dcsWarningFraction {
+        } else if ratio >= GameConstants.dcsWarningFraction * warningTolerance {
             warningSystem.set(DiveWarning(
                 kind: .decompression,
                 severity: .caution,

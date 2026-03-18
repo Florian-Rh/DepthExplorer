@@ -1,10 +1,8 @@
 import SwiftUI
 
-/// Displays all Knowledgeable Items grouped by category.
-/// Discovered items show full content; undiscovered items appear as locked entries.
-struct GlossaryView: View {
+/// Glossary content without navigation chrome — embeddable inside a parent NavigationStack (e.g. HubView).
+struct GlossaryContentView: View {
     let discoveredItems: Set<String>
-    @Environment(\.dismiss) private var dismiss
 
     private var itemsByCategory: [(KnowledgeableCategory, [KnowledgeableItem])] {
         KnowledgeableCategory.allCases.compactMap { category in
@@ -18,30 +16,18 @@ struct GlossaryView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Progress summary
-                    progressHeader
+        ScrollView {
+            VStack(spacing: 20) {
+                progressHeader
 
-                    // Category sections
-                    ForEach(itemsByCategory, id: \.0) { category, items in
-                        categorySection(category: category, items: items)
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 24)
-            }
-            .background(Color(white: 0.06))
-            .navigationTitle("Glossary")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
+                ForEach(itemsByCategory, id: \.0) { category, items in
+                    categorySection(category: category, items: items)
                 }
             }
-            .preferredColorScheme(.dark)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 24)
         }
+        .background(Color(white: 0.06))
     }
 
     // MARK: - Progress header
@@ -152,6 +138,27 @@ struct GlossaryView: View {
         case .oceanography: "Oceanography"
         case .humanHistory: "Human History"
         case .humanImpact: "Human Impact"
+        }
+    }
+}
+
+/// Standalone glossary sheet with its own NavigationStack and Done button.
+/// Used when presenting the glossary outside of HubView.
+struct GlossaryView: View {
+    let discoveredItems: Set<String>
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            GlossaryContentView(discoveredItems: discoveredItems)
+                .navigationTitle("Glossary")
+                .navigationBarTitleDisplayMode(.large)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Done") { dismiss() }
+                    }
+                }
+                .preferredColorScheme(.dark)
         }
     }
 }

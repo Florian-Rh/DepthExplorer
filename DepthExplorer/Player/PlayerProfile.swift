@@ -25,7 +25,16 @@ struct PlayerProfile: Codable {
     /// Personal record: longest single dive, in simulated seconds.
     var recordDiveTimeSeconds: Int = 0
 
-    // TODO: Phase 2 — purchased gear inventory
-    // TODO: Phase 2 — equipped loadout
-    // TODO: Phase 2 — acquired skills
+    /// IDs of gear items the player has purchased.
+    var ownedGearIDs: Set<String> = []
+
+    /// Currently equipped gear, keyed by `GearCategory.rawValue`.
+    /// Value is the `GearDefinition.id`, absent if using the default for that slot.
+    var equippedGearIDs: [String: String] = [:]
+
+    /// IDs of skills the player has acquired (e.g. `"breathingTechniques.2"`).
+    var acquiredSkillIDs: Set<String> = []
+
+    /// Unspent skill points. Incremented on level-up, decremented on skill acquisition.
+    var skillPoints: Int = 0
 }

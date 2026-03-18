@@ -18,6 +18,8 @@ class LevelViewModel: ObservableObject {
         let isDepthRecord: Bool
         let isTimeRecord: Bool
         let experienceBreakdown: ExperienceBreakdown
+        /// Player's total XP *before* this dive's XP is added.
+        let totalXPBefore: Int
     }
 
     /// Set when the diver is rescued; cleared after the overlay is dismissed.
@@ -33,11 +35,12 @@ class LevelViewModel: ObservableObject {
 
 
     let diverController = DiverController()
-    let diveSimulation: DiveSimulation
+    private(set) var diveSimulation: DiveSimulation
     let diveSession = DiveSession()
     let warningSystem = DiveWarningSystem()
     let level: LevelDefinition
     let profileStore: ProfileStore
+    private(set) var diveParameters: DiveParameters
 
     private var cancellables: Set<AnyCancellable> = []
     private var previousSessionState: DiveSessionState = .surface
@@ -71,13 +74,15 @@ class LevelViewModel: ObservableObject {
         profileStore: ProfileStore = ProfileStore(),
         limitationModels: [any DiveLimitationModel]? = nil
     ) {
+        let params = DiveParameters.from(profile: profileStore.profile)
+        self.diveParameters = params
         self.level = level
         self.profileStore = profileStore
         self.diveSimulation = DiveSimulation(
             limitationModels: limitationModels ?? [
-                AirSupplyModel(),
-                ThermalModel(),
-                DecompressionModel(),
+                AirSupplyModel(capacity: params.tankCapacity, sacRate: params.sacRate, warningTolerance: params.warningThresholdTolerance),
+                ThermalModel(protectionFactor: params.thermalProtectionFactor, warningTolerance: params.warningThresholdTolerance),
+                DecompressionModel(warningTolerance: params.warningThresholdTolerance),
             ]
         )
         discoveredItemNames = profileStore.profile.discoveredItems
@@ -108,6 +113,30 @@ class LevelViewModel: ObservableObject {
         discoveredItemNames = []
     }
 
+    /// Recompute dive parameters from the current profile (e.g. after loadout changes in the hub).
+    /// Rebuilds the dive simulation with updated limitation models so that the next dive
+    /// uses the new gear/skill values.
+    func recomputeParameters() {
+        diveParameters = DiveParameters.from(profile: profileStore.profile)
+
+        diveSimulation.stop()
+        let newSimulation = DiveSimulation(
+            limitationModels: [
+                AirSupplyModel(capacity: diveParameters.tankCapacity, sacRate: diveParameters.sacRate, warningTolerance: diveParameters.warningThresholdTolerance),
+                ThermalModel(protectionFactor: diveParameters.thermalProtectionFactor, warningTolerance: diveParameters.warningThresholdTolerance),
+                DecompressionModel(warningTolerance: diveParameters.warningThresholdTolerance),
+            ]
+        )
+        diveSimulation = newSimulation
+
+        // Re-forward change notifications from the new simulation.
+        newSimulation.objectWillChange
+            .sink { [weak self] in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+
+        newSimulation.start(session: diveSession, warningSystem: warningSystem)
+    }
+
     /// Commit rewards and reset session after the dive complete overlay is dismissed.
     func dismissDiveComplete() {
         if let breakdown = diveCompleteStats?.experienceBreakdown {
@@ -133,7 +162,8 @@ class LevelViewModel: ObservableObject {
         diverController.updateSmoothing(
             contentOffset: contentOffset,
             currentDepth: currentDepth,
-            screenWidth: screenSize.width
+            screenWidth: screenSize.width,
+            horizontalSpeed: diveParameters.diverHorizontalSpeed
         )
         diveSimulation.updateDepth(currentDepth)
         if currentDepth > maxDepthReached {
@@ -159,7 +189,7 @@ class LevelViewModel: ObservableObject {
 
         guard abs(vertical) > GameConstants.joystickDeadzone else { return }
 
-        let delta = vertical * GameConstants.scrollSpeed
+        let delta = vertical * diveParameters.scrollSpeed
         let newOffset = max(0, min(contentOffset + delta, maximumDepthInPixels))
         contentOffset = newOffset
     }
@@ -203,7 +233,8 @@ class LevelViewModel: ObservableObject {
                 totalDiveTimeBefore: totalTimeBefore,
                 isDepthRecord: records.newDepthRecord,
                 isTimeRecord: records.newTimeRecord,
-                experienceBreakdown: xpBreakdown
+                experienceBreakdown: xpBreakdown,
+                totalXPBefore: profileStore.profile.experiencePoints
             )
             trashItems = []
         }

@@ -80,23 +80,23 @@
 
 ### Features
 
-- [ ] **Implement experience and leveling**
+- [X] **Implement experience and leveling**
   XP earned from discovering Knowledgeables. Define XP thresholds per level. Level-ups unlock new hard depth limits, gear availability, and skill slots.
 
 - [ ] **Enforce hard depth limit per level**
   Prevent the diver from descending past the current level's maximum depth. Visual/physical barrier. Apply depth scaling (px/m) from the level definition.
 
-- [ ] **Implement the skill tree**
-  Data model for skills with prerequisites (e.g., Fin Kicking L2 requires L1). One skill per level-up. Skills modify game parameters (air consumption rate, movement speed, control sensitivity).
+- [x] **Implement the skill tree**
+  Data model for skills with prerequisites (e.g., Fin Kicking L2 requires L1). One skill per level-up. Skills modify game parameters (air consumption rate, movement speed). Two families: Breathing Techniques (SAC rate reduction) and Fin Kicking (speed boost), each with 3 levels. Skill points granted on level-up, spent in the Hub's Skills tab.
 
-- [ ] **Build the gear shop**
-  UI for purchasing gear with Sand Dollars. Gear has level requirements. Purchased gear goes to inventory.
+- [x] **Build the gear shop**
+  UI for purchasing gear with Sand Dollars. Gear has level requirements. Purchased gear goes to inventory. Three categories: Fins (Advanced, Pro), Suits (5mm, 7mm, Drysuit), Tanks (Double). Accessible via the Hub.
 
-- [ ] **Implement gear effects on gameplay**
-  Each equipped gear item modifies survival parameters: dry suit reduces thermal loss, larger tank increases air supply, different gas mixtures change narcosis/DCS risk, DPV increases movement speed.
+- [x] **Implement gear effects on gameplay**
+  `DiveParameters` struct computed from profile (equipped gear + acquired skills). Gear provides absolute replacements (fins set speed, suits set thermal protection, tanks set capacity). Skills provide multiplicative modifiers on top. Wired into `AirSupplyModel`, `ThermalModel`, `DiverController`, and `LevelViewModel`.
 
-- [ ] **Build the inventory and loadout screen**
-  UI to view owned gear, equip/unequip items before a dive, view cosmetics.
+- [x] **Build the inventory and loadout screen**
+  UI to view owned gear, equip/unequip items before a dive. One item per category slot with a "Default" option. Accessible via the Hub's Loadout tab.
 
 ---
 

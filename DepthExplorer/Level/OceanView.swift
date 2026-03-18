@@ -44,9 +44,6 @@ struct OceanView: View {
                     )
                 )
         }
-        .onChange(of: rotation) {
-            print(rotation)
-        }
         .id(Self.viewId)
         .onAppear(perform: self.startDeviceMotionUpdates)
         .onDisappear(perform: self.stopDeviceMotionUpdates)
@@ -63,7 +60,7 @@ struct OceanView: View {
                 // Cap the tilt so rotations beyond 45° are ignored.
                 let maxTilt: Double = .pi / 4
                 angle = min(max(angle, -maxTilt), maxTilt)
-                self.rotation = angle * 0.4
+                self.rotation = angle * 0.3
             }
         }
     }

@@ -12,7 +12,14 @@ class ThermalModel: ObservableObject, DiveLimitationModel {
     /// Normal body temperature in °C.
     private let normalTemperature: Double = GameConstants.normalBodyTemperature
 
-    init() {
+    /// Thermal protection from gear (0 = none, 1 = full insulation).
+    private let protectionFactor: Double
+    /// Warning threshold tolerance (1.0 = default, >1.0 = thresholds shift down, more tolerant).
+    private let warningTolerance: Double
+
+    init(protectionFactor: Double = 0, warningTolerance: Double = 1.0) {
+        self.protectionFactor = protectionFactor
+        self.warningTolerance = warningTolerance
         bodyTemperature = GameConstants.normalBodyTemperature
     }
 
@@ -42,11 +49,7 @@ class ThermalModel: ObservableObject, DiveLimitationModel {
     // MARK: - Private
 
     /// Update body temperature for this tick.
-    /// - Parameters:
-    ///   - simulatedSeconds: Number of simulated seconds elapsed this tick.
-    ///   - depthMeters: Current depth in meters.
-    ///   - protectionFactor: Thermal protection from gear (0 = none, 1 = full insulation). Phase 2.
-    private func update(simulatedSeconds: Int, depthMeters: Int, protectionFactor: Double = 0) {
+    private func update(simulatedSeconds: Int, depthMeters: Int) {
         let waterTemp = Self.waterTemperature(atDepth: depthMeters)
         let difference = bodyTemperature - waterTemp // positive when body is warmer than water
 
@@ -60,20 +63,27 @@ class ThermalModel: ObservableObject, DiveLimitationModel {
 
     /// Evaluate current body temperature and update the warning system accordingly.
     private func evaluateWarnings(warningSystem: DiveWarningSystem) -> DiveLimitationResult {
-        if bodyTemperature <= GameConstants.hypothermiaFatalThreshold {
+        // Tolerance > 1 pushes thresholds further from normal body temperature.
+        // e.g. normal=37, fatal=34 → distance=3 → at 1.2× tolerance → fatal=37-3*1.2=33.4
+        let normal = GameConstants.normalBodyTemperature
+        let fatalThreshold = normal - (normal - GameConstants.hypothermiaFatalThreshold) * warningTolerance
+        let criticalThreshold = normal - (normal - GameConstants.hypothermiaCriticalThreshold) * warningTolerance
+        let warningThreshold = normal - (normal - GameConstants.hypothermiaWarningThreshold) * warningTolerance
+
+        if bodyTemperature <= fatalThreshold {
             warningSystem.set(DiveWarning(
                 kind: .thermal,
                 severity: .fatal,
                 message: "Severe hypothermia! (\(String(format: "%.1f", bodyTemperature))°C)"
             ))
             return .rescue("Hypothermia")
-        } else if bodyTemperature <= GameConstants.hypothermiaCriticalThreshold {
+        } else if bodyTemperature <= criticalThreshold {
             warningSystem.set(DiveWarning(
                 kind: .thermal,
                 severity: .critical,
                 message: "Hypothermia setting in (\(String(format: "%.1f", bodyTemperature))°C)"
             ))
-        } else if bodyTemperature <= GameConstants.hypothermiaWarningThreshold {
+        } else if bodyTemperature <= warningThreshold {
             warningSystem.set(DiveWarning(
                 kind: .thermal,
                 severity: .caution,

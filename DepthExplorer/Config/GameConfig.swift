@@ -160,6 +160,15 @@ enum GameConstants {
     static let trashMinValue: Int = 1
     static let trashMaxValue: Int = 5
 
+    // MARK: - Leveling
+
+    /// XP required to reach level 2 (the first level-up).
+    static let baseLevelUpXP: Int = 100
+
+    /// Each subsequent level requires this factor more XP than the previous one.
+    /// e.g. level 2 = 100, level 3 = 150, level 4 = 225, …
+    static let levelUpScalingFactor: Double = 1.5
+
     // MARK: - Gas Mixtures
 
     /// Available gas mixtures. Will eventually be determined by player inventory.

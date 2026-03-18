@@ -7,6 +7,7 @@ import SwiftUI
 struct DiveCompleteOverlayView: View {
     @Binding var stats: LevelViewModel.DiveCompleteStats?
     var onDismiss: () -> Void
+    var onOpenSkillTree: (() -> Void)?
 
     @State private var overlayOpacity: Double = 0
     @State private var contentOpacity: Double = 0
@@ -20,6 +21,10 @@ struct DiveCompleteOverlayView: View {
     @State private var showXPSection = false
     @State private var xpLineProgress: [Double] = Array(repeating: 0, count: 3)
     @State private var xpTotalProgress: Double = 0
+
+    // Level progress bar animation state
+    @State private var showLevelProgress = false
+    @State private var levelBarFill: Double = 0
 
     // MARK: - Counted stat values
 
@@ -83,103 +88,112 @@ struct DiveCompleteOverlayView: View {
     }
 
     var body: some View {
-        ZStack {
-            Color.black.opacity(0.85)
-                .ignoresSafeArea()
+        GeometryReader { geo in
+            ZStack {
+                Color.black.opacity(0.85)
 
-            VStack(spacing: 28) {
-                Spacer()
+                VStack(spacing: 28) {
+                    Spacer()
 
-                // Title
-                VStack(spacing: 8) {
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(.system(size: 48))
-                        .foregroundStyle(.green)
+                    // Title
+                    VStack(spacing: 8) {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.system(size: 48))
+                            .foregroundStyle(.green)
 
-                    Text("Dive Complete!")
-                        .font(.system(size: 26, weight: .bold))
-                        .foregroundStyle(.white)
-                }
+                        Text("Dive Complete!")
+                            .font(.system(size: 26, weight: .bold))
+                            .foregroundStyle(.white)
+                    }
 
-                // Stats
-                VStack(spacing: 20) {
-                    statRow(
-                        icon: "timer",
-                        label: "Dive Time",
-                        value: diveTimeFormatted,
-                        lineIndex: 0,
-                        isRecord: activeStats?.isTimeRecord == true
-                    )
+                    // Stats
+                    VStack(spacing: 20) {
+                        statRow(
+                            icon: "timer",
+                            label: "Dive Time",
+                            value: diveTimeFormatted,
+                            lineIndex: 0,
+                            isRecord: activeStats?.isTimeRecord == true
+                        )
 
-                    statRow(
-                        icon: "arrow.down.to.line",
-                        label: "Max Depth",
-                        value: "\(countedMaxDepth) m",
-                        lineIndex: 1,
-                        isRecord: activeStats?.isDepthRecord == true
-                    )
+                        statRow(
+                            icon: "arrow.down.to.line",
+                            label: "Max Depth",
+                            value: "\(countedMaxDepth) m",
+                            lineIndex: 1,
+                            isRecord: activeStats?.isDepthRecord == true
+                        )
 
-                    statRow(
-                        icon: "dollarsign.circle.fill",
-                        label: "Sand Dollars",
-                        value: "+\(countedSandDollars)",
-                        lineIndex: 2,
-                        valueColor: .yellow
-                    )
+                        statRow(
+                            icon: "dollarsign.circle.fill",
+                            label: "Sand Dollars",
+                            value: "+\(countedSandDollars)",
+                            lineIndex: 2,
+                            valueColor: .yellow
+                        )
 
-                    statRow(
-                        icon: "book.fill",
-                        label: "Items Discovered",
-                        value: "\(countedItems)",
-                        lineIndex: 3,
-                        valueColor: .cyan
-                    )
-                }
-                .padding(.horizontal, 40)
-
-                // XP Breakdown
-                xpBreakdownSection
+                        statRow(
+                            icon: "book.fill",
+                            label: "Items Discovered",
+                            value: "\(countedItems)",
+                            lineIndex: 3,
+                            valueColor: .cyan
+                        )
+                    }
                     .padding(.horizontal, 40)
-                    .opacity(showXPSection ? 1 : 0)
-                    .offset(y: showXPSection ? 0 : 10)
 
-                // Totals (appear after counting finishes)
-                VStack(spacing: 6) {
-                    Rectangle()
-                        .fill(Color.white.opacity(0.15))
-                        .frame(height: 1)
-                        .padding(.horizontal, 60)
-                        .padding(.bottom, 4)
+                    // XP Breakdown
+                    xpBreakdownSection
+                        .padding(.horizontal, 40)
+                        .opacity(showXPSection ? 1 : 0)
+                        .offset(y: showXPSection ? 0 : 10)
 
-                    totalRow(
-                        label: "Total Dives",
-                        value: "\(totalDives)"
-                    )
-                    totalRow(
-                        label: "Total Dive Time",
-                        value: totalDiveTimeFormatted
-                    )
+                    // Level progress bar
+                    levelProgressSection
+                        .padding(.horizontal, 40)
+                        .opacity(showLevelProgress ? 1 : 0)
+                        .offset(y: showLevelProgress ? 0 : 10)
+
+                    // Totals (appear after counting finishes)
+                    VStack(spacing: 6) {
+                        Rectangle()
+                            .fill(Color.white.opacity(0.15))
+                            .frame(height: 1)
+                            .padding(.horizontal, 60)
+                            .padding(.bottom, 4)
+
+                        totalRow(
+                            label: "Total Dives",
+                            value: "\(totalDives)"
+                        )
+                        totalRow(
+                            label: "Total Dive Time",
+                            value: totalDiveTimeFormatted
+                        )
+                    }
+                    .padding(.horizontal, 40)
+                    .opacity(showButton ? 1 : 0)
+
+                    Spacer()
+
+                    Button {
+                        dismiss()
+                    } label: {
+                        Text("Continue")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(.black)
+                            .padding(.horizontal, 48)
+                            .padding(.vertical, 14)
+                            .background(.white, in: Capsule())
+                    }
+                    .opacity(showButton ? 1 : 0)
+                    .padding(.bottom, 60)
                 }
-                .padding(.horizontal, 40)
-                .opacity(showButton ? 1 : 0)
-
-                Spacer()
-
-                Button {
-                    dismiss()
-                } label: {
-                    Text("Continue")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(.black)
-                        .padding(.horizontal, 48)
-                        .padding(.vertical, 14)
-                        .background(.white, in: Capsule())
-                }
-                .opacity(showButton ? 1 : 0)
-                .padding(.bottom, 60)
+                .opacity(contentOpacity)
             }
-            .opacity(contentOpacity)
+            .frame(width: geo.size.width, height: geo.size.height)
         }
+        .ignoresSafeArea()
         .opacity(overlayOpacity)
         .allowsHitTesting(overlayOpacity > 0)
         .onChange(of: stats != nil) { _, isPresent in
@@ -245,6 +259,91 @@ struct DiveCompleteOverlayView: View {
                     .contentTransition(.numericText())
             }
             .padding(.top, 4)
+        }
+    }
+
+    // MARK: - Level Progress Section
+
+    @ViewBuilder
+    private var levelProgressSection: some View {
+        if let s = activeStats {
+            let before = LevelProgression.from(totalXP: s.totalXPBefore)
+            let after = LevelProgression.from(totalXP: s.totalXPBefore + s.experienceBreakdown.totalXP)
+
+            VStack(spacing: 8) {
+                HStack {
+                    Text("Level \(after.level)")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(.cyan)
+
+                    Spacer()
+
+                    Text("\(after.xpToNextLevel) XP to next level")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.5))
+                }
+
+                // Progress bar
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.white.opacity(0.12))
+
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(
+                                LinearGradient(
+                                    colors: [.cyan.opacity(0.7), .cyan],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(width: geo.size.width * levelBarFill)
+                    }
+                }
+                .frame(height: 8)
+
+                // XP numbers under the bar
+                HStack {
+                    Text("\(after.currentLevelXP)")
+                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.4))
+
+                    Spacer()
+
+                    Text("\(after.requiredLevelXP) XP")
+                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.4))
+                }
+
+                // Level-up badge if the player leveled up
+                if after.level > before.level {
+                    Button {
+                        dismiss()
+                        onOpenSkillTree?()
+                    } label: {
+                        VStack(spacing: 4) {
+                            Text("Level Up!")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundStyle(.black)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 5)
+                                .background(.cyan, in: Capsule())
+
+                            HStack(spacing: 4) {
+                                Text("+1 Skill Point")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(.orange)
+
+                                Image(systemName: "arrow.right.circle.fill")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.orange.opacity(0.7))
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .transition(.scale.combined(with: .opacity))
+                }
+            }
         }
     }
 
@@ -333,6 +432,8 @@ struct DiveCompleteOverlayView: View {
         showXPSection = false
         xpLineProgress = Array(repeating: 0, count: 3)
         xpTotalProgress = 0
+        showLevelProgress = false
+        levelBarFill = 0
         contentOpacity = 0
 
         // Fade in overlay
@@ -392,8 +493,32 @@ struct DiveCompleteOverlayView: View {
             xpTotalProgress = 1.0
         }
 
-        // Show totals and button after XP finishes
-        withAnimation(.easeIn(duration: 0.3).delay(xpTotalDelay + xpCountDuration + 0.15)) {
+        // Show level progress bar after XP total
+        let levelDelay = xpTotalDelay + xpCountDuration + 0.1
+
+        withAnimation(.easeOut(duration: 0.4).delay(levelDelay)) {
+            showLevelProgress = true
+        }
+
+        // Animate the bar fill — start from the pre-dive progress and fill to post-dive
+        let barAnimDelay = levelDelay + 0.25
+        if let s = activeStats {
+            let before = LevelProgression.from(totalXP: s.totalXPBefore)
+            let after = LevelProgression.from(totalXP: s.totalXPBefore + s.experienceBreakdown.totalXP)
+
+            // If the player leveled up, animate from 0 to the new level's progress
+            // (the "before" progress was in a different level, so start fresh).
+            // Otherwise animate from before to after within the same level.
+            let startFill = before.level == after.level ? before.progress : 0
+            levelBarFill = startFill
+
+            withAnimation(.easeInOut(duration: 0.8).delay(barAnimDelay)) {
+                levelBarFill = after.progress
+            }
+        }
+
+        // Show totals and button after level bar finishes
+        withAnimation(.easeIn(duration: 0.3).delay(barAnimDelay + 0.8 + 0.15)) {
             showButton = true
         }
     }
@@ -411,8 +536,10 @@ struct DiveCompleteOverlayView: View {
             showXPSection = false
             xpLineProgress = Array(repeating: 0, count: 3)
             xpTotalProgress = 0
-            stats = nil
+            showLevelProgress = false
+            levelBarFill = 0
             onDismiss()
+            stats = nil
         }
     }
 }
@@ -438,7 +565,8 @@ struct DiveCompleteOverlayView: View {
             ],
             brokeDepthRecord: true,
             brokeTimeRecord: false
-        )
+        ),
+        totalXPBefore: 180
     )
 
     DiveCompleteOverlayView(

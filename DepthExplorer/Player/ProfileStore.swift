@@ -21,7 +21,13 @@ final class ProfileStore: ObservableObject {
     }
 
     func addExperience(_ amount: Int) {
+        let levelBefore = LevelProgression.from(totalXP: profile.experiencePoints).level
         profile.experiencePoints += amount
+        let levelAfter = LevelProgression.from(totalXP: profile.experiencePoints).level
+        let levelsGained = levelAfter - levelBefore
+        if levelsGained > 0 {
+            profile.skillPoints += levelsGained
+        }
         save()
     }
 
@@ -51,6 +57,38 @@ final class ProfileStore: ObservableObject {
 
         return DiveRecords(newDepthRecord: newDepthRecord, newTimeRecord: newTimeRecord)
     }
+
+    // MARK: - Gear
+
+    func purchaseGear(id: String, cost: Int) {
+        guard profile.sandDollars >= cost,
+              !profile.ownedGearIDs.contains(id) else { return }
+        profile.sandDollars -= cost
+        profile.ownedGearIDs.insert(id)
+        save()
+    }
+
+    func equipGear(id: String, category: GearCategory) {
+        profile.equippedGearIDs[category.rawValue] = id
+        save()
+    }
+
+    func unequipGear(category: GearCategory) {
+        profile.equippedGearIDs.removeValue(forKey: category.rawValue)
+        save()
+    }
+
+    // MARK: - Skills
+
+    func acquireSkill(id: String) {
+        guard profile.skillPoints > 0,
+              !profile.acquiredSkillIDs.contains(id) else { return }
+        profile.acquiredSkillIDs.insert(id)
+        profile.skillPoints -= 1
+        save()
+    }
+
+    // MARK: - Discovery
 
     func discoverItem(named name: String) {
         guard !profile.discoveredItems.contains(name) else { return }
