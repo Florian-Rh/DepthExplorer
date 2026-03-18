@@ -16,11 +16,12 @@ struct DiveHUDView: View {
     let depth: Int
     let diveTimeSeconds: Int
     let remainingBar: Double
-    let tankCapacity: Double
+    let airCapacity: Double
     let ascentSpeed: Double
     let bodyTemperature: Double
     let warnings: [DiveWarning]
     let isDiving: Bool
+    let hasScubaGear: Bool
     var onJoystickChanged: (_ offset: CGSize, _ angleDegrees: Double?) -> Void
 
     // MARK: - Derived values
@@ -32,12 +33,12 @@ struct DiveHUDView: View {
     }
 
     private var airFraction: Double {
-        max(0, min(1, remainingBar / tankCapacity))
+        max(0, min(1, remainingBar / airCapacity))
     }
 
     private var airBarColor: Color {
-        if remainingBar <= GameConstants.airCriticalThreshold { return .red }
-        if remainingBar <= GameConstants.airWarningThreshold { return .yellow }
+        if airFraction <= GameConstants.airCriticalFraction { return .red }
+        if airFraction <= GameConstants.airWarningFraction { return .yellow }
         return Color(red: 0.2, green: 0.85, blue: 0.4)
     }
 
@@ -129,14 +130,16 @@ struct DiveHUDView: View {
 
                 Spacer()
 
-                AscentRateBarView(ascentSpeed: ascentSpeed)
-                    .frame(height: 44)
+                if hasScubaGear {
+                    AscentRateBarView(ascentSpeed: ascentSpeed)
+                        .frame(height: 44)
+                }
             }
             .padding(.bottom, 6)
 
             // ── Air supply bar ───────────────────────────────────
             VStack(alignment: .leading, spacing: 2) {
-                Text("AIR")
+                Text(hasScubaGear ? "AIR" : "BREATH")
                     .font(.system(size: 8, weight: .medium, design: .monospaced))
                     .foregroundStyle(.white.opacity(0.5))
 
@@ -150,31 +153,43 @@ struct DiveHUDView: View {
                             .frame(width: geo.size.width * airFraction)
                             .animation(.linear(duration: 0.3), value: airFraction)
 
-                        let warnFrac = GameConstants.airWarningThreshold / tankCapacity
-                        Rectangle()
-                            .fill(Color.yellow.opacity(0.7))
-                            .frame(width: 1.5)
-                            .offset(x: geo.size.width * warnFrac)
+                        // Threshold markers (only with a cylinder)
+                        if hasScubaGear {
+                            Rectangle()
+                                .fill(Color.yellow.opacity(0.7))
+                                .frame(width: 1.5)
+                                .offset(x: geo.size.width * GameConstants.airWarningFraction)
 
-                        let critFrac = GameConstants.airCriticalThreshold / tankCapacity
-                        Rectangle()
-                            .fill(Color.red.opacity(0.7))
-                            .frame(width: 1.5)
-                            .offset(x: geo.size.width * critFrac)
+                            Rectangle()
+                                .fill(Color.red.opacity(0.7))
+                                .frame(width: 1.5)
+                                .offset(x: geo.size.width * GameConstants.airCriticalFraction)
+                        }
                     }
                 }
                 .frame(height: 5)
 
-                HStack(spacing: 0) {
-                    Text(String(format: "%03d", Int(remainingBar)))
-                        .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(.white)
-                        .monospacedDigit()
-                    Text(" bar")
-                        .font(.system(size: 9, weight: .regular, design: .monospaced))
-                        .foregroundStyle(.white.opacity(0.55))
+                if hasScubaGear {
+                    HStack(spacing: 0) {
+                        Text(String(format: "%03d", Int(remainingBar)))
+                            .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(.white)
+                            .monospacedDigit()
+                        Text(" bar")
+                            .font(.system(size: 9, weight: .regular, design: .monospaced))
+                            .foregroundStyle(.white.opacity(0.55))
 
-                    Spacer()
+                        Spacer()
+                    }
+                } else {
+                    HStack(spacing: 0) {
+                        Text(String(format: "%d%%", Int(airFraction * 100)))
+                            .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(.white)
+                            .monospacedDigit()
+
+                        Spacer()
+                    }
                 }
             }
         }
@@ -190,11 +205,12 @@ struct DiveHUDView: View {
             depth: 42,
             diveTimeSeconds: 754,
             remainingBar: 145,
-            tankCapacity: 200,
+            airCapacity: 200,
             ascentSpeed: 5,
             bodyTemperature: 36.2,
             warnings: [],
             isDiving: true,
+            hasScubaGear: true,
             onJoystickChanged: { _, _ in }
         )
         .padding(.horizontal, 16)
@@ -208,7 +224,7 @@ struct DiveHUDView: View {
             depth: 85,
             diveTimeSeconds: 1200,
             remainingBar: 38,
-            tankCapacity: 200,
+            airCapacity: 200,
             ascentSpeed: 18,
             bodyTemperature: 35.5,
             warnings: [
@@ -216,6 +232,26 @@ struct DiveHUDView: View {
                 DiveWarning(kind: .thermal, severity: .critical, message: "Hypothermia setting in (35.5°C)")
             ],
             isDiving: true,
+            hasScubaGear: true,
+            onJoystickChanged: { _, _ in }
+        )
+        .padding(.horizontal, 16)
+    }
+}
+
+#Preview("Apnoe") {
+    ZStack {
+        Color(white: 0.08)
+        DiveHUDView(
+            depth: 15,
+            diveTimeSeconds: 90,
+            remainingBar: 32,
+            airCapacity: 50,
+            ascentSpeed: 0,
+            bodyTemperature: 36.8,
+            warnings: [],
+            isDiving: true,
+            hasScubaGear: false,
             onJoystickChanged: { _, _ in }
         )
         .padding(.horizontal, 16)
@@ -229,11 +265,12 @@ struct DiveHUDView: View {
             depth: 0,
             diveTimeSeconds: 0,
             remainingBar: 200,
-            tankCapacity: 200,
+            airCapacity: 200,
             ascentSpeed: 0,
             bodyTemperature: 37,
             warnings: [],
             isDiving: false,
+            hasScubaGear: true,
             onJoystickChanged: { _, _ in }
         )
         .padding(.horizontal, 16)

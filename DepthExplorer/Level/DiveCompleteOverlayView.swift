@@ -196,6 +196,11 @@ struct DiveCompleteOverlayView: View {
         .ignoresSafeArea()
         .opacity(overlayOpacity)
         .allowsHitTesting(overlayOpacity > 0)
+        .onTapGesture {
+            if !showButton {
+                skipToEnd()
+            }
+        }
         .onChange(of: stats != nil) { _, isPresent in
             if isPresent, let s = stats {
                 show(stats: s)
@@ -520,6 +525,27 @@ struct DiveCompleteOverlayView: View {
         // Show totals and button after level bar finishes
         withAnimation(.easeIn(duration: 0.3).delay(barAnimDelay + 0.8 + 0.15)) {
             showButton = true
+        }
+    }
+
+    /// Skip all in-progress animations and show the final state immediately.
+    private func skipToEnd() {
+        withAnimation(.easeOut(duration: 0.15)) {
+            overlayOpacity = 1
+            contentOpacity = 1
+            revealedLines = 4
+            lineProgress = Array(repeating: 1, count: 4)
+            showRecordBadges = true
+            showXPSection = true
+            xpLineProgress = Array(repeating: 1, count: 3)
+            xpTotalProgress = 1
+            showLevelProgress = true
+            showButton = true
+
+            if let s = activeStats {
+                let after = LevelProgression.from(totalXP: s.totalXPBefore + s.experienceBreakdown.totalXP)
+                levelBarFill = after.progress
+            }
         }
     }
 

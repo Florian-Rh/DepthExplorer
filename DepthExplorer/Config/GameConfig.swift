@@ -53,6 +53,9 @@ enum GameConstants {
     /// Scroll speed multiplier (pts per frame at full joystick deflection).
     static let scrollSpeed: CGFloat = 8.0
 
+    /// Scroll speed when apnoe diving (no fins equipped).
+    static let apnoeScrollSpeed: CGFloat = 5.0
+
     // MARK: - Diver Movement
 
     /// Smoothing factor for position and tilt interpolation.
@@ -61,6 +64,9 @@ enum GameConstants {
 
     /// Horizontal movement speed (pts per frame at full joystick deflection).
     static let diverHorizontalSpeed: CGFloat = 4.0
+
+    /// Horizontal movement speed when apnoe diving (no fins equipped).
+    static let apnoeHorizontalSpeed: CGFloat = 2.5
 
     /// Screen edge margin for horizontal clamping (pts).
     static let diverEdgeMargin: CGFloat = 30.0
@@ -90,19 +96,22 @@ enum GameConstants {
 
     // MARK: - Air Supply
 
-    /// Default tank capacity in bar.
-    /// A standard scuba cylinder. Will vary by gear in Phase 2.
-    static let tankCapacity: Double = 200.0
+    /// Lung capacity in bar when apnoe diving (no scuba gear equipped).
+    /// A gameplay abstraction — represents the air a diver can hold in their lungs.
+    static let apnoeLungCapacity: Double = 50.0
+
+    /// Standard scuba gear capacity in bar (cylinder + regulator).
+    static let scubaGearCapacity: Double = 200.0
 
     /// Surface air consumption rate in bar per simulated minute.
     /// At depth, actual consumption is `sacRate * ambientPressure`.
     static let sacRate: Double = 1.0
 
-    /// Air pressure (bar) at which a caution warning is triggered.
-    static let airWarningThreshold: Double = 50.0
+    /// Fraction of air remaining at which a caution warning is triggered (25%).
+    static let airWarningFraction: Double = 0.25
 
-    /// Air pressure (bar) at which a critical warning is triggered.
-    static let airCriticalThreshold: Double = 10.0
+    /// Fraction of air remaining at which a critical warning is triggered (10%).
+    static let airCriticalFraction: Double = 0.10
 
     // MARK: - DCS / Ascent Speed
 

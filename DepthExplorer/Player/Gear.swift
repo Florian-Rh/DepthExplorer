@@ -4,13 +4,14 @@ import Foundation
 enum GearCategory: String, Codable, CaseIterable {
     case fins
     case suit
-    case tank
+    /// Cylinder + regulator + BCD as a single equip slot.
+    case scubaGear = "tank"
 
     var displayName: String {
         switch self {
         case .fins: "Fins"
         case .suit: "Exposure Suit"
-        case .tank: "Tank"
+        case .scubaGear: "Scuba Gear"
         }
     }
 
@@ -18,16 +19,16 @@ enum GearCategory: String, Codable, CaseIterable {
         switch self {
         case .fins: "shoe.2.fill"
         case .suit: "tshirt.fill"
-        case .tank: "cylinder.fill"
+        case .scubaGear: "cylinder.fill"
         }
     }
 
     /// Description of what the default (no gear) provides.
     var defaultDescription: String {
         switch self {
-        case .fins: "Basic fins — standard speed"
-        case .suit: "3mm Wetsuit — minimal thermal protection"
-        case .tank: "Standard Tank — 200 bar capacity"
+        case .fins: "Barefoot — reduced swim speed"
+        case .suit: "No suit — no thermal protection"
+        case .scubaGear: "Apnoe — lungs only (\(Int(GameConstants.apnoeLungCapacity)) bar)"
         }
     }
 }
@@ -38,7 +39,7 @@ enum GearModifier {
     case movementSpeed(scrollSpeed: CGFloat, horizontalSpeed: CGFloat)
     /// Thermal protection factor (0 = none, 1 = full insulation).
     case thermalProtection(factor: Double)
-    /// Tank air capacity in bar (replaces base constant).
+    /// Scuba gear air capacity in bar (replaces base constant).
     case airCapacity(bar: Double)
 }
 
@@ -71,6 +72,16 @@ struct GearDefinition: Identifiable {
     static let allGear: [GearDefinition] = [
         // Fins
         GearDefinition(
+            id: "fins.basic",
+            category: .fins,
+            name: "Basic Fins",
+            description: "Standard rubber fins for recreational diving.",
+            icon: "shoe.2.fill",
+            price: 20,
+            requiredLevel: 1,
+            modifier: .movementSpeed(scrollSpeed: GameConstants.scrollSpeed, horizontalSpeed: GameConstants.diverHorizontalSpeed)
+        ),
+        GearDefinition(
             id: "fins.advanced",
             category: .fins,
             name: "Advanced Fins",
@@ -92,6 +103,16 @@ struct GearDefinition: Identifiable {
         ),
 
         // Suits
+        GearDefinition(
+            id: "suit.3mm",
+            category: .suit,
+            name: "3mm Wetsuit",
+            description: "Basic neoprene wetsuit for warm water diving.",
+            icon: "tshirt.fill",
+            price: 15,
+            requiredLevel: 1,
+            modifier: .thermalProtection(factor: 0.1)
+        ),
         GearDefinition(
             id: "suit.5mm",
             category: .suit,
@@ -123,12 +144,22 @@ struct GearDefinition: Identifiable {
             modifier: .thermalProtection(factor: 0.8)
         ),
 
-        // Tanks
+        // Scuba Gear (cylinder + regulator + BCD)
+        GearDefinition(
+            id: "tank.standard",
+            category: .scubaGear,
+            name: "Standard Scuba Gear",
+            description: "A 200 bar cylinder with single-stage regulator and basic BCD.",
+            icon: "cylinder.fill",
+            price: 30,
+            requiredLevel: 1,
+            modifier: .airCapacity(bar: GameConstants.scubaGearCapacity)
+        ),
         GearDefinition(
             id: "tank.double",
-            category: .tank,
-            name: "Double Tank",
-            description: "Twin cylinders mounted in a manifold for extended dive time.",
+            category: .scubaGear,
+            name: "Twinset Scuba Gear",
+            description: "Twin cylinders in a manifold with redundant regulators for extended dive time.",
             icon: "cylinder.fill",
             price: 200,
             requiredLevel: 5,

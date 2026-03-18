@@ -10,8 +10,8 @@ struct DiveParameters {
     let scrollSpeed: CGFloat
     /// Horizontal movement speed (pts per frame at full joystick deflection).
     let diverHorizontalSpeed: CGFloat
-    /// Tank capacity in bar.
-    let tankCapacity: Double
+    /// Air capacity in bar (scuba gear cylinder or lungs when apnoe).
+    let airCapacity: Double
     /// Surface air consumption rate in bar per simulated minute.
     let sacRate: Double
     /// Thermal protection factor (0 = none, 1 = full insulation).
@@ -20,18 +20,23 @@ struct DiveParameters {
     /// Shifts caution/critical/fatal thresholds to give the diver more margin.
     let warningThresholdTolerance: Double
 
+    /// Whether the diver has scuba gear equipped (vs. apnoe / breath-hold diving).
+    let hasScubaGear: Bool
+
     /// Compute effective dive parameters from the current profile state.
     ///
-    /// 1. Start from `GameConstants` base values
+    /// 1. Start from apnoe (no-gear) base values
     /// 2. Apply gear modifiers (absolute replacements)
     /// 3. Apply skill modifiers (multiplicative, highest level per family only)
     static func from(profile: PlayerProfile) -> DiveParameters {
-        var scrollSpeed = GameConstants.scrollSpeed
-        var horizontalSpeed = GameConstants.diverHorizontalSpeed
-        var tankCapacity = GameConstants.tankCapacity
+        // Start with apnoe (no-gear) defaults
+        var scrollSpeed = GameConstants.apnoeScrollSpeed
+        var horizontalSpeed = GameConstants.apnoeHorizontalSpeed
+        var airCapacity = GameConstants.apnoeLungCapacity
         var sacRate = GameConstants.sacRate
         var thermalProtection = 0.0
         var warningTolerance = 1.0
+        var hasScubaGear = false
 
         // Apply equipped gear
         for (_, gearID) in profile.equippedGearIDs {
@@ -43,7 +48,8 @@ struct DiveParameters {
             case .thermalProtection(let factor):
                 thermalProtection = factor
             case .airCapacity(let bar):
-                tankCapacity = bar
+                airCapacity = bar
+                hasScubaGear = true
             }
         }
 
@@ -64,21 +70,23 @@ struct DiveParameters {
         return DiveParameters(
             scrollSpeed: scrollSpeed,
             diverHorizontalSpeed: horizontalSpeed,
-            tankCapacity: tankCapacity,
+            airCapacity: airCapacity,
             sacRate: sacRate,
             thermalProtectionFactor: thermalProtection,
-            warningThresholdTolerance: warningTolerance
+            warningThresholdTolerance: warningTolerance,
+            hasScubaGear: hasScubaGear
         )
     }
 
-    /// Default parameters with no gear or skills (matches current hardcoded behavior).
+    /// Default parameters with no gear or skills (apnoe diving).
     static let defaults = DiveParameters(
-        scrollSpeed: GameConstants.scrollSpeed,
-        diverHorizontalSpeed: GameConstants.diverHorizontalSpeed,
-        tankCapacity: GameConstants.tankCapacity,
+        scrollSpeed: GameConstants.apnoeScrollSpeed,
+        diverHorizontalSpeed: GameConstants.apnoeHorizontalSpeed,
+        airCapacity: GameConstants.apnoeLungCapacity,
         sacRate: GameConstants.sacRate,
         thermalProtectionFactor: 0,
-        warningThresholdTolerance: 1.0
+        warningThresholdTolerance: 1.0,
+        hasScubaGear: false
     )
 
     // MARK: - Private

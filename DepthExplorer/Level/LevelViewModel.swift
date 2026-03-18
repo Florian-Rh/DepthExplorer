@@ -80,7 +80,7 @@ class LevelViewModel: ObservableObject {
         self.profileStore = profileStore
         self.diveSimulation = DiveSimulation(
             limitationModels: limitationModels ?? [
-                AirSupplyModel(capacity: params.tankCapacity, sacRate: params.sacRate, warningTolerance: params.warningThresholdTolerance),
+                AirSupplyModel(capacity: params.airCapacity, sacRate: params.sacRate, warningTolerance: params.warningThresholdTolerance),
                 ThermalModel(protectionFactor: params.thermalProtectionFactor, warningTolerance: params.warningThresholdTolerance),
                 DecompressionModel(warningTolerance: params.warningThresholdTolerance),
             ]
@@ -122,7 +122,7 @@ class LevelViewModel: ObservableObject {
         diveSimulation.stop()
         let newSimulation = DiveSimulation(
             limitationModels: [
-                AirSupplyModel(capacity: diveParameters.tankCapacity, sacRate: diveParameters.sacRate, warningTolerance: diveParameters.warningThresholdTolerance),
+                AirSupplyModel(capacity: diveParameters.airCapacity, sacRate: diveParameters.sacRate, warningTolerance: diveParameters.warningThresholdTolerance),
                 ThermalModel(protectionFactor: diveParameters.thermalProtectionFactor, warningTolerance: diveParameters.warningThresholdTolerance),
                 DecompressionModel(warningTolerance: diveParameters.warningThresholdTolerance),
             ]

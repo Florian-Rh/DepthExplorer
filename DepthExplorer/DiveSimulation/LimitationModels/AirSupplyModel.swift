@@ -11,7 +11,7 @@ class AirSupplyModel: ObservableObject, DiveLimitationModel {
     /// Warning threshold tolerance (1.0 = default, >1.0 = thresholds shift down, more tolerant).
     private let warningTolerance: Double
 
-    init(capacity: Double = GameConstants.tankCapacity, sacRate: Double = GameConstants.sacRate, warningTolerance: Double = 1.0) {
+    init(capacity: Double = GameConstants.scubaGearCapacity, sacRate: Double = GameConstants.sacRate, warningTolerance: Double = 1.0) {
         self.capacity = capacity
         self.sacRate = sacRate
         self.warningTolerance = warningTolerance
@@ -55,17 +55,21 @@ class AirSupplyModel: ObservableObject, DiveLimitationModel {
 
     /// Evaluate current air level and update the warning system accordingly.
     private func evaluateWarnings(warningSystem: DiveWarningSystem) -> DiveLimitationResult {
+        let currentFraction = fraction
+
         // Tolerance > 1 pushes thresholds lower, giving the diver more margin.
-        let criticalThreshold = GameConstants.airCriticalThreshold / warningTolerance
-        let warningThreshold = GameConstants.airWarningThreshold / warningTolerance
+        let criticalFraction = GameConstants.airCriticalFraction / warningTolerance
+        let warningFraction = GameConstants.airWarningFraction / warningTolerance
 
-        // With stress management, the diver can "hold their breath" after the tank
-        // empties. The fatal threshold shifts below 0 proportionally to the tolerance
-        // beyond 1.0. At tolerance 1.0 → fatal at 0. At 1.3 → fatal at -0.3 × critical.
-        let breathHoldBuffer = GameConstants.airCriticalThreshold * (warningTolerance - 1.0)
-        let fatalThreshold = -breathHoldBuffer
+        // With stress management, the diver can "hold their breath" after the air
+        // runs out. The fatal fraction shifts below 0 proportionally to the tolerance
+        // beyond 1.0. At tolerance 1.0 → fatal at 0%. At 1.3 → fatal at -3%.
+        let breathHoldBuffer = GameConstants.airCriticalFraction * (warningTolerance - 1.0)
+        let fatalFraction = -breathHoldBuffer
 
-        if remainingBar <= fatalThreshold {
+        let percentString = "\(Int(currentFraction * 100))% air remaining"
+
+        if currentFraction <= fatalFraction {
             warningSystem.set(DiveWarning(
                 kind: .airSupply,
                 severity: .fatal,
@@ -73,23 +77,23 @@ class AirSupplyModel: ObservableObject, DiveLimitationModel {
             ))
             return .rescue("Out of air")
         } else if remainingBar <= 0 {
-            // Breath-hold zone: tank reads 0 but diver is still going
+            // Breath-hold zone: air reads 0 but diver is still going
             warningSystem.set(DiveWarning(
                 kind: .airSupply,
                 severity: .critical,
                 message: "Holding breath!"
             ))
-        } else if remainingBar <= criticalThreshold {
+        } else if currentFraction <= criticalFraction {
             warningSystem.set(DiveWarning(
                 kind: .airSupply,
                 severity: .critical,
-                message: "\(Int(remainingBar)) bar remaining"
+                message: percentString
             ))
-        } else if remainingBar <= warningThreshold {
+        } else if currentFraction <= warningFraction {
             warningSystem.set(DiveWarning(
                 kind: .airSupply,
                 severity: .caution,
-                message: "\(Int(remainingBar)) bar remaining"
+                message: percentString
             ))
         } else {
             warningSystem.clear(.airSupply)

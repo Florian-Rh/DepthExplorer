@@ -33,7 +33,7 @@ struct RescueOverlayView: View {
     private var flavorText: String {
         switch activeReason {
         case "Out of air":
-            return "Your tank ran dry and you lost consciousness. Luckily, a nearby dive boat spotted your emergency beacon."
+            return "You ran out of air and lost consciousness. Luckily, a nearby dive boat spotted your emergency beacon."
         case "Hypothermia":
             return "The cold became unbearable and you could no longer move. A rescue team pulled you from the water just in time."
         case "Decompression sickness":
