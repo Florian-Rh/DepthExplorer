@@ -71,7 +71,7 @@ struct LevelView: View {
             .clipped()
 
             ScubaDiverView(tilt: viewModel.diverController.tilt, submersed: viewModel.currentDepth > 0)
-                .scaleEffect(0.6)
+                .scaleEffect(0.8)
                 .position(
                     x: viewModel.screenSize.width / 2 + viewModel.diverController.x,
                     y: viewModel.screenSize.height / 3 + 30 + viewModel.diverController.offset.height

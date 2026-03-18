@@ -26,6 +26,20 @@ struct LevelDefinition {
         autoSurfaceDepth: 10,
         autoSurfaceSpeed: 4.0
     )
+
+    static let levelOne = LevelDefinition(
+        depthLimit: nil,
+        scalingFactor: 100.0,
+        autoSurfaceDepth: 1,
+        autoSurfaceSpeed: 4.0
+    )
+
+    static let levelEnd = LevelDefinition(
+        depthLimit: nil,
+        scalingFactor: 1.0,
+        autoSurfaceDepth: 100,
+        autoSurfaceSpeed: 4.0
+    )
 }
 
 /// Game-wide tuning constants.
