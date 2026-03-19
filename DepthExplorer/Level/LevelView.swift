@@ -70,7 +70,7 @@ struct LevelView: View {
             }
             .clipped()
 
-            ScubaDiverView(tilt: viewModel.diverController.tilt, submersed: viewModel.currentDepth > 0)
+            ScubaDiverView(tilt: viewModel.diverController.tilt, submersed: viewModel.currentDepth > 0, appearance: viewModel.diverAppearance)
                 .scaleEffect(0.8)
                 .position(
                     x: viewModel.screenSize.width / 2 + viewModel.diverController.x,

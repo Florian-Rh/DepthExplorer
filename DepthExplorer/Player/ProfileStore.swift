@@ -102,6 +102,20 @@ final class ProfileStore: ObservableObject {
         save()
     }
 
+    /// Unlocks all gear items without spending sand dollars. Debug only.
+    func unlockAllGear() {
+        for gear in GearDefinition.allGear {
+            profile.ownedGearIDs.insert(gear.id)
+        }
+        save()
+    }
+
+    /// Adds a skill point. Debug only.
+    func addSkillPoint() {
+        profile.skillPoints += 1
+        save()
+    }
+
     // MARK: - Persistence
 
     private func save() {

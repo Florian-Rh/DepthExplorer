@@ -62,6 +62,11 @@ class LevelViewModel: ObservableObject {
         1.0 + (Double(currentDepth) / 10.0)
     }
 
+    /// Visual appearance of the diver, derived from equipped gear.
+    var diverAppearance: DiverAppearance {
+        DiverAppearance.from(profile: profileStore.profile)
+    }
+
     /// Total dive time in simulated seconds since the current dive began.
     /// Returns 0 when not actively diving.
     var diveTimeSeconds: Int {
@@ -79,11 +84,7 @@ class LevelViewModel: ObservableObject {
         self.level = level
         self.profileStore = profileStore
         self.diveSimulation = DiveSimulation(
-            limitationModels: limitationModels ?? [
-                AirSupplyModel(capacity: params.airCapacity, sacRate: params.sacRate, warningTolerance: params.warningThresholdTolerance),
-                ThermalModel(protectionFactor: params.thermalProtectionFactor, warningTolerance: params.warningThresholdTolerance),
-                DecompressionModel(warningTolerance: params.warningThresholdTolerance),
-            ]
+            limitationModels: limitationModels ?? Self.makeLimitationModels(from: params)
         )
         discoveredItemNames = profileStore.profile.discoveredItems
         diverController.objectWillChange
@@ -121,11 +122,7 @@ class LevelViewModel: ObservableObject {
 
         diveSimulation.stop()
         let newSimulation = DiveSimulation(
-            limitationModels: [
-                AirSupplyModel(capacity: diveParameters.airCapacity, sacRate: diveParameters.sacRate, warningTolerance: diveParameters.warningThresholdTolerance),
-                ThermalModel(protectionFactor: diveParameters.thermalProtectionFactor, warningTolerance: diveParameters.warningThresholdTolerance),
-                DecompressionModel(warningTolerance: diveParameters.warningThresholdTolerance),
-            ]
+            limitationModels: Self.makeLimitationModels(from: diveParameters)
         )
         diveSimulation = newSimulation
 
@@ -172,6 +169,21 @@ class LevelViewModel: ObservableObject {
         checkSessionTransitions()
         checkProximity()
         updateContentOffset()
+    }
+
+    // MARK: - Limitation Models
+
+    /// Build the set of limitation models for a dive based on current parameters.
+    /// DCS is only possible when breathing compressed gas (scuba gear equipped).
+    private static func makeLimitationModels(from params: DiveParameters) -> [any DiveLimitationModel] {
+        var models: [any DiveLimitationModel] = [
+            AirSupplyModel(capacity: params.airCapacity, sacRate: params.sacRate, warningTolerance: params.warningThresholdTolerance),
+            ThermalModel(protectionFactor: params.thermalProtectionFactor, warningTolerance: params.warningThresholdTolerance),
+        ]
+        if params.hasScubaGear {
+            models.append(DecompressionModel(warningTolerance: params.warningThresholdTolerance))
+        }
+        return models
     }
 
     // MARK: - Screen control

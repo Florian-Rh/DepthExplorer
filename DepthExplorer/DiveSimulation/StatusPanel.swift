@@ -44,6 +44,19 @@ struct StatusPanel: View {
                     .font(.system(.caption, design: .monospaced))
                     .foregroundStyle(.red)
                 }
+                Text("Skill pts: \(profile.skillPoints) | Gear owned: \(profile.ownedGearIDs.count)/\(GearDefinition.allGear.count)")
+                    .foregroundStyle(.cyan)
+                HStack(spacing: 12) {
+                    Button("Unlock All Gear") {
+                        viewModel.profileStore.unlockAllGear()
+                    }
+                    .foregroundStyle(.green)
+                    Button("+1 Skill Point") {
+                        viewModel.profileStore.addSkillPoint()
+                    }
+                    .foregroundStyle(.green)
+                }
+                .font(.system(.caption, design: .monospaced))
 
                 Divider().background(.white.opacity(0.3))
 
