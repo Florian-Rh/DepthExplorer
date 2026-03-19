@@ -36,6 +36,13 @@ class DiveSession: ObservableObject {
         state = .surfacedSafely
     }
 
+    /// Cancel an incomplete dive (minimum requirements not met).
+    /// Returns to surface state without rewards or penalties.
+    func cancelDive() {
+        guard state == .diving else { return }
+        reset()
+    }
+
     /// Transition to rescued state on a failure condition.
     func rescue(reason: String) {
         guard state == .diving else { return }

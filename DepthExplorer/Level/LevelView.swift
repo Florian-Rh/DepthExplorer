@@ -124,6 +124,7 @@ struct LevelView: View {
                     Spacer()
 
                     // Hub button — opens shop, skills, inventory, glossary
+                    // Hidden while diving to prevent session reset.
                     Button {
                         hubInitialTab = .shop
                         showHub = true
@@ -165,6 +166,9 @@ struct LevelView: View {
                         }
                     }
                     .padding(.top, 60)
+                    .opacity(viewModel.diveSession.state == .diving ? 0 : 1)
+                    .allowsHitTesting(viewModel.diveSession.state != .diving)
+                    .animation(.easeInOut(duration: 0.25), value: viewModel.diveSession.state == .diving)
 
                     Spacer()
                 }

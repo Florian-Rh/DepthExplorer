@@ -51,6 +51,10 @@ struct ExperienceCalculator {
     /// XP awarded per simulated minute of dive time.
     static let durationXPPerMinute: Double = 1.0
 
+    /// Minimum percentage improvement over the previous record to qualify for a bonus.
+    /// e.g. 5.0 means the record must be beaten by at least 5%.
+    static let recordMinimumImprovementPercent: Double = 5.0
+
     /// Bonus XP for breaking the personal depth record.
     static let depthRecordBonus: Int = 50
 
@@ -72,24 +76,35 @@ struct ExperienceCalculator {
         let durationXP = Int(durationMinutes * Self.durationXPPerMinute)
         let diveProfileXP = depthXP + durationXP
 
-        // Personal records (only count if not the first dive)
+        // Personal records — percentage-based scaling with minimum threshold.
+        // The record must be beaten by at least `recordMinimumImprovementPercent` to qualify.
+        // XP is rewarded based on the margin by which the record was broken
+        var personalRecordXP = 0
         let brokeDepth: Bool
-        if let previousDepth = result.previousRecordDepth {
-            brokeDepth = result.maxDepthMeters > previousDepth
+        if let previousDepth = result.previousRecordDepth, previousDepth > 0 {
+            let improvementPercent = Double(result.maxDepthMeters - previousDepth) / Double(previousDepth) * 100.0
+            if improvementPercent >= Self.recordMinimumImprovementPercent {
+                personalRecordXP += result.maxDepthMeters - previousDepth // Int(improvementPercent * Self.depthRecordXPPerPercent)
+                brokeDepth = true
+            } else {
+                brokeDepth = false
+            }
         } else {
             brokeDepth = false
         }
 
         let brokeTime: Bool
-        if let previousTime = result.previousRecordTime {
-            brokeTime = result.diveTimeSeconds > previousTime
+        if let previousTime = result.previousRecordTime, previousTime > 0 {
+            let improvementPercent = Double(result.diveTimeSeconds - previousTime) / Double(previousTime) * 100.0
+            if improvementPercent >= Self.recordMinimumImprovementPercent {
+                personalRecordXP += (result.diveTimeSeconds - previousTime) / 12 // Int(improvementPercent * Self.timeRecordXPPerPercent)
+                brokeTime = true
+            } else {
+                brokeTime = false
+            }
         } else {
             brokeTime = false
         }
-
-        var personalRecordXP = 0
-        if brokeDepth { personalRecordXP += Self.depthRecordBonus }
-        if brokeTime { personalRecordXP += Self.timeRecordBonus }
 
         // Discovered items — deeper items are worth more
         var itemDetails: [(name: String, xp: Int)] = []

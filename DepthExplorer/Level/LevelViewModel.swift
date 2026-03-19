@@ -84,7 +84,9 @@ class LevelViewModel: ObservableObject {
         self.level = level
         self.profileStore = profileStore
         self.diveSimulation = DiveSimulation(
-            limitationModels: limitationModels ?? Self.makeLimitationModels(from: params)
+            limitationModels: limitationModels ?? Self.makeLimitationModels(from: params),
+            minimumCompletionDepth: level.minimumCompletionDepth,
+            minimumCompletionTime: level.minimumCompletionTime
         )
         discoveredItemNames = profileStore.profile.discoveredItems
         diverController.objectWillChange
@@ -122,7 +124,9 @@ class LevelViewModel: ObservableObject {
 
         diveSimulation.stop()
         let newSimulation = DiveSimulation(
-            limitationModels: Self.makeLimitationModels(from: diveParameters)
+            limitationModels: Self.makeLimitationModels(from: diveParameters),
+            minimumCompletionDepth: level.minimumCompletionDepth,
+            minimumCompletionTime: level.minimumCompletionTime
         )
         diveSimulation = newSimulation
 

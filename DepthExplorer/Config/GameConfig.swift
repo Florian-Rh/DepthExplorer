@@ -18,27 +18,39 @@ struct LevelDefinition {
     /// Auto-surface scroll speed (pts per frame).
     let autoSurfaceSpeed: CGFloat
 
+    /// Minimum depth in meters the diver must reach for the dive to count as completed.
+    let minimumCompletionDepth: Int
+
+    /// Minimum dive time in simulated seconds for the dive to count as completed.
+    let minimumCompletionTime: Int
+
     // TODO: Phase 2 — available gear for purchase at this level
 
     static let `default` = LevelDefinition(
         depthLimit: nil,
         scalingFactor: 10.0,
         autoSurfaceDepth: 10,
-        autoSurfaceSpeed: 4.0
+        autoSurfaceSpeed: 4.0,
+        minimumCompletionDepth: 20,
+        minimumCompletionTime: 120
     )
 
     static let levelOne = LevelDefinition(
         depthLimit: nil,
         scalingFactor: 100.0,
         autoSurfaceDepth: 1,
-        autoSurfaceSpeed: 4.0
+        autoSurfaceSpeed: 4.0,
+        minimumCompletionDepth: 10,
+        minimumCompletionTime: 60
     )
 
     static let levelEnd = LevelDefinition(
         depthLimit: nil,
         scalingFactor: 1.0,
         autoSurfaceDepth: 100,
-        autoSurfaceSpeed: 4.0
+        autoSurfaceSpeed: 4.0,
+        minimumCompletionDepth: 10,
+        minimumCompletionTime: 60
     )
 }
 

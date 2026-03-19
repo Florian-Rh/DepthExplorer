@@ -24,15 +24,28 @@ class DiveSimulation: ObservableObject {
     /// The active limitation models, evaluated each tick in order.
     let limitationModels: [any DiveLimitationModel]
 
+    /// Minimum depth (meters) the diver must reach for the dive to count.
+    let minimumCompletionDepth: Int
+
+    /// Minimum dive time (simulated seconds) for the dive to count.
+    let minimumCompletionTime: Int
+
     private var timer: Timer?
     private var cancellables: Set<AnyCancellable> = []
     private var currentDepth: Int = 0
     private var previousDepth: Int = 0
+    private var maxDepthReached: Int = 0
     private weak var session: DiveSession?
     private weak var warningSystem: DiveWarningSystem?
 
-    init(limitationModels: [any DiveLimitationModel]) {
+    init(
+        limitationModels: [any DiveLimitationModel],
+        minimumCompletionDepth: Int = 0,
+        minimumCompletionTime: Int = 0
+    ) {
         self.limitationModels = limitationModels
+        self.minimumCompletionDepth = minimumCompletionDepth
+        self.minimumCompletionTime = minimumCompletionTime
         for model in limitationModels {
             forwardChanges(from: model)
         }
@@ -56,6 +69,7 @@ class DiveSimulation: ObservableObject {
         diveStart = Date()
         timeAtCurrentDepth = 0
         previousDepth = 0
+        maxDepthReached = 0
         for model in limitationModels {
             model.reset()
         }
@@ -65,6 +79,9 @@ class DiveSimulation: ObservableObject {
     /// Called by the view model to keep the simulation in sync with the current depth.
     func updateDepth(_ depth: Int) {
         currentDepth = depth
+        if depth > maxDepthReached {
+            maxDepthReached = depth
+        }
     }
 
     // MARK: - Private
@@ -142,7 +159,12 @@ class DiveSimulation: ObservableObject {
             }
         } else if currentDepth == 0 {
             if session.state == .diving {
-                session.completeDive()
+                let diveTime = Int(Date().timeIntervalSince(diveStart) * GameConstants.timeScale)
+                if maxDepthReached >= minimumCompletionDepth && diveTime >= minimumCompletionTime {
+                    session.completeDive()
+                } else {
+                    session.cancelDive()
+                }
                 warningSystem?.clearAll()
             }
         }
