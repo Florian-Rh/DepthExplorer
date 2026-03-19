@@ -26,6 +26,13 @@ struct DiveCompleteOverlayView: View {
     @State private var showLevelProgress = false
     @State private var levelBarFill: Double = 0
 
+    /// Set to `true` only when the full animation sequence has completed.
+    @State private var animationFinished = false
+
+    /// Animation speed multiplier. 1.0 = normal, 0.0 = instant.
+    /// `skipToEnd()` sets this to 0, causing all pending steps to resolve immediately.
+    @State private var animationSpeedMultiplier: Double = 1.0
+
     // MARK: - Counted stat values
 
     private var countedDiveTime: Int {
@@ -91,116 +98,124 @@ struct DiveCompleteOverlayView: View {
         GeometryReader { geo in
             ZStack {
                 Color.black.opacity(0.85)
+                ScrollView {
+                    VStack(spacing: 28) {
+                        Spacer()
 
-                VStack(spacing: 28) {
-                    Spacer()
+                        // Title
+                        VStack(spacing: 8) {
+                            Image(systemName: "checkmark.seal.fill")
+                                .font(.system(size: 48))
+                                .foregroundStyle(.green)
 
-                    // Title
-                    VStack(spacing: 8) {
-                        Image(systemName: "checkmark.seal.fill")
-                            .font(.system(size: 48))
-                            .foregroundStyle(.green)
+                            Text("Dive Complete!")
+                                .font(.system(size: 26, weight: .bold))
+                                .foregroundStyle(.white)
+                        }
 
-                        Text("Dive Complete!")
-                            .font(.system(size: 26, weight: .bold))
-                            .foregroundStyle(.white)
-                    }
+                        // Stats
+                        VStack(spacing: 20) {
+                            statRow(
+                                icon: "timer",
+                                label: "Dive Time",
+                                value: diveTimeFormatted,
+                                lineIndex: 0,
+                                isRecord: activeStats?.isTimeRecord == true
+                            )
 
-                    // Stats
-                    VStack(spacing: 20) {
-                        statRow(
-                            icon: "timer",
-                            label: "Dive Time",
-                            value: diveTimeFormatted,
-                            lineIndex: 0,
-                            isRecord: activeStats?.isTimeRecord == true
-                        )
+                            statRow(
+                                icon: "arrow.down.to.line",
+                                label: "Max Depth",
+                                value: "\(countedMaxDepth) m",
+                                lineIndex: 1,
+                                isRecord: activeStats?.isDepthRecord == true
+                            )
 
-                        statRow(
-                            icon: "arrow.down.to.line",
-                            label: "Max Depth",
-                            value: "\(countedMaxDepth) m",
-                            lineIndex: 1,
-                            isRecord: activeStats?.isDepthRecord == true
-                        )
+                            statRow(
+                                icon: "dollarsign.circle.fill",
+                                label: "Sand Dollars",
+                                value: "+\(countedSandDollars)",
+                                lineIndex: 2,
+                                valueColor: .yellow
+                            )
 
-                        statRow(
-                            icon: "dollarsign.circle.fill",
-                            label: "Sand Dollars",
-                            value: "+\(countedSandDollars)",
-                            lineIndex: 2,
-                            valueColor: .yellow
-                        )
-
-                        statRow(
-                            icon: "book.fill",
-                            label: "Items Discovered",
-                            value: "\(countedItems)",
-                            lineIndex: 3,
-                            valueColor: .cyan
-                        )
-                    }
-                    .padding(.horizontal, 40)
-
-                    // XP Breakdown
-                    xpBreakdownSection
+                            statRow(
+                                icon: "book.fill",
+                                label: "Items Discovered",
+                                value: "\(countedItems)",
+                                lineIndex: 3,
+                                valueColor: .cyan
+                            )
+                        }
                         .padding(.horizontal, 40)
-                        .opacity(showXPSection ? 1 : 0)
-                        .offset(y: showXPSection ? 0 : 10)
 
-                    // Level progress bar
-                    levelProgressSection
+                        // XP Breakdown
+                        xpBreakdownSection
+                            .padding(.horizontal, 40)
+                            .opacity(showXPSection ? 1 : 0)
+                            .offset(y: showXPSection ? 0 : 10)
+
+                        // Level progress bar
+                        levelProgressSection
+                            .padding(.horizontal, 40)
+                            .opacity(showLevelProgress ? 1 : 0)
+                            .offset(y: showLevelProgress ? 0 : 10)
+
+                        // Totals (appear after counting finishes)
+                        VStack(spacing: 6) {
+                            Rectangle()
+                                .fill(Color.white.opacity(0.15))
+                                .frame(height: 1)
+                                .padding(.horizontal, 60)
+                                .padding(.bottom, 4)
+
+                            totalRow(
+                                label: "Total Dives",
+                                value: "\(totalDives)"
+                            )
+                            totalRow(
+                                label: "Total Dive Time",
+                                value: totalDiveTimeFormatted
+                            )
+                        }
                         .padding(.horizontal, 40)
-                        .opacity(showLevelProgress ? 1 : 0)
-                        .offset(y: showLevelProgress ? 0 : 10)
+                        .opacity(showButton ? 1 : 0)
 
-                    // Totals (appear after counting finishes)
-                    VStack(spacing: 6) {
-                        Rectangle()
-                            .fill(Color.white.opacity(0.15))
-                            .frame(height: 1)
-                            .padding(.horizontal, 60)
-                            .padding(.bottom, 4)
+                        Spacer()
 
-                        totalRow(
-                            label: "Total Dives",
-                            value: "\(totalDives)"
-                        )
-                        totalRow(
-                            label: "Total Dive Time",
-                            value: totalDiveTimeFormatted
-                        )
+                        Button {
+                            dismiss()
+                        } label: {
+                            Text("Continue")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(.black)
+                                .padding(.horizontal, 48)
+                                .padding(.vertical, 14)
+                                .background(.white, in: Capsule())
+                        }
+                        .opacity(showButton ? 1 : 0)
+                        .padding(.bottom, 60)
                     }
-                    .padding(.horizontal, 40)
-                    .opacity(showButton ? 1 : 0)
-
-                    Spacer()
-
-                    Button {
-                        dismiss()
-                    } label: {
-                        Text("Continue")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(.black)
-                            .padding(.horizontal, 48)
-                            .padding(.vertical, 14)
-                            .background(.white, in: Capsule())
-                    }
-                    .opacity(showButton ? 1 : 0)
-                    .padding(.bottom, 60)
+                    .opacity(contentOpacity)
+                    .safeAreaPadding(.top)
                 }
-                .opacity(contentOpacity)
+
+                // Tap-to-skip layer: covers entire overlay while animation is playing.
+                // Removed once the animation has fully completed, so the
+                // Continue and Level Up buttons can receive taps.
+                if !animationFinished {
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            skipToEnd()
+                        }
+                }
             }
             .frame(width: geo.size.width, height: geo.size.height)
         }
         .ignoresSafeArea()
         .opacity(overlayOpacity)
         .allowsHitTesting(overlayOpacity > 0)
-        .onTapGesture {
-            if !showButton {
-                skipToEnd()
-            }
-        }
         .onChange(of: stats != nil) { _, isPresent in
             if isPresent, let s = stats {
                 show(stats: s)
@@ -428,6 +443,18 @@ struct DiveCompleteOverlayView: View {
 
     // MARK: - Animation
 
+    /// Scale a duration by the current animation speed. Returns at least 0.01
+    /// so that completion handlers still fire.
+    private func dur(_ base: Double) -> Double {
+        max(base * animationSpeedMultiplier, 0.01)
+    }
+
+    /// Sleep for `base` seconds scaled by the animation speed.
+    private func wait(_ base: Double) async {
+        let ns = UInt64(dur(base) * 1_000_000_000)
+        try? await Task.sleep(nanoseconds: ns)
+    }
+
     private func show(stats: LevelViewModel.DiveCompleteStats) {
         activeStats = stats
         revealedLines = 0
@@ -440,113 +467,93 @@ struct DiveCompleteOverlayView: View {
         showLevelProgress = false
         levelBarFill = 0
         contentOpacity = 0
+        animationFinished = false
+        animationSpeedMultiplier = 1.0
 
-        // Fade in overlay
+        // Fade in overlay, then run the reveal sequence
         withAnimation(.easeIn(duration: 0.6)) {
             overlayOpacity = 1
             contentOpacity = 1
-        } completion: {
-            revealLines()
+        }
+
+        Task { @MainActor in
+            await wait(0.6)
+            await revealLines()
         }
     }
 
-    private func revealLines() {
-        let lineDelay = 0.5
-        let countDuration = 0.8
-
+    @MainActor
+    private func revealLines() async {
+        // Stat lines — reveal and count each one sequentially
         for i in 0..<4 {
-            let delay = lineDelay * Double(i)
-
-            // Reveal the line
-            withAnimation(.easeOut(duration: 0.3).delay(delay)) {
+            withAnimation(.easeOut(duration: dur(0.3))) {
                 revealedLines = i + 1
             }
-
-            // Start counting for this line immediately after it appears
-            withAnimation(.easeOut(duration: countDuration).delay(delay + 0.15)) {
+            await wait(0.15)
+            withAnimation(.easeOut(duration: dur(0.8))) {
                 lineProgress[i] = 1.0
             }
+            await wait(0.35)
         }
 
-        // Show record badges after the last stat line finishes counting
-        let statsEndDelay = lineDelay * 3 + 0.15 + countDuration + 0.1
-
-        withAnimation(.spring(duration: 0.4, bounce: 0.3).delay(statsEndDelay)) {
+        // Record badges
+        await wait(dur(0.1))
+        withAnimation(.spring(duration: dur(0.4), bounce: 0.3)) {
             showRecordBadges = true
         }
 
-        // Reveal XP section after record badges
-        let xpSectionDelay = statsEndDelay + 0.0
-
-        withAnimation(.easeOut(duration: 0.4).delay(xpSectionDelay)) {
+        // XP section
+        withAnimation(.easeOut(duration: dur(0.4))) {
             showXPSection = true
         }
+        await wait(0.2)
 
-        // Count up XP lines
-        let xpCountDelay = xpSectionDelay + 0.2
-        let xpCountDuration = 0.35
-
+        // XP line counts
         for i in 0..<3 {
-            withAnimation(.easeOut(duration: xpCountDuration).delay(xpCountDelay + 0.15 * Double(i))) {
+            withAnimation(.easeOut(duration: dur(0.35))) {
                 xpLineProgress[i] = 1.0
             }
+            await wait(0.15)
         }
 
-        // Count up total XP after individual lines
-        let xpTotalDelay = xpCountDelay + 0.15 * 2 + xpCountDuration + 0.05
-        withAnimation(.easeOut(duration: xpCountDuration).delay(xpTotalDelay)) {
+        // XP total
+        await wait(0.05)
+        withAnimation(.easeOut(duration: dur(0.35))) {
             xpTotalProgress = 1.0
         }
+        await wait(dur(0.35) + 0.1)
 
-        // Show level progress bar after XP total
-        let levelDelay = xpTotalDelay + xpCountDuration + 0.1
-
-        withAnimation(.easeOut(duration: 0.4).delay(levelDelay)) {
+        // Level progress bar
+        withAnimation(.easeOut(duration: dur(0.4))) {
             showLevelProgress = true
         }
+        await wait(0.25)
 
-        // Animate the bar fill — start from the pre-dive progress and fill to post-dive
-        let barAnimDelay = levelDelay + 0.25
         if let s = activeStats {
             let before = LevelProgression.from(totalXP: s.totalXPBefore)
             let after = LevelProgression.from(totalXP: s.totalXPBefore + s.experienceBreakdown.totalXP)
-
-            // If the player leveled up, animate from 0 to the new level's progress
-            // (the "before" progress was in a different level, so start fresh).
-            // Otherwise animate from before to after within the same level.
             let startFill = before.level == after.level ? before.progress : 0
             levelBarFill = startFill
 
-            withAnimation(.easeInOut(duration: 0.8).delay(barAnimDelay)) {
+            withAnimation(.easeInOut(duration: dur(0.8))) {
                 levelBarFill = after.progress
             }
+            await wait(dur(0.8) + 0.15)
         }
 
-        // Show totals and button after level bar finishes
-        withAnimation(.easeIn(duration: 0.3).delay(barAnimDelay + 0.8 + 0.15)) {
+        // Show button and totals
+        withAnimation(.easeIn(duration: dur(0.3))) {
             showButton = true
         }
+        await wait(dur(0.3))
+        animationFinished = true
     }
 
-    /// Skip all in-progress animations and show the final state immediately.
+    /// Skip the reveal animation by setting speed to zero.
+    /// All pending `wait()` calls resolve almost instantly, and all
+    /// `dur()` durations collapse to near-zero.
     private func skipToEnd() {
-        withAnimation(.easeOut(duration: 0.15)) {
-            overlayOpacity = 1
-            contentOpacity = 1
-            revealedLines = 4
-            lineProgress = Array(repeating: 1, count: 4)
-            showRecordBadges = true
-            showXPSection = true
-            xpLineProgress = Array(repeating: 1, count: 3)
-            xpTotalProgress = 1
-            showLevelProgress = true
-            showButton = true
-
-            if let s = activeStats {
-                let after = LevelProgression.from(totalXP: s.totalXPBefore + s.experienceBreakdown.totalXP)
-                levelBarFill = after.progress
-            }
-        }
+        animationSpeedMultiplier = 0
     }
 
     private func dismiss() {
@@ -564,6 +571,7 @@ struct DiveCompleteOverlayView: View {
             xpTotalProgress = 0
             showLevelProgress = false
             levelBarFill = 0
+            animationFinished = false
             onDismiss()
             stats = nil
         }
