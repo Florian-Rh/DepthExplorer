@@ -154,7 +154,7 @@ enum GameConstants {
 
     /// Cooling rate coefficient. Higher = faster heat loss.
     /// The actual cooling per minute is `(bodyTemp - waterTemp) * coolingRate`.
-    static let coolingRate: Double = 0.006
+    static let coolingRate: Double = 0.02
 
     /// Body temperature (°C) at which a caution warning is triggered.
     static let hypothermiaWarningThreshold: Double = 36.0

@@ -63,13 +63,18 @@ class AirSupplyModel: ObservableObject, DiveLimitationModel {
 
         // With stress management, the diver can "hold their breath" after the air
         // runs out. The fatal fraction shifts below 0 proportionally to the tolerance
-        // beyond 1.0. At tolerance 1.0 → fatal at 0%. At 1.3 → fatal at -3%.
-        let breathHoldBuffer = GameConstants.airCriticalFraction * (warningTolerance - 1.0)
+        // beyond 1.0. At tolerance 1.0 → fatal at 0%. At 1.3 → fatal at -7.5%.
+        // This gives a meaningful survival window at higher skill levels.
+        let breathHoldBuffer = GameConstants.airWarningFraction * (warningTolerance - 1.0)
         let fatalFraction = -breathHoldBuffer
+
+        // Use the raw (unclamped) fraction for the fatal check, since the breath-hold
+        // buffer pushes the fatal threshold below 0 and `fraction` is clamped at 0.
+        let rawFraction = remainingBar / capacity
 
         let percentString = "\(Int(currentFraction * 100))% air remaining"
 
-        if currentFraction <= fatalFraction {
+        if rawFraction <= fatalFraction {
             warningSystem.set(DiveWarning(
                 kind: .airSupply,
                 severity: .fatal,
