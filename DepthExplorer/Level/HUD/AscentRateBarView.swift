@@ -10,11 +10,25 @@ import SwiftUI
 struct AscentRateBarView: View {
     /// Current ascent speed in m/s (positive = ascending).
     let ascentSpeed: Double
+    /// Current depth in meters, used to scale thresholds with depth leniency.
+    let depthMeters: Double
 
     private let segmentCount = 8
-    private let maxDisplaySpeed = GameConstants.safeAscentSpeed * GameConstants.dcsFatalFraction
     private let warnFraction = GameConstants.dcsWarningFraction / GameConstants.dcsFatalFraction
     private let critFraction = GameConstants.dcsCriticalFraction / GameConstants.dcsFatalFraction
+
+    /// Depth-leniency multiplier matching `DecompressionModel.depthLeniencyMultiplier`.
+    private var depthMultiplier: Double {
+        guard depthMeters > 0 else { return 1.0 }
+        let normalised = depthMeters / GameConstants.dcsReferenceDepth
+        let curved = pow(normalised, GameConstants.dcsDepthExponent)
+        return 1.0 + GameConstants.dcsDepthScale * curved
+    }
+
+    /// The effective maximum display speed, adjusted for depth.
+    private var maxDisplaySpeed: Double {
+        GameConstants.safeAscentSpeed * GameConstants.dcsFatalFraction * depthMultiplier
+    }
 
     /// How many segments are "filled" (0...segmentCount).
     private var filledCount: Int {
@@ -60,10 +74,10 @@ struct AscentRateBarView: View {
     ZStack {
         Color(white: 0.08)
         HStack(spacing: 20) {
-            AscentRateBarView(ascentSpeed: 0)
-            AscentRateBarView(ascentSpeed: 10)
-            AscentRateBarView(ascentSpeed: 20)
-            AscentRateBarView(ascentSpeed: 28)
+            AscentRateBarView(ascentSpeed: 0, depthMeters: 30)
+            AscentRateBarView(ascentSpeed: 10, depthMeters: 30)
+            AscentRateBarView(ascentSpeed: 20, depthMeters: 30)
+            AscentRateBarView(ascentSpeed: 28, depthMeters: 30)
         }
         .padding()
     }

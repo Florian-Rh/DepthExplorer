@@ -141,6 +141,23 @@ enum GameConstants {
     /// Fraction of safe ascent speed at which a fatal warning is triggered.
     static let dcsFatalFraction: Double = 1.5
 
+    /// Depth-dependent decompression leniency: at greater depths, the effective
+    /// safe ascent speed is multiplied by `1 + depthScale * (depth / referenceDepth) ^ depthExponent`.
+    /// This makes ascending from deep water less punishing than ascending near the surface.
+
+    /// How much the safe ascent speed increases at the reference depth.
+    /// e.g. 1.0 means "double the safe speed at referenceDepth".
+    static let dcsDepthScale: Double = 1.0
+
+    /// The depth (meters) at which the full `dcsDepthScale` bonus applies.
+    /// Depths beyond this continue to increase the bonus proportionally.
+    static let dcsReferenceDepth: Double = 200.0
+
+    /// Controls the shape of the depth-leniency curve.
+    /// 1.0 = linear, <1.0 = concave (ramps up quickly then flattens),
+    /// >1.0 = convex (slow start, ramps up at depth).
+    static let dcsDepthExponent: Double = 1.0
+
     /// How quickly the effective ascent speed builds up toward the instantaneous speed
     /// while ascending. Range 0–1; higher = faster buildup.
     static let ascentSpeedBuildupRate: Double = 0.08

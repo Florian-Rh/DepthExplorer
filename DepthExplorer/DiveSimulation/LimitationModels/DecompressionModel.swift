@@ -18,7 +18,7 @@ class DecompressionModel: ObservableObject, DiveLimitationModel {
         updateAscentSpeed(instantaneousSpeed: context.instantaneousAscentSpeed)
 
         if ascentSpeed > 0 {
-            return evaluateWarning(warningSystem: warningSystem)
+            return evaluateWarning(depthMeters: Double(context.depthMeters), warningSystem: warningSystem)
         } else {
             warningSystem.clear(.decompression)
             return .ok
@@ -35,6 +35,16 @@ class DecompressionModel: ObservableObject, DiveLimitationModel {
 
     // MARK: - Private
 
+    /// Returns a multiplier (≥ 1.0) for the safe ascent speed based on current depth.
+    /// Deeper = higher multiplier = more forgiving.
+    /// At the surface the multiplier is 1.0 (baseline).
+    private func depthLeniencyMultiplier(depth: Double) -> Double {
+        guard depth > 0 else { return 1.0 }
+        let normalised = depth / GameConstants.dcsReferenceDepth
+        let curved = pow(normalised, GameConstants.dcsDepthExponent)
+        return 1.0 + GameConstants.dcsDepthScale * curved
+    }
+
     private func updateAscentSpeed(instantaneousSpeed: Double) {
         if instantaneousSpeed > 0 {
             // Ascending: blend toward instantaneous speed
@@ -46,8 +56,8 @@ class DecompressionModel: ObservableObject, DiveLimitationModel {
         }
     }
 
-    private func evaluateWarning(warningSystem: DiveWarningSystem) -> DiveLimitationResult {
-        let safeSpeed = GameConstants.safeAscentSpeed
+    private func evaluateWarning(depthMeters: Double, warningSystem: DiveWarningSystem) -> DiveLimitationResult {
+        let safeSpeed = GameConstants.safeAscentSpeed * depthLeniencyMultiplier(depth: depthMeters)
         let ratio = ascentSpeed / safeSpeed
 
         // Tolerance > 1 multiplies the fraction thresholds, requiring higher speed to trigger.

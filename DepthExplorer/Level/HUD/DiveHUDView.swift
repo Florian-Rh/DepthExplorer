@@ -131,7 +131,7 @@ struct DiveHUDView: View {
                 Spacer()
 
                 if hasScubaGear {
-                    AscentRateBarView(ascentSpeed: ascentSpeed)
+                    AscentRateBarView(ascentSpeed: ascentSpeed, depthMeters: Double(depth))
                         .frame(height: 44)
                 }
             }
