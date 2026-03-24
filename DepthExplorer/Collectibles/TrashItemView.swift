@@ -25,18 +25,18 @@ struct TrashItemView: View {
         VStack(spacing: 4) {
             ZStack {
                 Circle()
-                    .fill(Color.green.opacity(0.25))
+                    .fill(Color.brown.opacity(0.25))
                     .frame(width: 44, height: 44)
                     .blur(radius: 6)
                 Circle()
-                    .stroke(Color.green.opacity(0.6), lineWidth: 2)
+                    .stroke(Color.brown.opacity(0.6), lineWidth: 2)
                     .frame(width: 36, height: 36)
-                Image(systemName: "leaf.fill")
+                Image(systemName: "trash.fill")
                     .resizable()
                     .scaledToFit()
                     .padding(8)
                     .frame(width: 36, height: 36)
-                    .foregroundStyle(.green)
+                    .foregroundStyle(.brown)
             }
 
             Text("$\(item.sandDollarValue)")

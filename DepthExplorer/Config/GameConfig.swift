@@ -18,13 +18,39 @@ struct LevelDefinition {
     /// Auto-surface scroll speed (pts per frame).
     let autoSurfaceSpeed: CGFloat
 
+    /// Minimum depth in meters the diver must reach for the dive to count as completed.
+    let minimumCompletionDepth: Int
+
+    /// Minimum dive time in simulated seconds for the dive to count as completed.
+    let minimumCompletionTime: Int
+
     // TODO: Phase 2 — available gear for purchase at this level
 
     static let `default` = LevelDefinition(
         depthLimit: nil,
         scalingFactor: 10.0,
         autoSurfaceDepth: 10,
-        autoSurfaceSpeed: 4.0
+        autoSurfaceSpeed: 4.0,
+        minimumCompletionDepth: 20,
+        minimumCompletionTime: 120
+    )
+
+    static let levelOne = LevelDefinition(
+        depthLimit: nil,
+        scalingFactor: 100.0,
+        autoSurfaceDepth: 1,
+        autoSurfaceSpeed: 4.0,
+        minimumCompletionDepth: 10,
+        minimumCompletionTime: 60
+    )
+
+    static let levelEnd = LevelDefinition(
+        depthLimit: nil,
+        scalingFactor: 1.0,
+        autoSurfaceDepth: 100,
+        autoSurfaceSpeed: 4.0,
+        minimumCompletionDepth: 10,
+        minimumCompletionTime: 60
     )
 }
 
@@ -39,6 +65,9 @@ enum GameConstants {
     /// Scroll speed multiplier (pts per frame at full joystick deflection).
     static let scrollSpeed: CGFloat = 8.0
 
+    /// Scroll speed when apnoe diving (no fins equipped).
+    static let apnoeScrollSpeed: CGFloat = 5.0
+
     // MARK: - Diver Movement
 
     /// Smoothing factor for position and tilt interpolation.
@@ -47,6 +76,9 @@ enum GameConstants {
 
     /// Horizontal movement speed (pts per frame at full joystick deflection).
     static let diverHorizontalSpeed: CGFloat = 4.0
+
+    /// Horizontal movement speed when apnoe diving (no fins equipped).
+    static let apnoeHorizontalSpeed: CGFloat = 2.5
 
     /// Screen edge margin for horizontal clamping (pts).
     static let diverEdgeMargin: CGFloat = 30.0
@@ -76,19 +108,22 @@ enum GameConstants {
 
     // MARK: - Air Supply
 
-    /// Default tank capacity in bar.
-    /// A standard scuba cylinder. Will vary by gear in Phase 2.
-    static let tankCapacity: Double = 200.0
+    /// Lung capacity in bar when apnoe diving (no scuba gear equipped).
+    /// A gameplay abstraction — represents the air a diver can hold in their lungs.
+    static let apnoeLungCapacity: Double = 50.0
+
+    /// Standard scuba gear capacity in bar (cylinder + regulator).
+    static let scubaGearCapacity: Double = 200.0
 
     /// Surface air consumption rate in bar per simulated minute.
     /// At depth, actual consumption is `sacRate * ambientPressure`.
     static let sacRate: Double = 1.0
 
-    /// Air pressure (bar) at which a caution warning is triggered.
-    static let airWarningThreshold: Double = 50.0
+    /// Fraction of air remaining at which a caution warning is triggered (25%).
+    static let airWarningFraction: Double = 0.25
 
-    /// Air pressure (bar) at which a critical warning is triggered.
-    static let airCriticalThreshold: Double = 10.0
+    /// Fraction of air remaining at which a critical warning is triggered (10%).
+    static let airCriticalFraction: Double = 0.10
 
     // MARK: - DCS / Ascent Speed
 
@@ -131,7 +166,7 @@ enum GameConstants {
 
     /// Cooling rate coefficient. Higher = faster heat loss.
     /// The actual cooling per minute is `(bodyTemp - waterTemp) * coolingRate`.
-    static let coolingRate: Double = 0.006
+    static let coolingRate: Double = 0.02
 
     /// Body temperature (°C) at which a caution warning is triggered.
     static let hypothermiaWarningThreshold: Double = 36.0
@@ -159,6 +194,15 @@ enum GameConstants {
     /// Sand Dollar value range for each trash item.
     static let trashMinValue: Int = 1
     static let trashMaxValue: Int = 5
+
+    // MARK: - Leveling
+
+    /// XP required to reach level 2 (the first level-up).
+    static let baseLevelUpXP: Int = 100
+
+    /// Each subsequent level requires this factor more XP than the previous one.
+    /// e.g. level 2 = 100, level 3 = 150, level 4 = 225, …
+    static let levelUpScalingFactor: Double = 1.5
 
     // MARK: - Gas Mixtures
 

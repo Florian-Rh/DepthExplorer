@@ -17,6 +17,9 @@ class LevelViewModel: ObservableObject {
         let totalDiveTimeBefore: Int
         let isDepthRecord: Bool
         let isTimeRecord: Bool
+        let experienceBreakdown: ExperienceBreakdown
+        /// Player's total XP *before* this dive's XP is added.
+        let totalXPBefore: Int
     }
 
     /// Set when the diver is rescued; cleared after the overlay is dismissed.
@@ -32,11 +35,12 @@ class LevelViewModel: ObservableObject {
 
 
     let diverController = DiverController()
-    let diveSimulation = DiveSimulation()
+    private(set) var diveSimulation: DiveSimulation
     let diveSession = DiveSession()
     let warningSystem = DiveWarningSystem()
     let level: LevelDefinition
     let profileStore: ProfileStore
+    private(set) var diveParameters: DiveParameters
 
     private var cancellables: Set<AnyCancellable> = []
     private var previousSessionState: DiveSessionState = .surface
@@ -58,6 +62,11 @@ class LevelViewModel: ObservableObject {
         1.0 + (Double(currentDepth) / 10.0)
     }
 
+    /// Visual appearance of the diver, derived from equipped gear.
+    var diverAppearance: DiverAppearance {
+        DiverAppearance.from(profile: profileStore.profile)
+    }
+
     /// Total dive time in simulated seconds since the current dive began.
     /// Returns 0 when not actively diving.
     var diveTimeSeconds: Int {
@@ -65,9 +74,20 @@ class LevelViewModel: ObservableObject {
         return Int(Date().timeIntervalSince(diveSimulation.diveStart) * GameConstants.timeScale)
     }
 
-    init(level: LevelDefinition = .default, profileStore: ProfileStore = ProfileStore()) {
+    init(
+        level: LevelDefinition = .default,
+        profileStore: ProfileStore = ProfileStore(),
+        limitationModels: [any DiveLimitationModel]? = nil
+    ) {
+        let params = DiveParameters.from(profile: profileStore.profile)
+        self.diveParameters = params
         self.level = level
         self.profileStore = profileStore
+        self.diveSimulation = DiveSimulation(
+            limitationModels: limitationModels ?? Self.makeLimitationModels(from: params),
+            minimumCompletionDepth: level.minimumCompletionDepth,
+            minimumCompletionTime: level.minimumCompletionTime
+        )
         discoveredItemNames = profileStore.profile.discoveredItems
         diverController.objectWillChange
             .sink { [weak self] in self?.objectWillChange.send() }
@@ -96,8 +116,33 @@ class LevelViewModel: ObservableObject {
         discoveredItemNames = []
     }
 
+    /// Recompute dive parameters from the current profile (e.g. after loadout changes in the hub).
+    /// Rebuilds the dive simulation with updated limitation models so that the next dive
+    /// uses the new gear/skill values.
+    func recomputeParameters() {
+        diveParameters = DiveParameters.from(profile: profileStore.profile)
+
+        diveSimulation.stop()
+        let newSimulation = DiveSimulation(
+            limitationModels: Self.makeLimitationModels(from: diveParameters),
+            minimumCompletionDepth: level.minimumCompletionDepth,
+            minimumCompletionTime: level.minimumCompletionTime
+        )
+        diveSimulation = newSimulation
+
+        // Re-forward change notifications from the new simulation.
+        newSimulation.objectWillChange
+            .sink { [weak self] in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+
+        newSimulation.start(session: diveSession, warningSystem: warningSystem)
+    }
+
     /// Commit rewards and reset session after the dive complete overlay is dismissed.
     func dismissDiveComplete() {
+        if let breakdown = diveCompleteStats?.experienceBreakdown {
+            profileStore.addExperience(breakdown.totalXP)
+        }
         diveSession.commitRewards(to: profileStore)
         discoveredItemNames = profileStore.profile.discoveredItems
         diveSimulation.resetSimulationData()
@@ -118,7 +163,8 @@ class LevelViewModel: ObservableObject {
         diverController.updateSmoothing(
             contentOffset: contentOffset,
             currentDepth: currentDepth,
-            screenWidth: screenSize.width
+            screenWidth: screenSize.width,
+            horizontalSpeed: diveParameters.diverHorizontalSpeed
         )
         diveSimulation.updateDepth(currentDepth)
         if currentDepth > maxDepthReached {
@@ -127,6 +173,21 @@ class LevelViewModel: ObservableObject {
         checkSessionTransitions()
         checkProximity()
         updateContentOffset()
+    }
+
+    // MARK: - Limitation Models
+
+    /// Build the set of limitation models for a dive based on current parameters.
+    /// DCS is only possible when breathing compressed gas (scuba gear equipped).
+    private static func makeLimitationModels(from params: DiveParameters) -> [any DiveLimitationModel] {
+        var models: [any DiveLimitationModel] = [
+            AirSupplyModel(capacity: params.airCapacity, sacRate: params.sacRate, warningTolerance: params.warningThresholdTolerance),
+            ThermalModel(protectionFactor: params.thermalProtectionFactor, warningTolerance: params.warningThresholdTolerance),
+        ]
+        if params.hasScubaGear {
+            models.append(DecompressionModel(warningTolerance: params.warningThresholdTolerance))
+        }
+        return models
     }
 
     // MARK: - Screen control
@@ -144,7 +205,7 @@ class LevelViewModel: ObservableObject {
 
         guard abs(vertical) > GameConstants.joystickDeadzone else { return }
 
-        let delta = vertical * GameConstants.scrollSpeed
+        let delta = vertical * diveParameters.scrollSpeed
         let newOffset = max(0, min(contentOffset + delta, maximumDepthInPixels))
         contentOffset = newOffset
     }
@@ -160,11 +221,23 @@ class LevelViewModel: ObservableObject {
             maxDepthReached = 0
         }
 
-        // Detect safe surfacing → persist dive records, capture stats, show overlay
+        // Detect safe surfacing → persist dive records, compute XP, capture stats, show overlay
         if previousSessionState == .diving && currentState == .surfacedSafely {
             let diveTime = Int(Date().timeIntervalSince(diveSimulation.diveStart) * GameConstants.timeScale)
             let totalDivesBefore = profileStore.profile.totalDives
             let totalTimeBefore = profileStore.profile.totalDiveTimeSeconds
+            let isFirstDive = totalDivesBefore == 0
+
+            // Build XP input before updating records
+            let diveResult = DiveResult(
+                maxDepthMeters: maxDepthReached,
+                diveTimeSeconds: diveTime,
+                discoveredItems: diveSession.discoveredItemRecords,
+                previousRecordDepth: isFirstDive ? nil : profileStore.profile.recordMaxDepth,
+                previousRecordTime: isFirstDive ? nil : profileStore.profile.recordDiveTimeSeconds
+            )
+            let xpBreakdown = ExperienceCalculator().calculate(from: diveResult)
+
             let records = profileStore.recordCompletedDive(diveTimeSeconds: diveTime, maxDepth: maxDepthReached)
 
             diveCompleteStats = DiveCompleteStats(
@@ -175,7 +248,9 @@ class LevelViewModel: ObservableObject {
                 totalDivesBefore: totalDivesBefore,
                 totalDiveTimeBefore: totalTimeBefore,
                 isDepthRecord: records.newDepthRecord,
-                isTimeRecord: records.newTimeRecord
+                isTimeRecord: records.newTimeRecord,
+                experienceBreakdown: xpBreakdown,
+                totalXPBefore: profileStore.profile.experiencePoints
             )
             trashItems = []
         }
@@ -230,7 +305,7 @@ class LevelViewModel: ObservableObject {
                 hPadding: 60
             )
             guard distance(diverPos, itemPos) <= radius else { continue }
-            diveSession.discoverItem(named: item.name)
+            diveSession.discoverItem(named: item.name, atDepth: item.depth)
             profileStore.discoverItem(named: item.name)
             discoveredItemNames.insert(item.name)
         }

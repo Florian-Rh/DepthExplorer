@@ -5,8 +5,10 @@ struct LevelView: View {
     @ObservedObject var profileStore: ProfileStore
     @StateObject var viewModel: LevelViewModel
     @State private var frameDriver = FrameUpdateDriver()
+    @State private var showDebugButton = false
     @State private var showDebugPanel = false
-    @State private var showGlossary = false
+    @State private var showHub = false
+    @State private var hubInitialTab: HubTab = .shop
 
     init(profileStore: ProfileStore) {
         self.profileStore = profileStore
@@ -68,8 +70,8 @@ struct LevelView: View {
             }
             .clipped()
 
-            ScubaDiverView(tilt: viewModel.diverController.tilt, submersed: viewModel.currentDepth > 0)
-                .scaleEffect(0.6)
+            ScubaDiverView(tilt: viewModel.diverController.tilt, submersed: viewModel.currentDepth > 0, appearance: viewModel.diverAppearance)
+                .scaleEffect(0.8)
                 .position(
                     x: viewModel.screenSize.width / 2 + viewModel.diverController.x,
                     y: viewModel.screenSize.height / 3 + 30 + viewModel.diverController.offset.height
@@ -80,12 +82,13 @@ struct LevelView: View {
                 DiveHUDView(
                     depth: viewModel.currentDepth,
                     diveTimeSeconds: viewModel.diveTimeSeconds,
-                    remainingBar: viewModel.diveSimulation.airSupply.remainingBar,
-                    tankCapacity: GameConstants.tankCapacity,
-                    ascentSpeed: viewModel.diveSimulation.ascentSpeed,
-                    bodyTemperature: viewModel.diveSimulation.thermalModel.bodyTemperature,
+                    remainingBar: viewModel.diveSimulation.vitals.remainingBar ?? viewModel.diveParameters.airCapacity,
+                    airCapacity: viewModel.diveParameters.airCapacity,
+                    ascentSpeed: viewModel.diveSimulation.vitals.ascentSpeed ?? 0,
+                    bodyTemperature: viewModel.diveSimulation.vitals.bodyTemperature ?? GameConstants.normalBodyTemperature,
                     warnings: viewModel.warningSystem.activeWarnings,
                     isDiving: viewModel.diveSession.state == .diving,
+                    hasScubaGear: viewModel.diveParameters.hasScubaGear,
                     onJoystickChanged: { offset, angle in
                         viewModel.diverController.offsetTarget = offset
                         if let angle {
@@ -101,53 +104,76 @@ struct LevelView: View {
 
             VStack {
                 HStack {
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            showDebugPanel.toggle()
+                    if showDebugButton {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                showDebugPanel.toggle()
+                            }
+                        } label: {
+                            Image(systemName: "ladybug")
+                                .font(.title2)
+                                .foregroundStyle(.white)
+                                .padding(10)
+                                .background(.ultraThinMaterial)
+                                .clipShape(Circle())
                         }
-                    } label: {
-                        Image(systemName: "ladybug")
-                            .font(.title2)
-                            .foregroundStyle(.white)
-                            .padding(10)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Circle())
+                        .padding(.leading, 12)
+                        .padding(.top, 60)
                     }
-                    .padding(.leading, 12)
-                    .padding(.top, 60)
 
                     Spacer()
 
-                    // Sand Dollar balance — will double as gear shop button later
-                    HStack(spacing: 5) {
-                        Image(systemName: "dollarsign.circle.fill")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(.yellow)
-                        Text("\(profileStore.profile.sandDollars)")
-                            .font(.system(size: 16, weight: .bold, design: .monospaced))
-                            .foregroundStyle(.white)
-                            .monospacedDigit()
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
-                    .background(.ultraThinMaterial, in: Capsule())
-                    .overlay(Capsule().strokeBorder(Color.white.opacity(0.18), lineWidth: 1))
-                    .padding(.top, 60)
-
-                    Spacer()
-
+                    // Hub button — opens shop, skills, inventory, glossary
+                    // Hidden while diving to prevent session reset.
                     Button {
-                        showGlossary = true
+                        hubInitialTab = .shop
+                        showHub = true
                     } label: {
-                        Image(systemName: showGlossary ? "book" : "book.closed")
-                            .font(.title2)
-                            .foregroundStyle(.white)
-                            .padding(10)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Circle())
+                        HStack(spacing: 8) {
+                            Text("Lv.\(LevelProgression.from(totalXP: profileStore.profile.experiencePoints).level)")
+                                .font(.system(size: 14, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.white)
+
+                            Rectangle()
+                                .fill(Color.white.opacity(0.25))
+                                .frame(width: 1, height: 16)
+
+                            HStack(spacing: 4) {
+                                Image(systemName: "dollarsign.circle.fill")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(.yellow)
+                                Text("\(profileStore.profile.sandDollars)")
+                                    .font(.system(size: 14, weight: .bold, design: .monospaced))
+                                    .foregroundStyle(.white)
+                                    .monospacedDigit()
+                            }
+
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(.white.opacity(0.5))
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(.ultraThinMaterial, in: Capsule())
+                        .overlay(Capsule().strokeBorder(Color.cyan.opacity(0.35), lineWidth: 1))
+                        .overlay(alignment: .topTrailing) {
+                            if profileStore.profile.skillPoints > 0 {
+                                Circle()
+                                    .fill(.orange)
+                                    .frame(width: 8, height: 8)
+                                    .offset(x: -2, y: -2)
+                            }
+                        }
                     }
-                    .padding(.trailing, 12)
                     .padding(.top, 60)
+                    .opacity(viewModel.diveSession.state == .diving ? 0 : 1)
+                    .allowsHitTesting(viewModel.diveSession.state != .diving)
+                    .animation(.easeInOut(duration: 0.25), value: viewModel.diveSession.state == .diving)
+
+                    Spacer()
+                }
+                .onTapGesture(count: 3) {
+                    showDebugButton.toggle()
                 }
 
                 if showDebugPanel {
@@ -162,6 +188,10 @@ struct LevelView: View {
                 stats: $viewModel.diveCompleteStats,
                 onDismiss: {
                     viewModel.dismissDiveComplete()
+                },
+                onOpenSkillTree: {
+                    hubInitialTab = .skills
+                    showHub = true
                 }
             )
 
@@ -183,8 +213,10 @@ struct LevelView: View {
             viewModel.stopSimulation()
             frameDriver.stop()
         }
-        .sheet(isPresented: $showGlossary) {
-            GlossaryView(discoveredItems: viewModel.discoveredItemNames)
+        .sheet(isPresented: $showHub, onDismiss: {
+            viewModel.recomputeParameters()
+        }) {
+            HubView(profileStore: profileStore, discoveredItems: viewModel.discoveredItemNames, initialTab: hubInitialTab)
         }
     }
 }

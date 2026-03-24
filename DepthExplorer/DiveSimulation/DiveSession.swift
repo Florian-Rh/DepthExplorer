@@ -21,6 +21,9 @@ class DiveSession: ObservableObject {
     @Published private(set) var discoveredItemNames: Set<String> = []
     @Published private(set) var collectedSandDollars: Int = 0
 
+    /// Items discovered this session with their depths, for XP calculation.
+    private(set) var discoveredItemRecords: [DiscoveredItemInfo] = []
+
     /// Transition to diving state when the diver descends past the activation depth.
     func beginDive() {
         guard state == .surface else { return }
@@ -33,6 +36,13 @@ class DiveSession: ObservableObject {
         state = .surfacedSafely
     }
 
+    /// Cancel an incomplete dive (minimum requirements not met).
+    /// Returns to surface state without rewards or penalties.
+    func cancelDive() {
+        guard state == .diving else { return }
+        reset()
+    }
+
     /// Transition to rescued state on a failure condition.
     func rescue(reason: String) {
         guard state == .diving else { return }
@@ -40,9 +50,10 @@ class DiveSession: ObservableObject {
     }
 
     /// Record a Knowledgeable Item discovery during the dive.
-    func discoverItem(named name: String) {
+    func discoverItem(named name: String, atDepth depth: Double) {
         guard state == .diving else { return }
         discoveredItemNames.insert(name)
+        discoveredItemRecords.append(DiscoveredItemInfo(name: name, depthMeters: depth))
     }
 
     /// Record trash pickup during the dive.
@@ -71,6 +82,7 @@ class DiveSession: ObservableObject {
     private func reset() {
         state = .surface
         discoveredItemNames = []
+        discoveredItemRecords = []
         collectedSandDollars = 0
     }
 }

@@ -28,7 +28,7 @@ class DiverController: ObservableObject {
     private var lastJoystickWasRight: Bool = true
 
     /// Called every display frame to smoothly interpolate diver state toward targets.
-    func updateSmoothing(contentOffset: CGFloat, currentDepth: Int, screenWidth: CGFloat) {
+    func updateSmoothing(contentOffset: CGFloat, currentDepth: Int, screenWidth: CGFloat, horizontalSpeed: CGFloat = GameConstants.diverHorizontalSpeed) {
         let smoothing = GameConstants.diverSmoothing
         let atSurface = currentDepth == 0
         let maxX = screenWidth / 2 - GameConstants.diverEdgeMargin
@@ -43,7 +43,7 @@ class DiverController: ObservableObject {
         if atSurface || joystickReleased {
             x += (0 - x) * (1 - smoothing)
         } else {
-            x += joystickHorizontal * GameConstants.diverHorizontalSpeed
+            x += joystickHorizontal * horizontalSpeed
             x = max(-maxX, min(x, maxX))
         }
 
