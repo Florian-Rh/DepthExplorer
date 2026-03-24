@@ -619,3 +619,93 @@ struct HeadGearRenderer: GearRenderer {
                 with: .color(cReg.opacity(0.75)))
     }
 }
+
+// MARK: - Stage Tank Renderer
+
+/// Draws stage tanks clipped to the diver's hip area.
+///
+/// Stage tanks are full-size cylinders carried alongside the body,
+/// attached at the hip and tilted slightly to trail behind the diver.
+/// Uses the same cylinder geometry as `TankGearRenderer.drawSingleTank`.
+/// Near/far layering follows the same convention as limbs: the far tank
+/// is drawn at reduced scale and opacity behind the body, the near tank
+/// in front.
+struct StageTankGearRenderer: GearRenderer {
+    let tier: StageTankTier
+
+    /// Tilt angle (degrees) that tips the stage tank valve-end toward the
+    /// diver's back (−y direction), so the tank trails behind.
+    static let danglingTilt: Double = -15
+
+    private let cTank    = Color(red: 0.82, green: 0.72, blue: 0.20) // Yellow aluminum
+    private let cTankAcc = Color(red: 0.60, green: 0.52, blue: 0.15)
+    private let cClip    = Color(red: 0.30, green: 0.30, blue: 0.34)
+
+    func draw(_ ctx: GraphicsContext, render: DiverRenderContext) {
+        switch tier {
+        case .single:
+            drawStageTank(ctx, render: render, isFar: true)
+        case .double:
+            drawStageTank(ctx, render: render, isFar: true)
+            drawStageTank(ctx, render: render, isFar: false)
+        }
+    }
+
+    /// Draw a single stage tank. `isFar` controls the depth-plane treatment
+    /// (reduced scale + opacity, like far-side limbs).
+    func drawStageTank(_ ctx: GraphicsContext, render: DiverRenderContext, isFar: Bool) {
+        let hip = isFar ? render.farHip : render.nearHip
+
+//        let hipX = (render.nearHip.x + render.farHip.x) / 2
+//        let hipY = (render.nearHip.y + render.farHip.y) / 2
+        let scale: CGFloat = isFar ? 1.2 : 1.2
+        let alpha: Double  = isFar ? 0.7  : 1.0
+        let angle = isFar ? Self.danglingTilt - 25.0 : Self.danglingTilt
+
+        var tc = ctx
+        tc.translateBy(x: hip.x + 10.0, y: hip.y - 10.0)
+        tc.scaleBy(x: scale, y: scale)
+        // Tilt the tank so the valve end points slightly toward the diver's back
+        tc.rotate(by: .degrees(angle))
+
+        // Clip bolts (attach tank to harness waistband)
+        tc.fill(
+            Path(roundedRect: CGRect(x: -12, y: -8, width: 5, height: 3), cornerRadius: 1),
+            with: .color(cClip.opacity(alpha))
+        )
+        tc.fill(
+            Path(roundedRect: CGRect(x: 7, y: -8, width: 5, height: 3), cornerRadius: 1),
+            with: .color(cClip.opacity(alpha))
+        )
+
+        // Main cylinder — same dimensions as the standard back-mounted tank
+        tc.fill(
+            Path(roundedRect: CGRect(x: -22, y: -5, width: 44, height: 10), cornerRadius: 4),
+            with: .color(cTank.opacity(alpha))
+        )
+        // Sheen
+        tc.fill(
+            Path(roundedRect: CGRect(x: -21, y: -5, width: 42, height: 3), cornerRadius: 1.5),
+            with: .color(Color.white.opacity(0.22 * alpha))
+        )
+        // Left end-cap (valve side)
+        tc.fill(Path(ellipseIn: CGRect(x: -25, y: -5, width: 6, height: 10)),
+                with: .color(cTankAcc.opacity(alpha)))
+        // Right end-cap
+        tc.fill(Path(ellipseIn: CGRect(x: 19, y: -5, width: 6, height: 10)),
+                with: .color(cTankAcc.opacity(alpha)))
+        // Valve knob
+        tc.fill(Path(roundedRect: CGRect(x: -30, y: -3, width: 6, height: 6), cornerRadius: 1),
+                with: .color(cTank.opacity(alpha)))
+
+        // Bungee cord loop (elastic retainer typical of stage mounting)
+        var bungee = Path()
+        bungee.move(to: CGPoint(x: -10, y: -7))
+        bungee.addQuadCurve(
+            to: CGPoint(x: 10, y: -7),
+            control: CGPoint(x: 0, y: -12)
+        )
+        tc.stroke(bungee, with: .color(Color.black.opacity(0.4 * alpha)),
+                  style: StrokeStyle(lineWidth: 1.2, lineCap: .round))
+    }
+}

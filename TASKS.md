@@ -83,8 +83,14 @@
 - [X] **Implement experience and leveling**
   XP earned from discovering Knowledgeables. Define XP thresholds per level. Level-ups unlock new hard depth limits, gear availability, and skill slots.
 
-- [ ] **Enforce hard depth limit per level**
-  Prevent the diver from descending past the current level's maximum depth. Visual/physical barrier. Apply depth scaling (px/m) from the level definition.
+- [X] **Rank of diver should be displayed**
+  From level 1 to 4: Free Diver
+  From level 5 to 9: Scuba Diver
+  From level 9 to 14: Tech Diver
+  From level 15 to 19: Marine Specialist
+  Level 20 and above: Oceanographer
+  The title in the hub should display the current rank. Next to the rank is a "?" icon, that, when tapped, shows an explaination of the rank and what it means. you can use placeholder texts for now. 
+  When a new rank is reached, it should be displayed on the completion screen rather visibly, with a bit an animation (confetti, firework or similar). From there, it should also be possible to show the explaination of the rank 
 
 - [x] **Implement the skill tree**
   Data model for skills with prerequisites (e.g., Fin Kicking L2 requires L1). One skill per level-up. Skills modify game parameters (air consumption rate, movement speed). Two families: Breathing Techniques (SAC rate reduction) and Fin Kicking (speed boost), each with 3 levels. Skill points granted on level-up, spent in the Hub's Skills tab.
@@ -106,12 +112,15 @@
 
 - [ ] **Load Knowledgeable Items from a JSON file**
   Move item definitions out of the compiled `KnowledgeableItem.allItems` array and into a bundled JSON resource. Add `Codable` conformance to `KnowledgeableItem` and `KnowledgeableCategory`. Load and decode at startup.
+  
+- [ ] **Add animated graphics for Knowledgeable Items**
+  Various types of fish for instance can move around (some in schools). In order to unlock the item,   
 
 - [ ] **Populate Knowledgeable Items**
   Research and write real-world content for all items across categories (species, oceanography, human history, human impact), placed at accurate depths.
 
 - [ ] **Add higher-tier gear**
-  Rebreather, personal submarine, bathysphere — each with unique mechanics (rebreather: extended time + reduced risk; submarine: eliminates most risks; bathysphere: required for Mariana Trench).
+  Rebreather, personal submarine, bathysphere — each with unique mechanics (rebreather: extended time + reduced risk; submarine: eliminates most risks. Is subsceptible to ambient pressure. Has a battery and CO2-Scrubber which can be upgraded individually; bathysphere: required for Mariana Trench).
 
 - [ ] **Add cosmetic upgrades**
   Suit colors and other visual customizations purchasable with Sand Dollars. Reflected in the Canvas-rendered diver.
@@ -122,7 +131,7 @@
 - [ ] **Add warning and rescue animations**
   Visual feedback for warning escalation (screen tint, vignette, shake) and a rescue animation sequence (diver pulled to surface) instead of the current instant snap to surface.
 
-- [ ] **Add visual depth zones** (optional)
+- [ ] **Add visual depth zones**
   Distinct visual environments at depth ranges (coral reef, open water, twilight zone, abyss). The architecture should already support this from the continuous OceanView design.
 
 ---
@@ -145,3 +154,44 @@
    
 - [ ] **Expand content**
   Add new Knowledgeable Items, trash types, gear, skills, and cosmetics as ongoing maintenance.
+
+
+## Further Ideas
+
+### Tasks
+
+- [ ] **DCS risk speed should depend on depth**
+  The closer the diver gets to the surface, the lower the safe ascent speed should be, meaning that a dive from 300 to 200 meters has little effect on ascent speed, but a dive from 100 to 0 meters has a high effect 
+  
+- [ ] **Skills can be limited to certain levels**
+  For example, the player can acquire the skills "multi-gas diving", "Advanced multi-gas diving" and "hypoxic multi-gas diving", which reduces the risk for DCS, but is only available for level 15 and above.
+  
+- [ ] **Details for glossary entries**
+  It should be possible to tap a glossary entry, nevigating to a detail page with more information on that entry.
+
+- [ ] **Glossary section for hyperbaric medicine**
+  Entry for each cause of rescue. These entries cannot be found under water, instead, when the player becomes rescued, the corresponding entry is unlocked. The rescue screen should include a "read more" button which takes the user directly to the glossary entry.
+  
+- [ ] **Glossary section for gear**
+  Entries for various types of gear, explaining what they do and how they work. These entries cannot be found under water, instead, when the player buys them, the glossary entry is added. Note: Not all items have a glossary entry.
+  
+- [ ] **Highlight new glossary entries**
+  When a new glossary entry is unlocked, a badge should be displayed, similar to the one when a skill point is available.
+  
+- [ ] **Graphics for trash**
+  Instead of a trah icon with the value in dollars underneith, a graphic should be displayed. For variation, we should have at least 10 different types of trash, valued between 1 and 5 Sand dollars. More expensive trash is larger or more dangerous to the environment (i.E. a discarded battery is worth more than a soda bottle)
+  
+- [ ] **Limit for trash pickup**
+  The amount of trash the player can pick up should be limited. In the shop, the player can purchase mash bags to increse the amount of trash he can collect
+
+- [ ] **Add buoyancy to the DiveParameters**
+  With a low buoyancy control value, the diver tends to move upwards in shallower water, and downwards in deeper water. Buoyancy control can become better through skills and through buying better BCDs.
+
+- [ ] **Implement currents**
+  Depending on direction, currents can push the diver to the left, right, top or bottom, or even swirl him around in a circle. Effect of currents can be mitigated through boucancy control
+
+- [ ] **Night diving**
+  description 
+
+- [ ] **title**
+  description 

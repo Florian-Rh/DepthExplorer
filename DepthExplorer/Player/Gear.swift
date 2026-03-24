@@ -6,12 +6,14 @@ enum GearCategory: String, Codable, CaseIterable {
     case suit
     /// Cylinder + regulator + BCD as a single equip slot.
     case scubaGear = "tank"
+    case scubaGearAccessory
 
     var displayName: String {
         switch self {
         case .fins: "Fins"
         case .suit: "Exposure Suit"
         case .scubaGear: "Scuba Gear"
+        case .scubaGearAccessory: "Scuba Gear Accessories"
         }
     }
 
@@ -20,6 +22,7 @@ enum GearCategory: String, Codable, CaseIterable {
         case .fins: "shoe.2.fill"
         case .suit: "tshirt.fill"
         case .scubaGear: "cylinder.fill"
+        case .scubaGearAccessory: "cylinder.fill"
         }
     }
 
@@ -29,6 +32,7 @@ enum GearCategory: String, Codable, CaseIterable {
         case .fins: "Barefoot — reduced swim speed"
         case .suit: "No suit — no thermal protection"
         case .scubaGear: "Apnoe — lungs only (\(Int(GameConstants.apnoeLungCapacity)) bar)"
+        case .scubaGearAccessory: "No accessories"
         }
     }
 }
@@ -127,7 +131,7 @@ struct GearDefinition: Identifiable {
             id: "suit.7mm",
             category: .suit,
             name: "7mm Wetsuit",
-            description: "Heavy-duty wetsuit for cold water diving.",
+            description: "Heavy-duty wetsuit for longer and deeper diving.",
             icon: "tshirt.fill",
             price: 100,
             requiredLevel: 4,
@@ -137,7 +141,7 @@ struct GearDefinition: Identifiable {
             id: "suit.dry",
             category: .suit,
             name: "Drysuit",
-            description: "Sealed suit with insulating undergarments. Essential for deep cold water.",
+            description: "Sealed suit with insulating undergarments. Essential for deep, cold water.",
             icon: "tshirt.fill",
             price: 250,
             requiredLevel: 7,
@@ -151,9 +155,9 @@ struct GearDefinition: Identifiable {
             name: "Standard Scuba Gear",
             description: "A 200 bar cylinder with single-stage regulator and basic BCD.",
             icon: "cylinder.fill",
-            price: 30,
-            requiredLevel: 1,
-            modifier: .airCapacity(bar: GameConstants.scubaGearCapacity)
+            price: 100,
+            requiredLevel: 5,
+            modifier: .airCapacity(bar: 200)
         ),
         GearDefinition(
             id: "tank.double",
@@ -162,8 +166,28 @@ struct GearDefinition: Identifiable {
             description: "Twin cylinders in a manifold with redundant regulators for extended dive time.",
             icon: "cylinder.fill",
             price: 200,
-            requiredLevel: 5,
-            modifier: .airCapacity(bar: 350)
+            requiredLevel: 7,
+            modifier: .airCapacity(bar: 400)
+        ),
+        GearDefinition(
+            id: "stage.single",
+            category: .scubaGearAccessory,
+            name: "Stage Tank (Single)",
+            description: "Side-mounted extra tank for longer dives.",
+            icon: "cylinder.fill",
+            price: 200,
+            requiredLevel: 10,
+            modifier: .airCapacity(bar: 200)
+        ),
+        GearDefinition(
+            id: "stage.double",
+            category: .scubaGearAccessory,
+            name: "Stage Tank (Double)",
+            description: "Two side-mounted tanks for even longer dives.",
+            icon: "cylinder.fill",
+            price: 400,
+            requiredLevel: 12,
+            modifier: .airCapacity(bar: 400)
         ),
     ]
 }

@@ -26,6 +26,11 @@ struct DiveCompleteOverlayView: View {
     @State private var showLevelProgress = false
     @State private var levelBarFill: Double = 0
 
+    // Rank promotion animation state
+    @State private var showRankPromotion = false
+    @State private var confettiParticles: [ConfettiParticle] = []
+    @State private var showRankInfo = false
+
     /// Set to `true` only when the full animation sequence has completed.
     @State private var animationFinished = false
 
@@ -92,6 +97,22 @@ struct DiveCompleteOverlayView: View {
             return String(format: "%d:%02d:%02d", h, m, sec)
         }
         return String(format: "%d:%02d", m, sec)
+    }
+
+    /// The rank the player was promoted to, if any.
+    private var promotedRank: DiverRank? {
+        guard let s = activeStats else { return nil }
+        let before = LevelProgression.from(totalXP: s.totalXPBefore)
+        let after = LevelProgression.from(totalXP: s.totalXPBefore + s.experienceBreakdown.totalXP)
+        let rankBefore = DiverRank.rank(forLevel: before.level)
+        let rankAfter = DiverRank.rank(forLevel: after.level)
+        return rankAfter != rankBefore ? rankAfter : nil
+    }
+
+    /// The post-dive level progression (for rank info sheet).
+    private var afterProgression: LevelProgression? {
+        guard let s = activeStats else { return nil }
+        return LevelProgression.from(totalXP: s.totalXPBefore + s.experienceBreakdown.totalXP)
     }
 
     var body: some View {
@@ -161,6 +182,14 @@ struct DiveCompleteOverlayView: View {
                             .opacity(showLevelProgress ? 1 : 0)
                             .offset(y: showLevelProgress ? 0 : 10)
 
+                        // Rank promotion banner
+                        if let newRank = promotedRank {
+                            rankPromotionBanner(rank: newRank)
+                                .padding(.horizontal, 40)
+                                .opacity(showRankPromotion ? 1 : 0)
+                                .scaleEffect(showRankPromotion ? 1 : 0.7)
+                        }
+
                         // Totals (appear after counting finishes)
                         VStack(spacing: 6) {
                             Rectangle()
@@ -200,6 +229,12 @@ struct DiveCompleteOverlayView: View {
                     .safeAreaPadding(.top)
                 }
 
+                // Confetti particles overlay
+                if !confettiParticles.isEmpty {
+                    ConfettiOverlay(particles: confettiParticles)
+                        .allowsHitTesting(false)
+                }
+
                 // Tap-to-skip layer: covers entire overlay while animation is playing.
                 // Removed once the animation has fully completed, so the
                 // Continue and Level Up buttons can receive taps.
@@ -216,6 +251,11 @@ struct DiveCompleteOverlayView: View {
         .ignoresSafeArea()
         .opacity(overlayOpacity)
         .allowsHitTesting(overlayOpacity > 0)
+        .sheet(isPresented: $showRankInfo) {
+            if let rank = promotedRank {
+                RankInfoSheet(currentRank: rank, currentLevel: afterProgression?.level ?? 1)
+            }
+        }
         .onChange(of: stats != nil) { _, isPresent in
             if isPresent, let s = stats {
                 show(stats: s)
@@ -367,6 +407,53 @@ struct DiveCompleteOverlayView: View {
         }
     }
 
+    // MARK: - Rank Promotion Banner
+
+    @ViewBuilder
+    private func rankPromotionBanner(rank: DiverRank) -> some View {
+        VStack(spacing: 10) {
+            Text("New Rank!")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(.white.opacity(0.5))
+                .textCase(.uppercase)
+                .tracking(2)
+
+            Text(rank.rawValue)
+                .font(.system(size: 24, weight: .heavy))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [.cyan, .blue, .cyan],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+
+            Button {
+                showRankInfo = true
+            } label: {
+                HStack(spacing: 4) {
+                    Text("Show more")
+                        .font(.system(size: 12, weight: .medium))
+                    Image(systemName: "questionmark.circle")
+                        .font(.system(size: 11))
+                }
+                .foregroundStyle(.cyan.opacity(0.8))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.vertical, 16)
+        .padding(.horizontal, 24)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color.cyan.opacity(0.08))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .strokeBorder(Color.cyan.opacity(0.25), lineWidth: 1)
+                )
+        )
+    }
+
     @ViewBuilder
     private func xpRow(label: String, value: String, xpIndex: Int) -> some View {
         HStack {
@@ -466,6 +553,8 @@ struct DiveCompleteOverlayView: View {
         xpTotalProgress = 0
         showLevelProgress = false
         levelBarFill = 0
+        showRankPromotion = false
+        confettiParticles = []
         contentOpacity = 0
         animationFinished = false
         animationSpeedMultiplier = 1.0
@@ -539,6 +628,17 @@ struct DiveCompleteOverlayView: View {
                 levelBarFill = after.progress
             }
             await wait(dur(0.8) + 0.15)
+
+            // Rank promotion
+            let rankBefore = DiverRank.rank(forLevel: before.level)
+            let rankAfter = DiverRank.rank(forLevel: after.level)
+            if rankAfter != rankBefore {
+                confettiParticles = ConfettiParticle.spawn(count: 60)
+                withAnimation(.spring(duration: dur(0.6), bounce: 0.4)) {
+                    showRankPromotion = true
+                }
+                await wait(dur(0.6))
+            }
         }
 
         // Show button and totals
@@ -571,6 +671,8 @@ struct DiveCompleteOverlayView: View {
             xpTotalProgress = 0
             showLevelProgress = false
             levelBarFill = 0
+            showRankPromotion = false
+            confettiParticles = []
             animationFinished = false
             onDismiss()
             stats = nil
@@ -607,4 +709,62 @@ struct DiveCompleteOverlayView: View {
         stats: $stats,
         onDismiss: {}
     )
+}
+
+// MARK: - Confetti
+
+/// A single confetti particle with randomized properties.
+struct ConfettiParticle: Identifiable {
+    let id = UUID()
+    /// Normalized horizontal start position (0…1).
+    let x: Double
+    /// Vertical offset at creation (negative = above screen).
+    let startY: Double
+    let size: CGFloat
+    let color: Color
+    let rotation: Double
+    let delay: Double
+
+    static func spawn(count: Int) -> [ConfettiParticle] {
+        let colors: [Color] = [.cyan, .blue, .green, .yellow, .orange, .pink, .purple, .white]
+        return (0..<count).map { _ in
+            ConfettiParticle(
+                x: Double.random(in: 0...1),
+                startY: Double.random(in: -60...(-10)),
+                size: CGFloat.random(in: 4...10),
+                color: colors.randomElement() ?? .cyan,
+                rotation: Double.random(in: 0...360),
+                delay: Double.random(in: 0...0.5)
+            )
+        }
+    }
+}
+
+/// Overlay that animates confetti particles falling down and fading out.
+struct ConfettiOverlay: View {
+    let particles: [ConfettiParticle]
+    @State private var animate = false
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack {
+                ForEach(particles) { p in
+                    RoundedRectangle(cornerRadius: 1.5)
+                        .fill(p.color)
+                        .frame(width: p.size, height: p.size * 0.6)
+                        .rotationEffect(.degrees(animate ? p.rotation + 360 : p.rotation))
+                        .position(
+                            x: geo.size.width * p.x,
+                            y: animate ? geo.size.height + 40 : p.startY
+                        )
+                        .opacity(animate ? 0 : 1)
+                }
+            }
+        }
+        .onAppear {
+            withAnimation(.easeIn(duration: 2.5)) {
+                animate = true
+            }
+        }
+    }
 }

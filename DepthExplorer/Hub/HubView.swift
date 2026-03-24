@@ -39,6 +39,7 @@ private struct HubContentView: View {
     let discoveredItems: Set<String>
 
     @State private var selectedTab: HubTab
+    @State private var showRankInfo = false
 
     init(profileStore: ProfileStore, discoveredItems: Set<String>, initialTab: HubTab = .shop) {
         self.profileStore = profileStore
@@ -48,6 +49,10 @@ private struct HubContentView: View {
 
     private var progression: LevelProgression {
         LevelProgression.from(totalXP: profileStore.profile.experiencePoints)
+    }
+
+    private var currentRank: DiverRank {
+        DiverRank.rank(forLevel: progression.level)
     }
 
     var body: some View {
@@ -108,6 +113,9 @@ private struct HubContentView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .clipped()
         }
+        .sheet(isPresented: $showRankInfo) {
+            RankInfoSheet(currentRank: currentRank, currentLevel: progression.level)
+        }
     }
 
     // MARK: - Header
@@ -125,8 +133,23 @@ private struct HubContentView: View {
             }
             .frame(width: 56)
 
-            // XP progress bar
+            // Rank + XP progress
             VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 4) {
+                    Text(currentRank.rawValue)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.white)
+
+                    Button {
+                        showRankInfo = true
+                    } label: {
+                        Image(systemName: "questionmark.circle")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.white.opacity(0.4))
+                    }
+                    .buttonStyle(.plain)
+                }
+
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
                         RoundedRectangle(cornerRadius: 3)

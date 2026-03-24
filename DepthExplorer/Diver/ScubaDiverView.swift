@@ -139,8 +139,20 @@ private struct DiverScene {
             tankRenderer.draw(dc, render: rc)
         }
 
+        // Far-side stage tank (behind body, only for double)
+        if appearance.stageTanks == .double {
+            let stageRenderer = StageTankGearRenderer(tier: .double)
+            stageRenderer.drawStageTank(dc, render: rc, isFar: true)
+        }
+
         // Body (torso + all limbs)
         bodyRenderer.draw(dc, render: rc)
+
+//        // Near-side stage tank (in front of body)
+        if let stageTier = appearance.stageTanks {
+            let stageRenderer = StageTankGearRenderer(tier: stageTier)
+            stageRenderer.drawStageTank(dc, render: rc, isFar: false)
+        }
 
         // Near fin in front of body
         if let finsTier = appearance.fins {
@@ -322,5 +334,15 @@ private struct DiverScene {
 
 #Preview("Drysuit + Twinset + Pro Fins") {
     ScubaDiverView(appearance: DiverAppearance(suit: .drysuit, fins: .pro, scubaGear: .twinset))
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Twinset + Single Stage") {
+    ScubaDiverView(appearance: DiverAppearance(suit: .wetsuit7mm, fins: .advanced, scubaGear: .twinset, stageTanks: .single))
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Twinset + Double Stage") {
+    ScubaDiverView(appearance: DiverAppearance(suit: .drysuit, fins: .pro, scubaGear: .twinset, stageTanks: .double))
         .preferredColorScheme(.dark)
 }

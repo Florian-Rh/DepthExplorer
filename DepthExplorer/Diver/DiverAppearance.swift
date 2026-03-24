@@ -9,9 +9,11 @@ struct DiverAppearance: Equatable {
     var fins: FinsTier?
     /// The equipped scuba gear tier, or `nil` for apnoe (no tank/regulator/BCD).
     var scubaGear: ScubaGearTier?
+    /// The equipped stage tank tier, or `nil` for no stage tanks.
+    var stageTanks: StageTankTier?
 
     /// Default appearance: no gear at all (naked diver).
-    static let naked = DiverAppearance(suit: nil, fins: nil, scubaGear: nil)
+    static let naked = DiverAppearance(suit: nil, fins: nil, scubaGear: nil, stageTanks: nil)
 
     /// Build appearance from a player profile's equipped gear.
     static func from(profile: PlayerProfile) -> DiverAppearance {
@@ -31,6 +33,9 @@ struct DiverAppearance: Equatable {
             // Scuba gear
             case "tank.standard": appearance.scubaGear = .standard
             case "tank.double":   appearance.scubaGear = .twinset
+            // Stage tanks
+            case "stage.single":  appearance.stageTanks = .single
+            case "stage.double":  appearance.stageTanks = .double
             default: break
             }
         }
@@ -62,3 +67,12 @@ enum ScubaGearTier: Equatable {
     case standard
     case twinset
 }
+// MARK: - Stage tank tiers
+
+enum StageTankTier: Equatable {
+    /// A single stage tank clipped to one hip.
+    case single
+    /// Two stage tanks, one on each hip.
+    case double
+}
+

@@ -32,7 +32,7 @@ struct DiveParameters {
         // Start with apnoe (no-gear) defaults
         var scrollSpeed = GameConstants.apnoeScrollSpeed
         var horizontalSpeed = GameConstants.apnoeHorizontalSpeed
-        var airCapacity = GameConstants.apnoeLungCapacity
+        var airCapacity = 0.0
         var sacRate = GameConstants.sacRate
         var thermalProtection = 0.0
         var warningTolerance = 1.0
@@ -48,9 +48,12 @@ struct DiveParameters {
             case .thermalProtection(let factor):
                 thermalProtection = factor
             case .airCapacity(let bar):
-                airCapacity = bar
+                airCapacity += bar
                 hasScubaGear = true
             }
+        }
+        if !hasScubaGear {
+            airCapacity += GameConstants.apnoeLungCapacity
         }
 
         // Apply skills (highest level per family only)
