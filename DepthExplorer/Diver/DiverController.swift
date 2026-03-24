@@ -13,6 +13,18 @@ class DiverController: ObservableObject {
     var joystickVertical: CGFloat = 0
     var joystickHorizontal: CGFloat = 0
 
+    /// Reset all state to initial values (surface position).
+    func reset() {
+        offset = .zero
+        tilt = 90.0
+        x = 0
+        offsetTarget = .zero
+        tiltTarget = 90.0
+        joystickVertical = 0
+        joystickHorizontal = 0
+        lastJoystickWasRight = true
+    }
+
     private var lastJoystickWasRight: Bool = true
 
     /// Called every display frame to smoothly interpolate diver state toward targets.

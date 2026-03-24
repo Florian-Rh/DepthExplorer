@@ -25,6 +25,33 @@ final class ProfileStore: ObservableObject {
         save()
     }
 
+    struct DiveRecords {
+        let newDepthRecord: Bool
+        let newTimeRecord: Bool
+    }
+
+    /// Record a completed dive, update totals and personal records.
+    /// Returns which records were broken (only counts if not the first dive).
+    @discardableResult
+    func recordCompletedDive(diveTimeSeconds: Int, maxDepth: Int) -> DiveRecords {
+        let isFirstDive = profile.totalDives == 0
+
+        let newDepthRecord = !isFirstDive && maxDepth > profile.recordMaxDepth
+        let newTimeRecord = !isFirstDive && diveTimeSeconds > profile.recordDiveTimeSeconds
+
+        profile.totalDives += 1
+        profile.totalDiveTimeSeconds += diveTimeSeconds
+        if maxDepth > profile.recordMaxDepth {
+            profile.recordMaxDepth = maxDepth
+        }
+        if diveTimeSeconds > profile.recordDiveTimeSeconds {
+            profile.recordDiveTimeSeconds = diveTimeSeconds
+        }
+        save()
+
+        return DiveRecords(newDepthRecord: newDepthRecord, newTimeRecord: newTimeRecord)
+    }
+
     func discoverItem(named name: String) {
         guard !profile.discoveredItems.contains(name) else { return }
         profile.discoveredItems.insert(name)

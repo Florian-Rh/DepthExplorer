@@ -74,6 +74,92 @@ enum GameConstants {
     /// Consecutive entries within this range and same mixture are merged.
     static let depthGroupingThreshold: Int = 5
 
+    // MARK: - Air Supply
+
+    /// Default tank capacity in bar.
+    /// A standard scuba cylinder. Will vary by gear in Phase 2.
+    static let tankCapacity: Double = 200.0
+
+    /// Surface air consumption rate in bar per simulated minute.
+    /// At depth, actual consumption is `sacRate * ambientPressure`.
+    static let sacRate: Double = 1.0
+
+    /// Air pressure (bar) at which a caution warning is triggered.
+    static let airWarningThreshold: Double = 50.0
+
+    /// Air pressure (bar) at which a critical warning is triggered.
+    static let airCriticalThreshold: Double = 10.0
+
+    // MARK: - DCS / Ascent Speed
+
+    /// Safe ascent speed in meters per real second.
+    /// This is a game-tuned value, not a real-world constant.
+    /// The diver's max vertical speed is roughly scrollSpeed / scalingFactor * 60 ≈ 48 m/s.
+    static let safeAscentSpeed: Double = 20.0
+
+    /// Fraction of safe ascent speed at which a caution warning is triggered.
+    static let dcsWarningFraction: Double = 0.8
+
+    /// Fraction of safe ascent speed at which a critical warning is triggered.
+    static let dcsCriticalFraction: Double = 1.0
+
+    /// Fraction of safe ascent speed at which a fatal warning is triggered.
+    static let dcsFatalFraction: Double = 1.5
+
+    /// How quickly the effective ascent speed builds up toward the instantaneous speed
+    /// while ascending. Range 0–1; higher = faster buildup.
+    static let ascentSpeedBuildupRate: Double = 0.08
+
+    /// How quickly the effective ascent speed decays toward 0 when the diver stops
+    /// or descends. Range 0–1; higher = faster decay.
+    static let ascentSpeedDecayRate: Double = 0.25
+
+    // MARK: - Thermal Model
+
+    /// Normal human body temperature in °C.
+    static let normalBodyTemperature: Double = 37.0
+
+    /// Surface water temperature in °C (tropical surface).
+    static let surfaceWaterTemperature: Double = 28.0
+
+    /// Minimum deep-water temperature in °C (deep ocean floor).
+    static let deepWaterTemperature: Double = 4.0
+
+    /// Temperature drop per meter of depth in °C.
+    /// Roughly models a thermocline: 25°C at surface → ~1°C at ~700m.
+    static let temperatureDropPerMeter: Double =  0.035
+
+    /// Cooling rate coefficient. Higher = faster heat loss.
+    /// The actual cooling per minute is `(bodyTemp - waterTemp) * coolingRate`.
+    static let coolingRate: Double = 0.006
+
+    /// Body temperature (°C) at which a caution warning is triggered.
+    static let hypothermiaWarningThreshold: Double = 36.0
+
+    /// Body temperature (°C) at which a critical warning is triggered.
+    static let hypothermiaCriticalThreshold: Double = 35.0
+
+    /// Body temperature (°C) at which the diver is rescued (fatal).
+    static let hypothermiaFatalThreshold: Double = 34.0
+
+    // MARK: - Discovery & Collectibles
+
+    /// Pickup radius in screen points. The diver must be within this distance
+    /// (2D Euclidean, in points) of an item to discover or collect it.
+    /// Will be upgradeable through gear in Phase 2.
+    static let pickupRadius: CGFloat = 80
+
+    /// Number of trash items spawned at the start of each dive.
+    static let trashCountPerDive: Int = 10
+
+    /// Depth range (meters) in which trash is randomly placed.
+    static let trashMinDepth: Double = 5
+    static let trashMaxDepth: Double = 500
+
+    /// Sand Dollar value range for each trash item.
+    static let trashMinValue: Int = 1
+    static let trashMaxValue: Int = 5
+
     // MARK: - Gas Mixtures
 
     /// Available gas mixtures. Will eventually be determined by player inventory.

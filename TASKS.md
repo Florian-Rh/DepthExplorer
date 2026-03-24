@@ -36,22 +36,22 @@
 
 ### Architecture
 
-- [ ] **Build the session lifecycle manager**
-  Implement the dive session state machine: Surface (idle) → Diving → Surfaced Safely (rewards credited) / Rescued (items lost) / Quit (items lost). This drives when items are committed to persistent storage.
+- [x] **Build the session lifecycle manager**
+  Created `DiveSession` with state machine (`surface` → `diving` → `surfacedSafely` / `rescued`). Tracks ephemeral session inventory (discovered items, sand dollars). `commitRewards(to:)` persists to `ProfileStore` on safe surfacing, `discard()` drops everything. `DiveSimulation` delegates lifecycle transitions to `DiveSession`.
 
-- [ ] **Build the warning/alert system**
-  When the player approaches a soft limit (low air, cold exposure, fast ascent), display a warning before failure. Design a generic system for triggering, displaying, and clearing warnings that can accommodate new survival factors later.
+- [x] **Build the warning/alert system**
+  Created `DiveWarning.swift` with `DiveWarningKind` (per survival factor), `DiveWarningSeverity` (caution → critical → fatal), and `DiveWarningSystem` (set/clear/clearAll). Wired into `LevelViewModel`. Survival factors will call `warningSystem.set(...)` and `warningSystem.clear(...)` during their tick.
 
 ### Features
 
-- [ ] **Implement air supply mechanic**
-  Add a finite air supply that depletes over time based on depth (higher pressure = faster consumption), gear (tank size, rebreather), and skills (breathing techniques). Display remaining air in the HUD.
+- [x] **Implement air supply mechanic**
+  Created `AirSupply` model (200 bar default capacity, SAC rate × ambient pressure consumption). Integrated into `DiveSimulation` tick: consumes air while diving, evaluates warnings (caution at 50 bar, critical at 10 bar, fatal at 0 bar), triggers rescue on empty. Displayed in StatusPanel. Tank refills on each new dive.
 
-- [ ] **Implement thermal model**
+- [x] **Implement thermal model**
   Water temperature decreases with depth. Track cumulative cold exposure. Gear (dry suit) and depth determine cooling rate. Warn and eventually rescue the player on hypothermia.
 
-- [ ] **Implement DCS risk from ascent speed**
-  Track ascent rate (already partially modeled via `safeDesaturationSpeed`). Warn when ascending too fast. Trigger rescue on sustained unsafe ascent.
+- [x] **Implement DCS risk from ascent speed**
+  Track ascent speed (m/s real time) each simulation tick by comparing depth changes. Smoothed with exponential moving average (separate buildup/decay rates) so brief movements don't kill instantly. Evaluated against a game-tuned `safeAscentSpeed` constant with configurable thresholds (caution at 80%, critical at 100%, fatal/rescue at 150%). Time-scale independent — measures physical screen movement, not simulated time. Displayed in StatusPanel alongside safe speed.
 
 - [ ] **Implement narcosis from nitrogen partial pressure**
   Already have partial pressure calculation and tissue saturation. Add threshold detection, warning, and failure state.
@@ -59,19 +59,19 @@
 - [ ] **Implement barotrauma from ambient pressure**
   Hard-gated by level depth limit (player can't reach barotrauma depths without appropriate gear). Add as a safety net for edge cases.
 
-- [ ] **Implement Knowledgeable Item discovery**
+- [x] **Implement Knowledgeable Item discovery**
   Detect proximity between diver and item. Trigger discovery animation/reveal. Mark as discovered in session state (committed to glossary on safe surfacing).
 
-- [ ] **Implement trash pickup and Sand Dollar reward**
+- [x] **Implement trash pickup and Sand Dollar reward**
   Randomly place trash at varying depths each dive. Detect proximity, trigger pickup. Award Sand Dollars (committed on safe surfacing).
 
-- [ ] **Build the glossary view**
+- [x] **Build the glossary view**
   Display all Knowledgeable Items: discovered ones with full content, undiscovered ones as redacted entries. Accessible from a menu/settings screen.
 
-- [ ] **Build the dive HUD**
+- [x] **Build the dive HUD**
   Replace the current StatusPanel with an in-game HUD showing: depth, air remaining, dive time, active warnings. The StatusPanel is currently commented out in LevelView.
 
-- [ ] **Implement session end flow**
+- [x] **Implement session end flow**
   On safe surfacing: animate return, credit collected items and XP to persistent store, show summary. On rescue: play rescue animation, show what was lost, return to surface.
 
 ---
@@ -119,6 +119,9 @@
 - [ ] **Polish the glossary**
   Categories, search/filter, detail views with illustrations, progress indicators per category.
 
+- [ ] **Add warning and rescue animations**
+  Visual feedback for warning escalation (screen tint, vignette, shake) and a rescue animation sequence (diver pulled to surface) instead of the current instant snap to surface.
+
 - [ ] **Add visual depth zones** (optional)
   Distinct visual environments at depth ranges (coral reef, open water, twilight zone, abyss). The architecture should already support this from the continuous OceanView design.
 
@@ -136,6 +139,9 @@
 
 - [ ] **Tune movement and controls**
   Smoothing factor, joystick sensitivity, auto-surface threshold, movement speed per gear tier.
-
+  
+- [ ] **Add legal disclaimer**
+  Explain that the game, while trying to mimicing real diving physics, changed safety thresholds for a more enjoyable game pace. Make it clear that values from the game should under no circumstanbces be applied to real world diving, and that anyone who wishes to go scuba diving, should get licensed through a professional diving instructor.
+   
 - [ ] **Expand content**
   Add new Knowledgeable Items, trash types, gear, skills, and cosmetics as ongoing maintenance.
