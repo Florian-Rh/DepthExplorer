@@ -12,6 +12,10 @@ struct OceanView: View {
 
     private let motionManager = CMMotionManager()
 
+    static var adjustedMidnightAbyssGradient: Gradient {
+        Gradient(colors: [.oceanBlue, .deepSeaBlue, .abyssBlue, .black, .black, .black])
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             ZStack {
@@ -38,7 +42,7 @@ struct OceanView: View {
                 .frame(height: depthInPixels)
                 .foregroundStyle(
                     LinearGradient(
-                        gradient: .midnightAbyssGradient,
+                        gradient: Self.adjustedMidnightAbyssGradient,
                         startPoint: .top,
                         endPoint: .bottom
                     )
