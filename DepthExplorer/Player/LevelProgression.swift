@@ -3,7 +3,7 @@ import Foundation
 /// Pure, stateless calculator for the player's level and progress toward the next level.
 ///
 /// Level 1 starts at 0 XP. Each subsequent level requires progressively more XP,
-/// scaled by `GameConstants.levelUpScalingFactor`.
+/// following a polynomial curve: `baseLevelUpXP × level^levelUpExponent`.
 struct LevelProgression {
     /// The player's current level (1-based).
     let level: Int
@@ -26,17 +26,7 @@ struct LevelProgression {
     /// Compute the player's level progression from their total XP.
     static func from(totalXP: Int) -> LevelProgression {
         let baseXP = GameConstants.baseLevelUpXP
-        let scale = GameConstants.levelUpScalingFactor
-
-//        let nextLevelEntry = GameConstants.levelDefinitions.first(where: { $0.value > totalXP})!
-//        let currentLevel = nextLevelEntry.key - 1
-//        let currentLevelXp = GameConstants.levelDefinitions[currentLevel]!
-//
-//        return LevelProgression(
-//            level: currentLevel,
-//            currentLevelXP: currentLevelXp,
-//            requiredLevelXP: nextLevelEntry.value
-//        )
+        let scale = GameConstants.levelUpExponent
 
         var level = 1
         var remaining = totalXP
@@ -45,7 +35,7 @@ struct LevelProgression {
         while remaining >= threshold {
             remaining -= threshold
             level += 1
-            threshold = Int(Double(baseXP) * pow(scale, Double(level - 1)))
+            threshold = Int(Double(baseXP) * pow(Double(level), scale))
         }
 
         return LevelProgression(

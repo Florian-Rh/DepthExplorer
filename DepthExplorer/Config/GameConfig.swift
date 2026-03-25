@@ -213,32 +213,10 @@ enum GameConstants {
     /// XP required to reach level 2 (the first level-up).
     static let baseLevelUpXP: Int = 100
 
-    /// Each subsequent level requires this factor more XP than the previous one.
-    /// e.g. level 2 = 100, level 3 = 150, level 4 = 225, …
-    static let levelUpScalingFactor: Double = 1.5
-
-    static let levelDefinitions: [Int: Int] = [
-        1: 0,
-        2: 100,
-        3: 150,
-        4: 250,
-        5: 400,
-        6: 550,
-        7: 750,
-        8: 1000,
-        9: 1300,
-        10: 1800,
-        11: 2700,
-        12: 3800,
-        13: 5100,
-        14: 6600,
-        15: 8300,
-        16: 10200,
-        17: 12400,
-        18: 15000,
-        19: 18000,
-        20: 21000
-    ]
+    /// Polynomial exponent for level-up XP scaling.
+    /// XP for level N = baseLevelUpXP × N^levelUpExponent.
+    /// e.g. level 2 = 100 × 2^1.5 ≈ 283, level 3 = 100 × 3^1.5 ≈ 520, …
+    static let levelUpExponent: Double = 1.5
 
     // MARK: - Gas Mixtures
 
