@@ -4,8 +4,32 @@ import SwiftUI
 struct ShopView: View {
     @ObservedObject var profileStore: ProfileStore
 
+    /// Raw JSON string of collapsed category raw values, persisted across launches.
+    @AppStorage("shop.collapsedSections") private var collapsedData: String = "[]"
+
     private var playerLevel: Int {
         LevelProgression.from(totalXP: profileStore.profile.experiencePoints).level
+    }
+
+    private var collapsedSections: Set<String> {
+        (try? JSONDecoder().decode(Set<String>.self, from: Data(collapsedData.utf8))) ?? []
+    }
+
+    private func setCollapsed(_ collapsed: Set<String>) {
+        if let data = try? JSONEncoder().encode(collapsed),
+           let str = String(data: data, encoding: .utf8) {
+            collapsedData = str
+        }
+    }
+
+    private func toggleSection(_ category: GearCategory) {
+        var sections = collapsedSections
+        if sections.contains(category.rawValue) {
+            sections.remove(category.rawValue)
+        } else {
+            sections.insert(category.rawValue)
+        }
+        setCollapsed(sections)
     }
 
     var body: some View {
@@ -24,23 +48,45 @@ struct ShopView: View {
     private func gearSection(_ category: GearCategory) -> some View {
         let items = GearDefinition.allGear.filter { $0.category == category }
         let categoryLocked = category.minimumRank.minimumLevel > playerLevel
+        let isCollapsed = collapsedSections.contains(category.rawValue)
 
         return VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Image(systemName: categoryLocked ? "lock.fill" : category.icon)
-                    .font(.system(size: 14))
-                    .foregroundStyle(.white.opacity(0.5))
-                Text(categoryLocked ? "Locked category" : category.displayName)
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(.white.opacity(0.6))
-                    .textCase(.uppercase)
-                    .tracking(0.5)
-            }
+            // Tappable header
+            Button {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    toggleSection(category)
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: categoryLocked ? "lock.fill" : category.icon)
+                        .font(.system(size: 14))
+                        .foregroundStyle(.white.opacity(0.5))
+                    Text(categoryLocked ? "Locked category" : category.displayName)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(.white.opacity(0.6))
+                        .textCase(.uppercase)
+                        .tracking(0.5)
 
-            ForEach(items) { gear in
-                shopItemRow(gear, categoryLocked: categoryLocked)
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.3))
+                        .rotationEffect(.degrees(isCollapsed ? 0 : 90))
+                }
+                .padding(.vertical, 4)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if !isCollapsed {
+                ForEach(items) { gear in
+                    shopItemRow(gear, categoryLocked: categoryLocked)
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
+        .clipped()
     }
 
     // MARK: - Item Row
