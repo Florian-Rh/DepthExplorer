@@ -8,20 +8,152 @@ struct SkillTreeView: View {
         profileStore.profile.skillPoints
     }
 
+    private var playerLevel: Int {
+        LevelProgression.from(totalXP: profileStore.profile.experiencePoints).level
+    }
+
+    /// Maximum skill level across all families (drives the number of grid rows).
+    private var maxLevel: Int {
+        SkillDefinition.allSkills.map(\.level).max() ?? 3
+    }
+
+    /// Skills for a family, sorted by level.
+    private func skills(for family: SkillFamily) -> [SkillDefinition] {
+        SkillDefinition.allSkills
+            .filter { $0.family == family }
+            .sorted { $0.level < $1.level }
+    }
+
+    /// Fixed column width — wide enough for skill names and effect text.
+    private let columnWidth: CGFloat = 120
+
+    /// Tracks whether the horizontal scroll has more content to the right.
+    @State private var showsScrollHint = true
+
     var body: some View {
-        ScrollView {
+        ScrollView(.vertical) {
             VStack(spacing: 24) {
                 // Skill points indicator
                 skillPointsHeader
+                    .padding(.horizontal, 16)
 
-                // Skill family columns
-                HStack(alignment: .top, spacing: 16) {
-                    ForEach(SkillFamily.allCases, id: \.self) { family in
-                        familyColumn(family)
+                // Horizontally scrollable grid of skill families
+                // with a trailing fade + chevron hint
+                ZStack(alignment: .trailing) {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        skillGrid
+                            .padding(.horizontal, 16)
+                            .background(alignment: .trailing) {
+                                // Invisible marker at the trailing edge of the content.
+                                // When its frame enters the visible area, hide the hint.
+                                GeometryReader { contentGeo in
+                                    Color.clear
+                                        .onAppear {
+                                            updateScrollHint(contentGeo)
+                                        }
+                                        .onChange(of: contentGeo.frame(in: .global).maxX) {
+                                            updateScrollHint(contentGeo)
+                                        }
+                                }
+                                .frame(width: 1)
+                            }
+                    }
+
+                    // Fade gradient + chevron on the trailing edge
+                    if showsScrollHint {
+                        scrollHintOverlay
+                            .transition(.opacity)
+                    }
+                }
+                .animation(.easeInOut(duration: 0.25), value: showsScrollHint)
+            }
+            .padding(.vertical, 16)
+        }
+    }
+
+    // MARK: - Scroll Hint
+
+    /// A small trailing chevron pill hinting at more content.
+    private var scrollHintOverlay: some View {
+        HStack(spacing: 0) {
+            LinearGradient(
+                colors: [.clear, Color(white: 0.06)],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+            .frame(width: 28)
+
+            Color(white: 0.06)
+                .frame(width: 28)
+                .overlay {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(.white.opacity(0.5))
+                        .frame(width: 24, height: 36)
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                }
+        }
+        .allowsHitTesting(false)
+        .ignoresSafeArea(edges: .trailing)
+    }
+
+    private func updateScrollHint(_ geo: GeometryProxy) {
+        let trailingEdge = geo.frame(in: .global).maxX
+        let screenWidth = UIScreen.main.bounds.width
+        showsScrollHint = trailingEdge > screenWidth + 30
+    }
+
+    // MARK: - Skill Grid
+
+    private var skillGrid: some View {
+        let families = SkillFamily.allCases
+
+        return Grid(alignment: .center, horizontalSpacing: 12, verticalSpacing: 0) {
+            // Header row: icon + family name
+            GridRow {
+                ForEach(families, id: \.self) { family in
+                    familyHeader(family)
+                        .frame(width: columnWidth)
+                }
+            }
+
+            // Skill level rows (alternating: connection line row, then skill node row)
+            ForEach(1...maxLevel, id: \.self) { level in
+                // Connection line row
+                GridRow {
+                    ForEach(families, id: \.self) { family in
+                        let familySkills = skills(for: family)
+                        let isRedacted = family.minimumLevel.map { playerLevel < $0 } ?? false
+                        if level > 1, familySkills.count >= level {
+                            let prev = familySkills[level - 2]
+                            let curr = familySkills[level - 1]
+                            connectionLine(isActive: !isRedacted && (isAcquired(curr) || isAcquired(prev)))
+                        } else {
+                            Color.clear.frame(height: 20)
+                        }
+                    }
+                }
+
+                // Skill node row
+                GridRow {
+                    ForEach(families, id: \.self) { family in
+                        let familySkills = skills(for: family)
+                        let isRedacted = family.minimumLevel.map { playerLevel < $0 } ?? false
+                        if level <= familySkills.count {
+                            let skill = familySkills[level - 1]
+                            if isRedacted {
+                                redactedSkillNode(level: skill.level)
+                                    .frame(width: columnWidth)
+                            } else {
+                                skillNode(skill)
+                                    .frame(width: columnWidth)
+                            }
+                        } else {
+                            Color.clear.frame(width: columnWidth)
+                        }
                     }
                 }
             }
-            .padding(16)
         }
     }
 
@@ -59,39 +191,30 @@ struct SkillTreeView: View {
         )
     }
 
-    // MARK: - Family Column
+    // MARK: - Family Header
 
-    private func familyColumn(_ family: SkillFamily) -> some View {
-        let skills = SkillDefinition.allSkills
-            .filter { $0.family == family }
-            .sorted { $0.level < $1.level }
+    private func familyHeader(_ family: SkillFamily) -> some View {
+        let isRedacted = family.minimumLevel.map { playerLevel < $0 } ?? false
 
-        return VStack(spacing: 0) {
-            // Family header
-            VStack(spacing: 6) {
-                Image(systemName: family.icon)
-                    .font(.system(size: 24))
-                    .foregroundStyle(.cyan)
-                    .frame(height: 24)
+        return VStack(spacing: 6) {
+            Image(systemName: isRedacted ? "lock.fill" : family.icon)
+                .font(.system(size: 24))
+                .foregroundStyle(isRedacted ? .white.opacity(0.2) : .cyan)
+                .frame(height: 24)
 
-                Text(family.displayName)
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(.white)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2, reservesSpace: true)
-//                Spacer()
-            }
-            .padding(.bottom, 16)
+            Text(isRedacted ? "???" : family.displayName)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(isRedacted ? .white.opacity(0.2) : .white)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
 
-            // Skill nodes
-            ForEach(Array(skills.enumerated()), id: \.element.id) { index, skill in
-                if index > 0 {
-                    connectionLine(isActive: isAcquired(skill) || isAcquired(skills[index - 1]))
-                }
-                skillNode(skill)
+            if isRedacted, let minLevel = family.minimumLevel {
+                Text("Unlocks at Lv. \(minLevel)")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.25))
             }
         }
-        .frame(maxWidth: .infinity)
+        .padding(.bottom, 8)
     }
 
     // MARK: - Skill Node
@@ -130,21 +253,54 @@ struct SkillTreeView: View {
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(acquired ? .white : .white.opacity(0.5))
                     .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(2, reservesSpace: true)
 
                 // Effect
                 Text(skill.effectDescription)
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(acquired ? .cyan.opacity(0.8) : .white.opacity(0.3))
                     .multilineTextAlignment(.center)
+                    .lineLimit(2, reservesSpace: true)
             }
-            .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
             .padding(.horizontal, 4)
         }
         .buttonStyle(.plain)
         .disabled(!available)
+    }
+
+    // MARK: - Redacted Skill Node
+
+    private func redactedSkillNode(level: Int) -> some View {
+        VStack(spacing: 6) {
+            ZStack {
+                Circle()
+                    .fill(Color.white.opacity(0.04))
+                    .frame(width: 52, height: 52)
+
+                Circle()
+                    .strokeBorder(Color.white.opacity(0.10), lineWidth: 2)
+                    .frame(width: 52, height: 52)
+
+                Text("L\(level)")
+                    .font(.system(size: 18, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.15))
+            }
+
+            Text("???")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.2))
+                .multilineTextAlignment(.center)
+                .lineLimit(2, reservesSpace: true)
+
+            Text("???")
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.white.opacity(0.15))
+                .multilineTextAlignment(.center)
+                .lineLimit(2, reservesSpace: true)
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 4)
     }
 
     // MARK: - Connection Line
@@ -184,6 +340,10 @@ struct SkillTreeView: View {
     private func canAcquire(_ skill: SkillDefinition) -> Bool {
         guard skillPoints > 0 else { return false }
         guard !isAcquired(skill) else { return false }
+        // Skill family locked behind a minimum player level
+        if let minLevel = skill.family.minimumLevel, playerLevel < minLevel {
+            return false
+        }
         if let prereq = skill.prerequisiteID {
             return profileStore.profile.acquiredSkillIDs.contains(prereq)
         }

@@ -5,12 +5,14 @@ enum SkillFamily: String, Codable, CaseIterable {
     case breathingTechniques
     case finKicking
     case stressManagement
+    case multiGasManagement
 
     var displayName: String {
         switch self {
         case .breathingTechniques: "Breathing"
         case .finKicking: "Fin Kicking"
         case .stressManagement: "Stress Management"
+        case .multiGasManagement: "Multi-Gas"
         }
     }
 
@@ -19,6 +21,17 @@ enum SkillFamily: String, Codable, CaseIterable {
         case .breathingTechniques: "lungs.fill"
         case .finKicking: "figure.pool.swim"
         case .stressManagement: "brain.head.profile"
+        case .multiGasManagement: "gauge.with.dots.needle.67percent"
+        }
+    }
+
+    /// Minimum player level before this skill family is revealed.
+    /// Below this level the family is shown redacted ("???").
+    var minimumLevel: Int? {
+        switch self {
+        case .stressManagement: 5
+        case .multiGasManagement: 10
+        default: nil
         }
     }
 }
@@ -32,6 +45,9 @@ enum SkillModifier {
     /// Multiplier applied to warning thresholds, pushing fatal/critical limits further.
     /// Values > 1 mean the diver tolerates more before warnings escalate.
     case warningThresholdMultiplier(Double)
+    /// Multiplier applied to the safe ascent speed. Values > 1 increase the
+    /// safe speed, allowing the diver to ascend faster without triggering DCS warnings.
+    case safeAscentSpeedMultiplier(Double)
 }
 
 /// A single skill within a family, at a specific level.
@@ -60,6 +76,9 @@ struct SkillDefinition: Identifiable {
         case .warningThresholdMultiplier(let m):
             let percent = Int((m - 1.0) * 100)
             return "+\(percent)% warning tolerance"
+        case .safeAscentSpeedMultiplier(let m):
+            let percent = Int((m - 1.0) * 100)
+            return "+\(percent)% safe ascent speed"
         }
     }
 
@@ -142,6 +161,32 @@ struct SkillDefinition: Identifiable {
             name: "Ice Veins",
             description: "Total mental control. Critical situations feel routine.",
             modifier: .warningThresholdMultiplier(1.30)
+        ),
+
+        // Multi-Gas Management
+        SkillDefinition(
+            id: "multiGasManagement.1",
+            family: .multiGasManagement,
+            level: 1,
+            name: "Nitrox Switching",
+            description: "Switch to oxygen-enriched nitrox during ascent to accelerate off-gassing.",
+            modifier: .safeAscentSpeedMultiplier(1.15)
+        ),
+        SkillDefinition(
+            id: "multiGasManagement.2",
+            family: .multiGasManagement,
+            level: 2,
+            name: "Trimix Planning",
+            description: "Plan helium-based mixes for the bottom phase and switch to nitrox for decompression.",
+            modifier: .safeAscentSpeedMultiplier(1.30)
+        ),
+        SkillDefinition(
+            id: "multiGasManagement.3",
+            family: .multiGasManagement,
+            level: 3,
+            name: "Hypoxic Protocols",
+            description: "Master hypoxic travel mixes and multi-stage decompression for maximum efficiency.",
+            modifier: .safeAscentSpeedMultiplier(1.50)
         ),
     ]
 }

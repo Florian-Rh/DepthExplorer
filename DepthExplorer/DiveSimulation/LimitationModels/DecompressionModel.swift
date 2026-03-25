@@ -9,9 +9,12 @@ class DecompressionModel: ObservableObject, DiveLimitationModel {
     @Published private(set) var ascentSpeed: Double = 0
     /// Warning threshold tolerance (1.0 = default, >1.0 = thresholds shift up, more tolerant).
     private let warningTolerance: Double
+    /// Multiplier for safe ascent speed (1.0 = default, >1.0 = faster ascent allowed).
+    private let safeAscentSpeedMultiplier: Double
 
-    init(warningTolerance: Double = 1.0) {
+    init(warningTolerance: Double = 1.0, safeAscentSpeedMultiplier: Double = 1.0) {
         self.warningTolerance = warningTolerance
+        self.safeAscentSpeedMultiplier = safeAscentSpeedMultiplier
     }
 
     func tick(context: DiveTickContext, warningSystem: DiveWarningSystem) -> DiveLimitationResult {
@@ -57,7 +60,7 @@ class DecompressionModel: ObservableObject, DiveLimitationModel {
     }
 
     private func evaluateWarning(depthMeters: Double, warningSystem: DiveWarningSystem) -> DiveLimitationResult {
-        let safeSpeed = GameConstants.safeAscentSpeed * depthLeniencyMultiplier(depth: depthMeters)
+        let safeSpeed = GameConstants.safeAscentSpeed * safeAscentSpeedMultiplier * depthLeniencyMultiplier(depth: depthMeters)
         let ratio = ascentSpeed / safeSpeed
 
         // Tolerance > 1 multiplies the fraction thresholds, requiring higher speed to trigger.

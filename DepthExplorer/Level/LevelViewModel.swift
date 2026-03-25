@@ -193,7 +193,7 @@ class LevelViewModel: ObservableObject {
             ThermalModel(protectionFactor: params.thermalProtectionFactor, warningTolerance: params.warningThresholdTolerance),
         ]
         if params.hasScubaGear {
-            models.append(DecompressionModel(warningTolerance: params.warningThresholdTolerance))
+            models.append(DecompressionModel(warningTolerance: params.warningThresholdTolerance, safeAscentSpeedMultiplier: params.safeAscentSpeedMultiplier))
         }
         return models
     }

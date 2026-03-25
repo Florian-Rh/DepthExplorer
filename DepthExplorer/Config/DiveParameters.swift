@@ -23,6 +23,10 @@ struct DiveParameters {
     /// Whether the diver has scuba gear equipped (vs. apnoe / breath-hold diving).
     let hasScubaGear: Bool
 
+    /// Multiplier for safe ascent speed (1.0 = default, >1.0 = faster ascent allowed).
+    /// Driven by the Multi-Gas Management skill tree.
+    let safeAscentSpeedMultiplier: Double
+
     /// Maximum number of trash items the diver can carry per dive.
     let carryCapacity: Int
 
@@ -40,6 +44,7 @@ struct DiveParameters {
         var thermalProtection = 0.0
         var warningTolerance = 1.0
         var hasScubaGear = false
+        var safeAscentMultiplier = 1.0
         var carryCapacity = GameConstants.defaultCarryCapacity
 
         // Apply equipped gear
@@ -74,6 +79,8 @@ struct DiveParameters {
                 horizontalSpeed *= multiplier
             case .warningThresholdMultiplier(let multiplier):
                 warningTolerance *= multiplier
+            case .safeAscentSpeedMultiplier(let multiplier):
+                safeAscentMultiplier *= multiplier
             }
         }
 
@@ -85,6 +92,7 @@ struct DiveParameters {
             thermalProtectionFactor: thermalProtection,
             warningThresholdTolerance: warningTolerance,
             hasScubaGear: hasScubaGear,
+            safeAscentSpeedMultiplier: safeAscentMultiplier,
             carryCapacity: carryCapacity
         )
     }
@@ -98,6 +106,7 @@ struct DiveParameters {
         thermalProtectionFactor: 0,
         warningThresholdTolerance: 1.0,
         hasScubaGear: false,
+        safeAscentSpeedMultiplier: 1.0,
         carryCapacity: GameConstants.defaultCarryCapacity
     )
 
