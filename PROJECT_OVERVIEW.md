@@ -127,9 +127,7 @@ iPhone and iPad. Minimum version: iOS 26.0.
 There are two categories of game parameters:
 
 **Static per level** (defined once, do not change at runtime):
-- Hard depth limit
 - Available gear for purchase
-- Depth scaling (pixels per meter) — this is the key difficulty lever. Higher levels compress more ocean into less screen space, making the world feel larger and navigation harder.
 
 **Dynamic per player** (derived from equipped gear and acquired skills):
 - Movement speed (meters per second)
@@ -207,4 +205,4 @@ struct ExampleView: View {
 
 ## Dependencies
 
-<!-- External packages (e.g., OpenSeasUI) and why they're used -->
+ - OpenSeasUI: Used for wave generation and moving objects
