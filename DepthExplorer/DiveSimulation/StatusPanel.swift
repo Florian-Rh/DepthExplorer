@@ -64,6 +64,18 @@ struct StatusPanel: View {
                 }
                 .font(.system(.caption, design: .monospaced))
 
+                Button {
+                    viewModel.poseidonMode.toggle()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: viewModel.poseidonMode ? "bolt.shield.fill" : "bolt.shield")
+                        Text("Poseidon Mode: \(viewModel.poseidonMode ? "ON" : "OFF")")
+                    }
+                    .foregroundStyle(viewModel.poseidonMode ? .yellow : .white.opacity(0.5))
+                }
+                .font(.system(.caption, design: .monospaced))
+                .buttonStyle(.plain)
+
                 Divider().background(.white.opacity(0.3))
 
                 // MARK: - Dive Data

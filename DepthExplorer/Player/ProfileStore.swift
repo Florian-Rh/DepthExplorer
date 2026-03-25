@@ -211,6 +211,7 @@ final class ProfileStore: ObservableObject {
         profile = PlayerProfile()
         profile.trashWorldState = TrashWorldItem.seedWorld()
         gameClock = GameClock(savedElapsed: 0)
+        gameClock.resume()
         save()
     }
 

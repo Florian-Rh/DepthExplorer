@@ -29,6 +29,14 @@ class LevelViewModel: ObservableObject {
     @Published var screenSize: CGSize = .zero
     @Published var trashItems: [TrashItem] = []
 
+    /// Debug: when enabled, all limitation models are disabled and the player cannot die.
+    @Published var poseidonMode = false {
+        didSet {
+            guard poseidonMode != oldValue else { return }
+            rebuildSimulation()
+        }
+    }
+
     /// Names of items discovered this session or previously (for UI display).
     @Published private(set) var discoveredItemNames: Set<String> = []
     @Published private(set) var contentOffset: CGFloat = 0
@@ -85,7 +93,7 @@ class LevelViewModel: ObservableObject {
         self.level = level
         self.profileStore = profileStore
         self.diveSimulation = DiveSimulation(
-            limitationModels: limitationModels ?? Self.makeLimitationModels(from: params),
+            limitationModels: limitationModels ?? Self.makeLimitationModels(from: params, poseidonMode: false),
             minimumCompletionDepth: level.minimumCompletionDepth,
             minimumCompletionTime: level.minimumCompletionTime
         )
@@ -132,7 +140,7 @@ class LevelViewModel: ObservableObject {
 
         diveSimulation.stop()
         let newSimulation = DiveSimulation(
-            limitationModels: Self.makeLimitationModels(from: diveParameters),
+            limitationModels: Self.makeLimitationModels(from: diveParameters, poseidonMode: poseidonMode),
             minimumCompletionDepth: level.minimumCompletionDepth,
             minimumCompletionTime: level.minimumCompletionTime
         )
@@ -187,7 +195,9 @@ class LevelViewModel: ObservableObject {
 
     /// Build the set of limitation models for a dive based on current parameters.
     /// DCS is only possible when breathing compressed gas (scuba gear equipped).
-    private static func makeLimitationModels(from params: DiveParameters) -> [any DiveLimitationModel] {
+    /// Returns an empty array when `poseidonMode` is true.
+    private static func makeLimitationModels(from params: DiveParameters, poseidonMode: Bool = false) -> [any DiveLimitationModel] {
+        guard !poseidonMode else { return [] }
         var models: [any DiveLimitationModel] = [
             AirSupplyModel(capacity: params.airCapacity, sacRate: params.sacRate, warningTolerance: params.warningThresholdTolerance, isPressureSensitive: params.hasScubaGear),
             ThermalModel(protectionFactor: params.thermalProtectionFactor, warningTolerance: params.warningThresholdTolerance),
@@ -196,6 +206,28 @@ class LevelViewModel: ObservableObject {
             models.append(DecompressionModel(warningTolerance: params.warningThresholdTolerance, safeAscentSpeedMultiplier: params.safeAscentSpeedMultiplier))
         }
         return models
+    }
+
+    /// Rebuild the dive simulation in-place, e.g. after toggling Poseidon Mode.
+    private func rebuildSimulation() {
+        let wasDiving = diveSession.state == .diving
+        diveSimulation.stop()
+
+        let newSimulation = DiveSimulation(
+            limitationModels: Self.makeLimitationModels(from: diveParameters, poseidonMode: poseidonMode),
+            minimumCompletionDepth: level.minimumCompletionDepth,
+            minimumCompletionTime: level.minimumCompletionTime
+        )
+        diveSimulation = newSimulation
+
+        newSimulation.objectWillChange
+            .sink { [weak self] in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+
+        if wasDiving {
+            warningSystem.clearAll()
+        }
+        newSimulation.start(session: diveSession, warningSystem: warningSystem)
     }
 
     // MARK: - Screen control
