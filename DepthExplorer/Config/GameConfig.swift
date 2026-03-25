@@ -110,7 +110,7 @@ enum GameConstants {
 
     /// Lung capacity in bar when apnoe diving (no scuba gear equipped).
     /// A gameplay abstraction — represents the air a diver can hold in their lungs.
-    static let apnoeLungCapacity: Double = 50.0
+    static let apnoeLungCapacity: Double = 10.0
 
     /// Standard scuba gear capacity in bar (cylinder + regulator).
     static let scubaGearCapacity: Double = 200.0

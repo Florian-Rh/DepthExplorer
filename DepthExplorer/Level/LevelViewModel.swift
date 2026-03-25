@@ -189,7 +189,7 @@ class LevelViewModel: ObservableObject {
     /// DCS is only possible when breathing compressed gas (scuba gear equipped).
     private static func makeLimitationModels(from params: DiveParameters) -> [any DiveLimitationModel] {
         var models: [any DiveLimitationModel] = [
-            AirSupplyModel(capacity: params.airCapacity, sacRate: params.sacRate, warningTolerance: params.warningThresholdTolerance),
+            AirSupplyModel(capacity: params.airCapacity, sacRate: params.sacRate, warningTolerance: params.warningThresholdTolerance, isPressureSensitive: params.hasScubaGear),
             ThermalModel(protectionFactor: params.thermalProtectionFactor, warningTolerance: params.warningThresholdTolerance),
         ]
         if params.hasScubaGear {
