@@ -104,7 +104,7 @@ struct GearDefinition: Identifiable {
             name: "Basic Fins",
             description: "Standard rubber fins for recreational diving.",
             icon: "shoe.2.fill",
-            price: 20,
+            price: 15,
             requiredLevel: 1,
             modifier: .movementSpeed(scrollSpeed: GameConstants.scrollSpeed, horizontalSpeed: GameConstants.diverHorizontalSpeed)
         ),
@@ -167,8 +167,18 @@ struct GearDefinition: Identifiable {
             description: "Sealed suit with insulating undergarments. Essential for deep, cold water.",
             icon: "tshirt.fill",
             price: 250,
-            requiredLevel: 7,
+            requiredLevel: 8,
             modifier: .thermalProtection(factor: 0.8)
+        ),
+        GearDefinition(
+            id: "suit.dry.heated",
+            category: .suit,
+            name: "Heated Drysuit",
+            description: "Sealed suit with an integrated electric heating vest. With this system, the cold has very little effect on you.",
+            icon: "tshirt.fill",
+            price: 400,
+            requiredLevel: 10,
+            modifier: .thermalProtection(factor: 0.95)
         ),
 
         // Mesh Bags
@@ -244,6 +254,16 @@ struct GearDefinition: Identifiable {
             requiredLevel: 7,
             modifier: .airCapacity(bar: 400)
         ),
+        GearDefinition(
+            id: "rebreather",
+            category: .scubaGear,
+            name: "Closed-Circuit Rebreather",
+            description: "Did you know that the air you exhale still contains around 17% oxygen? Why let that go to waste?! A semi-closed rebreather scrubs the carbondioxide from the air you exhale and replentishes the oxygen, allowing for a much longer dive time.",
+            icon: "cylinder.fill",
+            price: 400,
+            requiredLevel: 11,
+            modifier: .airCapacity(bar: 600)
+        ),
 
         // Stage Bottles
         GearDefinition(
@@ -271,7 +291,7 @@ struct GearDefinition: Identifiable {
         GearDefinition(
             id: "dpv.basic",
             category: .dpv,
-            name: "Basic DPV",
+            name: "Basic Scooter",
             description: "A handheld diver propulsion vehicle for faster cruising.",
             icon: "arrow.right.circle.fill",
             price: 300,
@@ -281,11 +301,11 @@ struct GearDefinition: Identifiable {
         GearDefinition(
             id: "dpv.advanced",
             category: .dpv,
-            name: "Advanced DPV",
+            name: "Advanced Scooter",
             description: "High-performance DPV with dual thrusters for serious speed.",
             icon: "arrow.right.circle.fill",
             price: 500,
-            requiredLevel: 12,
+            requiredLevel: 13,
             modifier: .movementSpeed(scrollSpeed: 24, horizontalSpeed: 12)
         ),
     ]

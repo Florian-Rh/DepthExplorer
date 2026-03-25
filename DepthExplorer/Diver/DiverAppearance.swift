@@ -31,7 +31,7 @@ struct DiverAppearance: Equatable {
             case "suit.3mm":  appearance.suit = .wetsuit3mm
             case "suit.5mm":  appearance.suit = .wetsuit5mm
             case "suit.7mm":  appearance.suit = .wetsuit7mm
-            case "suit.dry":  appearance.suit = .drysuit
+            case "suit.dry", "suit.dry.heated":  appearance.suit = .drysuit
             // Fins
             case "fins.basic":    appearance.fins = .basic
             case "fins.advanced": appearance.fins = .advanced
@@ -39,6 +39,7 @@ struct DiverAppearance: Equatable {
             // Scuba gear
             case "tank.standard": appearance.scubaGear = .standard
             case "tank.double":   appearance.scubaGear = .twinset
+            case "rebreather":    appearance.scubaGear = .rebreather
             // Stage bottles
             case "stage.single":  appearance.stageTanks = .single
             case "stage.double":  appearance.stageTanks = .double
@@ -82,6 +83,7 @@ enum FinsTier: Equatable {
 enum ScubaGearTier: Equatable {
     case standard
     case twinset
+    case rebreather
 }
 // MARK: - Stage tank tiers
 

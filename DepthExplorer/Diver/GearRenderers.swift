@@ -466,6 +466,8 @@ struct TankGearRenderer: GearRenderer {
             drawSingleTank(tc)
         case .twinset:
             drawTwinTanks(tc)
+        case .rebreather:
+            return // Handled by RebreatherGearRenderer
         }
 
         // Regulator hose (from tank valve to head)
@@ -538,6 +540,158 @@ struct TankGearRenderer: GearRenderer {
         )
         tc.stroke(hose, with: .color(suitColor.opacity(0.88)),
                   style: StrokeStyle(lineWidth: 3.0, lineCap: .round))
+    }
+}
+
+// MARK: - Rebreather Renderer
+
+/// Draws a closed-circuit rebreather on the diver's back.
+/// The unit is a yellow box housing the CO₂ scrubber with two small black
+/// tanks mounted on top. Two thick corrugated hoses loop from the unit
+/// around the shoulders to the diver's mouthpiece.
+struct RebreatherGearRenderer: GearRenderer {
+
+    // Colors
+    private let cBox        = Color(red: 0.88, green: 0.78, blue: 0.15)  // Yellow housing
+    private let cBoxDark    = Color(red: 0.68, green: 0.58, blue: 0.08)  // Shadow / edge
+    private let cBoxLight   = Color(red: 1.00, green: 0.94, blue: 0.50)  // Highlight
+    private let cTank       = Color(red: 0.10, green: 0.10, blue: 0.12)  // Small black tanks
+    private let cTankCap    = Color(red: 0.22, green: 0.22, blue: 0.26)  // Tank end-caps
+    private let cHose       = Color(red: 0.14, green: 0.14, blue: 0.16)  // Breathing hoses
+    private let cHoseRib    = Color(red: 0.24, green: 0.24, blue: 0.28)  // Corrugation ribs
+
+    func draw(_ ctx: GraphicsContext, render: DiverRenderContext) {
+        var tc = ctx
+        tc.translateBy(x: render.tankCtr.x, y: render.tankCtr.y)
+
+        // --- Main yellow housing box ---
+        let boxW: CGFloat = 38
+        let boxH: CGFloat = 18
+        tc.fill(
+            Path(roundedRect: CGRect(x: -boxW / 2, y: -boxH / 2, width: boxW, height: boxH),
+                 cornerRadius: 4),
+            with: .color(cBox)
+        )
+        // Top highlight strip
+        tc.fill(
+            Path(roundedRect: CGRect(x: -boxW / 2 + 2, y: -boxH / 2, width: boxW - 4, height: 4),
+                 cornerRadius: 2),
+            with: .color(cBoxLight.opacity(0.45))
+        )
+        // Bottom shadow strip
+        tc.fill(
+            Path(roundedRect: CGRect(x: -boxW / 2 + 2, y: boxH / 2 - 4, width: boxW - 4, height: 4),
+                 cornerRadius: 2),
+            with: .color(cBoxDark.opacity(0.40))
+        )
+        // Scrubber canister detail (dark rectangle inside box)
+        tc.fill(
+            Path(roundedRect: CGRect(x: -8, y: -boxH / 2 + 3, width: 16, height: boxH - 6),
+                 cornerRadius: 2),
+            with: .color(cBoxDark.opacity(0.25))
+        )
+
+        // --- Two small black tanks sitting on top of the box (behind diver's back = -y) ---
+        let tankLen: CGFloat = 30
+        let tankR: CGFloat = 4
+        let tankSpacing: CGFloat = 5
+        for offset in [-tankSpacing, tankSpacing] {
+            // Tank cylinder
+            tc.fill(
+                Path(roundedRect: CGRect(x: -tankLen / 2, y: -boxH / 2 - tankR * 2 + offset,
+                                         width: tankLen, height: tankR * 2),
+                     cornerRadius: tankR),
+                with: .color(cTank)
+            )
+            // Sheen
+            tc.fill(
+                Path(roundedRect: CGRect(x: -tankLen / 2 + 1, y: -boxH / 2 - tankR * 2 + offset,
+                                         width: tankLen - 2, height: tankR * 0.8),
+                     cornerRadius: 1),
+                with: .color(Color.white.opacity(0.12))
+            )
+            // Left end-cap (valve side)
+            tc.fill(
+                Path(ellipseIn: CGRect(x: -tankLen / 2 - 2, y: -boxH / 2 - tankR * 2 + offset,
+                                       width: 4, height: tankR * 2)),
+                with: .color(cTankCap)
+            )
+            // Right end-cap
+            tc.fill(
+                Path(ellipseIn: CGRect(x: tankLen / 2 - 2, y: -boxH / 2 - tankR * 2 + offset,
+                                       width: 4, height: tankR * 2)),
+                with: .color(cTankCap)
+            )
+        }
+
+        // --- Manifold crossbar between the two small tanks ---
+        tc.fill(
+            Path(roundedRect: CGRect(x: -6, y: -boxH / 2 - tankR * 2 - tankSpacing,
+                                     width: 12, height: tankSpacing * 2 + tankR * 2),
+                 cornerRadius: 1.5),
+            with: .color(cTankCap.opacity(0.6))
+        )
+
+        // --- Breathing hoses (from box top, looping forward to the mouthpiece) ---
+        drawBreathingHoses(tc, render: render)
+    }
+
+    private func drawBreathingHoses(_ tc: GraphicsContext, render: DiverRenderContext) {
+        // The hoses originate from the left side (head-side) of the box
+        // and curve around to the diver's mouth.
+        // Head center is at render.headCtr relative to body origin;
+        // we are translated to tankCtr, so offset = headCtr - tankCtr.
+        let mouthX = render.headCtr.x - render.tankCtr.x - 14
+        let mouthY = render.headCtr.y - render.tankCtr.y + 14
+
+        let hoseWidth: CGFloat = 4.0
+
+        // Inhale hose (upper path)
+        var inhale = Path()
+        inhale.move(to: CGPoint(x: -15, y: -4))
+        inhale.addCurve(
+            to:       CGPoint(x: mouthX, y: mouthY),
+            control1: CGPoint(x: -30, y: -22),
+            control2: CGPoint(x: mouthX + 10, y: mouthY - 20)
+        )
+        tc.stroke(inhale, with: .color(cHose),
+                  style: StrokeStyle(lineWidth: hoseWidth, lineCap: .round))
+
+        // Exhale hose (lower path)
+        var exhale = Path()
+        exhale.move(to: CGPoint(x: -15, y: 4))
+        exhale.addCurve(
+            to:       CGPoint(x: mouthX, y: mouthY + 4),
+            control1: CGPoint(x: -32, y: 20),
+            control2: CGPoint(x: mouthX + 8, y: mouthY + 18)
+        )
+        tc.stroke(exhale, with: .color(cHose),
+                  style: StrokeStyle(lineWidth: hoseWidth, lineCap: .round))
+
+        // Corrugation ribs on both hoses
+        drawCorrugation(tc, along: inhale, hoseWidth: hoseWidth, segments: 8)
+        drawCorrugation(tc, along: exhale, hoseWidth: hoseWidth, segments: 8)
+    }
+
+    /// Draws evenly-spaced corrugation ribs along a hose path for that
+    /// characteristic accordion-tube look.
+    private func drawCorrugation(_ tc: GraphicsContext, along path: Path,
+                                 hoseWidth: CGFloat, segments: Int) {
+        let bounds = path.boundingRect
+        guard !bounds.isEmpty else { return }
+
+        // Sample points along the path by trimming
+        for i in 1..<segments {
+            let frac = CGFloat(i) / CGFloat(segments)
+            let trimmed = path.trimmedPath(from: 0, to: frac)
+            let end = trimmed.boundingRect
+            let pt = CGPoint(x: end.maxX, y: end.midY)
+
+            var rib = Path()
+            rib.move(to: CGPoint(x: pt.x - 1, y: pt.y - hoseWidth * 0.6))
+            rib.addLine(to: CGPoint(x: pt.x - 1, y: pt.y + hoseWidth * 0.6))
+            tc.stroke(rib, with: .color(cHoseRib.opacity(0.5)), lineWidth: 1.0)
+        }
     }
 }
 
@@ -813,6 +967,8 @@ struct LiftBagGearRenderer: GearRenderer {
     }
 
     func draw(_ ctx: GraphicsContext, render: DiverRenderContext) {
+        guard render.submersed else { return }
+
         let hip = render.nearHip
 
         var lc = ctx

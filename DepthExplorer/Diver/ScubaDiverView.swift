@@ -106,7 +106,7 @@ private struct DiverScene {
 
     func draw(_ ctx: GraphicsContext, bodyTilt: Double, submersed: Bool) {
         drawDiver(ctx, bodyTilt: bodyTilt, submersed: submersed)
-        if submersed && appearance.scubaGear != nil {
+        if submersed && appearance.scubaGear != nil && appearance.scubaGear != .rebreather {
             drawBubbles(ctx, bodyTilt: bodyTilt)
         }
     }
@@ -128,7 +128,14 @@ private struct DiverScene {
             hasScubaGear: appearance.scubaGear != nil
         )
 
-        // Paint order: far fins → tank → body (far limbs, torso, near limbs) → near fins → head
+        // Head on top
+        let headRenderer = HeadGearRenderer(
+            suit: appearance.suit,
+            hasScubaGear: appearance.scubaGear != nil
+        )
+        headRenderer.draw(dc, render: rc)
+
+        // Paint order: far fins → near fins → tank → body (far limbs, torso, near limbs) → head
         // Far fins behind body
         if let finsTier = appearance.fins {
             // Draw only far fin first (behind body)
@@ -136,11 +143,23 @@ private struct DiverScene {
             drawFarFinOnly(dc, renderer: finsRenderer, render: rc)
         }
 
-        // Tank behind body
-        if let tankTier = appearance.scubaGear {
-            let tankRenderer = TankGearRenderer(tier: tankTier, suitColor: suitColor)
-            tankRenderer.draw(dc, render: rc)
+        // Near fin in front of body
+        if let finsTier = appearance.fins {
+            let finsRenderer = FinsGearRenderer(tier: finsTier)
+            drawNearFinOnly(dc, renderer: finsRenderer, render: rc)
         }
+
+        // Tank / rebreather behind body
+        if let tankTier = appearance.scubaGear {
+            if tankTier == .rebreather {
+                let rebreatherRenderer = RebreatherGearRenderer()
+                rebreatherRenderer.draw(dc, render: rc)
+            } else {
+                let tankRenderer = TankGearRenderer(tier: tankTier, suitColor: suitColor)
+                tankRenderer.draw(dc, render: rc)
+            }
+        }
+
 
         // Far-side stage tank (behind body, only for double)
         if appearance.stageTanks == .double {
@@ -151,8 +170,7 @@ private struct DiverScene {
         // Body (torso + all limbs)
         bodyRenderer.draw(dc, render: rc)
 
-
-//        // Near-side stage tank (in front of body)
+        // Near-side stage tank (in front of body)
         if let stageTier = appearance.stageTanks {
             let stageRenderer = StageTankGearRenderer(tier: stageTier)
             stageRenderer.drawStageTank(dc, render: rc, isFar: false)
@@ -168,6 +186,8 @@ private struct DiverScene {
         if let liftTier = appearance.liftBag {
             let liftRenderer = LiftBagGearRenderer(tier: liftTier)
             liftRenderer.draw(dc, render: rc)
+            let bagRenderer = MeshBagGearRenderer(tier: .large)
+            bagRenderer.draw(dc, render: rc)
         }
 
         // DPV (held by near arm, in front of body)
@@ -175,19 +195,6 @@ private struct DiverScene {
             let dpvRenderer = DPVGearRenderer(tier: dpvTier)
             dpvRenderer.draw(dc, render: rc)
         }
-
-        // Near fin in front of body
-        if let finsTier = appearance.fins {
-            let finsRenderer = FinsGearRenderer(tier: finsTier)
-            drawNearFinOnly(dc, renderer: finsRenderer, render: rc)
-        }
-
-        // Head on top
-        let headRenderer = HeadGearRenderer(
-            suit: appearance.suit,
-            hasScubaGear: appearance.scubaGear != nil
-        )
-        headRenderer.draw(dc, render: rc)
     }
 
     /// Draw only the far fin (called before the body for correct layering).
@@ -389,6 +396,11 @@ private struct DiverScene {
 
 #Preview("Advanced DPV") {
     ScubaDiverView(appearance: DiverAppearance(suit: .drysuit, fins: .pro, scubaGear: .twinset, dpv: .advanced))
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Rebreather") {
+    ScubaDiverView(appearance: DiverAppearance(suit: .drysuit, fins: .pro, scubaGear: .rebreather))
         .preferredColorScheme(.dark)
 }
 
