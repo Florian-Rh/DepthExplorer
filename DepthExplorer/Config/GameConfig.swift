@@ -198,19 +198,15 @@ enum GameConstants {
 
     /// Pickup radius in screen points. The diver must be within this distance
     /// (2D Euclidean, in points) of an item to discover or collect it.
-    /// Will be upgradeable through gear in Phase 2.
     static let pickupRadius: CGFloat = 80
 
-    /// Number of trash items spawned at the start of each dive.
-    static let trashCountPerDive: Int = 10
+    // MARK: - Trash Collection
 
-    /// Depth range (meters) in which trash is randomly placed.
-    static let trashMinDepth: Double = 5
-    static let trashMaxDepth: Double = 500
+    /// Default carry capacity (number of trash items per dive) with no mesh bag.
+    static let defaultCarryCapacity: Int = 3
 
-    /// Sand Dollar value range for each trash item.
-    static let trashMinValue: Int = 1
-    static let trashMaxValue: Int = 5
+    /// Horizontal margin as a fraction of screen width to keep trash away from edges.
+    static let trashEdgeMargin: Double = 0.1
 
     // MARK: - Leveling
 
@@ -220,6 +216,29 @@ enum GameConstants {
     /// Each subsequent level requires this factor more XP than the previous one.
     /// e.g. level 2 = 100, level 3 = 150, level 4 = 225, …
     static let levelUpScalingFactor: Double = 1.5
+
+    static let levelDefinitions: [Int: Int] = [
+        1: 0,
+        2: 100,
+        3: 150,
+        4: 250,
+        5: 400,
+        6: 550,
+        7: 750,
+        8: 1000,
+        9: 1300,
+        10: 1800,
+        11: 2700,
+        12: 3800,
+        13: 5100,
+        14: 6600,
+        15: 8300,
+        16: 10200,
+        17: 12400,
+        18: 15000,
+        19: 18000,
+        20: 21000
+    ]
 
     // MARK: - Gas Mixtures
 

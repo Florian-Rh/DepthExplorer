@@ -37,4 +37,15 @@ struct PlayerProfile: Codable {
 
     /// Unspent skill points. Incremented on level-up, decremented on skill acquisition.
     var skillPoints: Int = 0
+
+    /// Accumulated game-time in seconds. Drives trash respawn and (future) day/night cycle.
+    var gameTimeElapsed: TimeInterval = 0
+
+    /// Persistent state of all trash items in the world.
+    /// Every item in this array is available for pickup. Collected items are removed.
+    var trashWorldState: [TrashWorldItem] = []
+
+    /// Per-type spawn schedule: maps `TrashTypeDefinition.id` → game-time at which the
+    /// next item of that type should be spawned. Empty on first launch (seed fills the world).
+    var trashSpawnSchedule: [String: TimeInterval] = [:]
 }

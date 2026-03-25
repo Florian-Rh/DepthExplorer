@@ -23,6 +23,9 @@ struct DiveParameters {
     /// Whether the diver has scuba gear equipped (vs. apnoe / breath-hold diving).
     let hasScubaGear: Bool
 
+    /// Maximum number of trash items the diver can carry per dive.
+    let carryCapacity: Int
+
     /// Compute effective dive parameters from the current profile state.
     ///
     /// 1. Start from apnoe (no-gear) base values
@@ -37,21 +40,25 @@ struct DiveParameters {
         var thermalProtection = 0.0
         var warningTolerance = 1.0
         var hasScubaGear = false
+        var carryCapacity = GameConstants.defaultCarryCapacity
 
         // Apply equipped gear
         for (_, gearID) in profile.equippedGearIDs {
             guard let gear = GearDefinition.allGear.first(where: { $0.id == gearID }) else { continue }
             switch gear.modifier {
             case .movementSpeed(let scroll, let horiz):
-                scrollSpeed = scroll
-                horizontalSpeed = horiz
+                scrollSpeed += scroll
+                horizontalSpeed += horiz
             case .thermalProtection(let factor):
                 thermalProtection = factor
             case .airCapacity(let bar):
                 airCapacity += bar
                 hasScubaGear = true
+            case .carryCapacity(let count):
+                carryCapacity = count
             }
         }
+
         if !hasScubaGear {
             airCapacity += GameConstants.apnoeLungCapacity
         }
@@ -77,7 +84,8 @@ struct DiveParameters {
             sacRate: sacRate,
             thermalProtectionFactor: thermalProtection,
             warningThresholdTolerance: warningTolerance,
-            hasScubaGear: hasScubaGear
+            hasScubaGear: hasScubaGear,
+            carryCapacity: carryCapacity
         )
     }
 
@@ -89,7 +97,8 @@ struct DiveParameters {
         sacRate: GameConstants.sacRate,
         thermalProtectionFactor: 0,
         warningThresholdTolerance: 1.0,
-        hasScubaGear: false
+        hasScubaGear: false,
+        carryCapacity: GameConstants.defaultCarryCapacity
     )
 
     // MARK: - Private

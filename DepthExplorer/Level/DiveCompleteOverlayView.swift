@@ -432,9 +432,9 @@ struct DiveCompleteOverlayView: View {
                 showRankInfo = true
             } label: {
                 HStack(spacing: 4) {
-                    Text("Show more")
+                    Text(rank.newItemsNotice)
                         .font(.system(size: 12, weight: .medium))
-                    Image(systemName: "questionmark.circle")
+                    Image(systemName: "info.circle")
                         .font(.system(size: 11))
                 }
                 .foregroundStyle(.cyan.opacity(0.8))

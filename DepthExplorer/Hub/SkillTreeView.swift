@@ -72,11 +72,14 @@ struct SkillTreeView: View {
                 Image(systemName: family.icon)
                     .font(.system(size: 24))
                     .foregroundStyle(.cyan)
+                    .frame(height: 24)
 
                 Text(family.displayName)
                     .font(.system(size: 13, weight: .bold))
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
+                    .lineLimit(2, reservesSpace: true)
+//                Spacer()
             }
             .padding(.bottom, 16)
 

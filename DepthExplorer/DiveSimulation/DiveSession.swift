@@ -20,9 +20,25 @@ class DiveSession: ObservableObject {
     @Published private(set) var state: DiveSessionState = .surface
     @Published private(set) var discoveredItemNames: Set<String> = []
     @Published private(set) var collectedSandDollars: Int = 0
+    @Published private(set) var collectedTrashCount: Int = 0
 
     /// Items discovered this session with their depths, for XP calculation.
     private(set) var discoveredItemRecords: [DiscoveredItemInfo] = []
+
+    /// IDs of trash items collected this dive (for persisting on safe surfacing).
+    private(set) var collectedTrashIDs: [UUID] = []
+
+    /// Maximum number of trash items the diver can carry per dive.
+    let carryCapacity: Int
+
+    /// Whether the diver's bag is full.
+    var isBagFull: Bool {
+        collectedTrashCount >= carryCapacity
+    }
+
+    init(carryCapacity: Int = GameConstants.defaultCarryCapacity) {
+        self.carryCapacity = carryCapacity
+    }
 
     /// Transition to diving state when the diver descends past the activation depth.
     func beginDive() {
@@ -56,10 +72,15 @@ class DiveSession: ObservableObject {
         discoveredItemRecords.append(DiscoveredItemInfo(name: name, depthMeters: depth))
     }
 
-    /// Record trash pickup during the dive.
-    func collectTrash(value: Int) {
-        guard state == .diving else { return }
+    /// Record trash pickup during the dive. Returns `false` if the bag is full.
+    @discardableResult
+    func collectTrash(id: UUID, value: Int) -> Bool {
+        guard state == .diving else { return false }
+        guard !isBagFull else { return false }
         collectedSandDollars += value
+        collectedTrashCount += 1
+        collectedTrashIDs.append(id)
+        return true
     }
 
     /// Commit session rewards to the persistent profile and reset for the next dive.
@@ -84,5 +105,7 @@ class DiveSession: ObservableObject {
         discoveredItemNames = []
         discoveredItemRecords = []
         collectedSandDollars = 0
+        collectedTrashCount = 0
+        collectedTrashIDs = []
     }
 }

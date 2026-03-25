@@ -10,7 +10,7 @@ struct RankInfoSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
-                    Text("Your diving rank reflects your experience and expertise as an underwater explorer. As you level up, you earn higher ranks that unlock new challenges and recognition.")
+                    Text("Your diving rank reflects your experience and expertise as an underwater explorer. As you level up, more equipment and skills become available to you.")
                         .font(.system(size: 14))
                         .foregroundStyle(.white.opacity(0.7))
                         .multilineTextAlignment(.center)
@@ -47,7 +47,7 @@ struct RankInfoSheet: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
-                        Text(rank.rawValue)
+                        Text(isLocked ? "???" : rank.rawValue)
                             .font(.system(size: 16, weight: .bold))
                             .foregroundStyle(isCurrent ? .cyan : isLocked ? .white.opacity(0.3) : .white)
 
@@ -91,6 +91,7 @@ struct RankInfoSheet: View {
                 .font(.system(size: 13))
                 .foregroundStyle(isLocked ? .white.opacity(0.25) : .white.opacity(0.6))
                 .fixedSize(horizontal: false, vertical: true)
+                .redacted(reason: isLocked ? .placeholder : [])
         }
         .padding(14)
         .background(

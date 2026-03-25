@@ -89,6 +89,8 @@ struct LevelView: View {
                     warnings: viewModel.warningSystem.activeWarnings,
                     isDiving: viewModel.diveSession.state == .diving,
                     hasScubaGear: viewModel.diveParameters.hasScubaGear,
+                    trashCollected: viewModel.diveSession.collectedTrashCount,
+                    carryCapacity: viewModel.diveSession.carryCapacity,
                     onJoystickChanged: { offset, angle in
                         viewModel.diverController.offsetTarget = offset
                         if let angle {

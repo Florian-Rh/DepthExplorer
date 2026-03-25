@@ -23,13 +23,14 @@ struct ShopView: View {
 
     private func gearSection(_ category: GearCategory) -> some View {
         let items = GearDefinition.allGear.filter { $0.category == category }
+        let categoryLocked = category.minimumRank.minimumLevel > playerLevel
 
         return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
-                Image(systemName: category.icon)
+                Image(systemName: categoryLocked ? "lock.fill" : category.icon)
                     .font(.system(size: 14))
                     .foregroundStyle(.white.opacity(0.5))
-                Text(category.displayName)
+                Text(categoryLocked ? "Locked category" : category.displayName)
                     .font(.system(size: 13, weight: .bold))
                     .foregroundStyle(.white.opacity(0.6))
                     .textCase(.uppercase)
@@ -37,14 +38,14 @@ struct ShopView: View {
             }
 
             ForEach(items) { gear in
-                shopItemRow(gear)
+                shopItemRow(gear, categoryLocked: categoryLocked)
             }
         }
     }
 
     // MARK: - Item Row
 
-    private func shopItemRow(_ gear: GearDefinition) -> some View {
+    private func shopItemRow(_ gear: GearDefinition, categoryLocked: Bool) -> some View {
         let isOwned = profileStore.profile.ownedGearIDs.contains(gear.id)
         let canAfford = profileStore.profile.sandDollars >= gear.price
         let meetsLevel = playerLevel >= gear.requiredLevel
@@ -55,20 +56,21 @@ struct ShopView: View {
                 RoundedRectangle(cornerRadius: 10)
                     .fill(isOwned ? Color.green.opacity(0.15) : Color.white.opacity(0.06))
                     .frame(width: 48, height: 48)
-                Image(systemName: gear.icon)
+                Image(systemName: categoryLocked ? "lock.fill" : gear.icon)
                     .font(.system(size: 20))
                     .foregroundStyle(isOwned ? .green : .white.opacity(0.6))
             }
 
             // Info
             VStack(alignment: .leading, spacing: 3) {
-                Text(gear.name)
+                Text(categoryLocked ? "???" : gear.name)
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(.white)
 
                 Text(gear.effectDescription)
                     .font(.system(size: 12))
                     .foregroundStyle(.white.opacity(0.5))
+                    .redacted(reason: categoryLocked ? .placeholder : [])
 
                 if !meetsLevel {
                     Text("Requires Level \(gear.requiredLevel)")
@@ -97,6 +99,7 @@ struct ShopView: View {
                         Text("\(gear.price)")
                             .font(.system(size: 14, weight: .bold, design: .monospaced))
                             .monospacedDigit()
+                            .redacted(reason: categoryLocked ? .placeholder : [])
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)

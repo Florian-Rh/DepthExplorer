@@ -36,7 +36,7 @@ class LevelViewModel: ObservableObject {
 
     let diverController = DiverController()
     private(set) var diveSimulation: DiveSimulation
-    let diveSession = DiveSession()
+    private(set) var diveSession: DiveSession
     let warningSystem = DiveWarningSystem()
     let level: LevelDefinition
     let profileStore: ProfileStore
@@ -81,6 +81,7 @@ class LevelViewModel: ObservableObject {
     ) {
         let params = DiveParameters.from(profile: profileStore.profile)
         self.diveParameters = params
+        self.diveSession = DiveSession(carryCapacity: params.carryCapacity)
         self.level = level
         self.profileStore = profileStore
         self.diveSimulation = DiveSimulation(
@@ -121,6 +122,13 @@ class LevelViewModel: ObservableObject {
     /// uses the new gear/skill values.
     func recomputeParameters() {
         diveParameters = DiveParameters.from(profile: profileStore.profile)
+
+        // Recreate dive session with updated carry capacity.
+        let newSession = DiveSession(carryCapacity: diveParameters.carryCapacity)
+        diveSession = newSession
+        newSession.objectWillChange
+            .sink { [weak self] in self?.objectWillChange.send() }
+            .store(in: &cancellables)
 
         diveSimulation.stop()
         let newSimulation = DiveSimulation(
@@ -210,14 +218,33 @@ class LevelViewModel: ObservableObject {
         contentOffset = newOffset
     }
 
+    // MARK: - Trash world
+
+    /// Spawn any due trash, then load available items from the persistent world state.
+    private func loadAvailableTrash() {
+        profileStore.spawnDueTrash()
+        let available = profileStore.availableTrashItems()
+        trashItems = available.compactMap { worldItem -> TrashItem? in
+            guard let typeDef = TrashTypeDefinition.allTypes.first(where: { $0.id == worldItem.typeID }) else {
+                return nil
+            }
+            return TrashItem(
+                id: worldItem.id,
+                typeDef: typeDef,
+                depth: worldItem.depth,
+                xFraction: worldItem.xFraction
+            )
+        }
+    }
+
     // MARK: - Session lifecycle
 
     private func checkSessionTransitions() {
         let currentState = diveSession.state
 
-        // Detect dive start → spawn trash, reset max depth
+        // Detect dive start → load available trash from persistent world, reset max depth
         if previousSessionState == .surface && currentState == .diving {
-            trashItems = TrashItem.spawnForDive()
+            loadAvailableTrash()
             maxDepthReached = 0
         }
 
@@ -252,6 +279,11 @@ class LevelViewModel: ObservableObject {
                 experienceBreakdown: xpBreakdown,
                 totalXPBefore: profileStore.profile.experiencePoints
             )
+
+            // Persist collected trash items in the world state
+            for trashID in diveSession.collectedTrashIDs {
+                profileStore.collectTrashItem(id: trashID)
+            }
             trashItems = []
         }
 
@@ -313,14 +345,14 @@ class LevelViewModel: ObservableObject {
         // Trash Items
         var pickedUp: [UUID] = []
         for item in trashItems {
-            let itemPos = itemScreenPosition(
-                depth: item.depth,
-                isLeftSide: item.isLeftSide,
-                hPadding: 50
-            )
+            guard !diveSession.isBagFull else { break }
+            let screenY = item.depth * scalingFactor - contentOffset + screenSize.height / 3 + 50
+            let screenX = item.xFraction * screenSize.width
+            let itemPos = CGPoint(x: screenX, y: screenY)
             guard distance(diverPos, itemPos) <= radius else { continue }
-            diveSession.collectTrash(value: item.sandDollarValue)
-            pickedUp.append(item.id)
+            if diveSession.collectTrash(id: item.id, value: item.sandDollarValue) {
+                pickedUp.append(item.id)
+            }
         }
         if !pickedUp.isEmpty {
             trashItems.removeAll { pickedUp.contains($0.id) }

@@ -22,6 +22,8 @@ struct DiveHUDView: View {
     let warnings: [DiveWarning]
     let isDiving: Bool
     let hasScubaGear: Bool
+    let trashCollected: Int
+    let carryCapacity: Int
     var onJoystickChanged: (_ offset: CGSize, _ angleDegrees: Double?) -> Void
 
     // MARK: - Derived values
@@ -192,6 +194,21 @@ struct DiveHUDView: View {
                     }
                 }
             }
+
+            // ── Bag capacity indicator ────────────────────────
+            if isDiving {
+                HStack(spacing: 4) {
+                    Image(systemName: trashCollected >= carryCapacity ? "bag.fill" : "bag")
+                        .font(.system(size: 10))
+                        .foregroundStyle(trashCollected >= carryCapacity ? .orange : .white.opacity(0.6))
+                    Text("\(trashCollected)/\(carryCapacity)")
+                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(trashCollected >= carryCapacity ? .orange : .white)
+                        .monospacedDigit()
+                    Spacer()
+                }
+                .padding(.top, 4)
+            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
@@ -211,6 +228,8 @@ struct DiveHUDView: View {
             warnings: [],
             isDiving: true,
             hasScubaGear: true,
+            trashCollected: 1,
+            carryCapacity: 5,
             onJoystickChanged: { _, _ in }
         )
         .padding(.horizontal, 16)
@@ -233,6 +252,8 @@ struct DiveHUDView: View {
             ],
             isDiving: true,
             hasScubaGear: true,
+            trashCollected: 5,
+            carryCapacity: 5,
             onJoystickChanged: { _, _ in }
         )
         .padding(.horizontal, 16)
@@ -252,6 +273,8 @@ struct DiveHUDView: View {
             warnings: [],
             isDiving: true,
             hasScubaGear: false,
+            trashCollected: 2,
+            carryCapacity: 3,
             onJoystickChanged: { _, _ in }
         )
         .padding(.horizontal, 16)
@@ -271,6 +294,8 @@ struct DiveHUDView: View {
             warnings: [],
             isDiving: false,
             hasScubaGear: true,
+            trashCollected: 0,
+            carryCapacity: 3,
             onJoystickChanged: { _, _ in }
         )
         .padding(.horizontal, 16)

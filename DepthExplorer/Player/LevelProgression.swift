@@ -28,6 +28,16 @@ struct LevelProgression {
         let baseXP = GameConstants.baseLevelUpXP
         let scale = GameConstants.levelUpScalingFactor
 
+//        let nextLevelEntry = GameConstants.levelDefinitions.first(where: { $0.value > totalXP})!
+//        let currentLevel = nextLevelEntry.key - 1
+//        let currentLevelXp = GameConstants.levelDefinitions[currentLevel]!
+//
+//        return LevelProgression(
+//            level: currentLevel,
+//            currentLevelXP: currentLevelXp,
+//            requiredLevelXP: nextLevelEntry.value
+//        )
+
         var level = 1
         var remaining = totalXP
         var threshold = baseXP

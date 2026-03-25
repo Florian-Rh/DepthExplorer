@@ -16,7 +16,7 @@ enum DiverRank: String, CaseIterable {
         switch self {
         case .freeDiver: return 1
         case .scubaDiver: return 5
-        case .techDiver: return 9
+        case .techDiver: return 10
         case .marineSpecialist: return 15
         case .oceanographer: return 20
         }
@@ -30,11 +30,26 @@ enum DiverRank: String, CaseIterable {
         case .scubaDiver:
             return "Holding your breath only get's you so far. With your first scuba certificate, you can bring compressed air with you. Be aware though: When when breathing pressurized air, you have to ascent more slowly, or you will risk decompression sickness!"
         case .techDiver:
-            return "A seasoned diver with advanced training. Using different gas mixtures allows you to reduce the decompression risk and dive deeper and longer. There is a limit to everything though, and eventually the immense water pressure will take it's toll."
+            return "You are a seasoned diver with advanced training. Using different gas mixtures allows you to reduce the decompression risk and dive deeper and longer. There is a limit to everything though, and eventually the immense water pressure will take it's toll."
         case .marineSpecialist:
             return "Your deep-sea expertise has earned you recognition as a marine specialist. Research teams will grant you access to their deep sea exploration equipment, allowing you to go way past the limits of a human body – it won't be cheap though."
         case .oceanographer:
             return "The pinnacle of underwater exploration. As Oceanographer, you have mastered every aspect of diving and possess an encyclopedic knowledge of the deep. The entire ocean is your domain."
+        }
+    }
+
+    var newItemsNotice: String {
+        switch self {
+        case .freeDiver:
+            return ""
+        case .scubaDiver:
+            return "Scuba gear is now available in the shop"
+        case .techDiver:
+            return "Advanced gear & accessories are now available in the shop"
+        case .marineSpecialist:
+            return "Personal submersibles are now available in the shop"
+        case .oceanographer:
+            return "The Bathosphere is now available in the shop"
         }
     }
 

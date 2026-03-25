@@ -160,7 +160,7 @@
 
 ### Tasks
 
-- [ ] **DCS risk speed should depend on depth**
+- [X] **DCS risk speed should depend on depth**
   The closer the diver gets to the surface, the lower the safe ascent speed should be, meaning that a dive from 300 to 200 meters has little effect on ascent speed, but a dive from 100 to 0 meters has a high effect 
   
 - [ ] **Skills can be limited to certain levels**
@@ -178,10 +178,10 @@
 - [ ] **Highlight new glossary entries**
   When a new glossary entry is unlocked, a badge should be displayed, similar to the one when a skill point is available.
   
-- [ ] **Graphics for trash**
+- [X] **Graphics for trash**
   Instead of a trah icon with the value in dollars underneith, a graphic should be displayed. For variation, we should have at least 10 different types of trash, valued between 1 and 5 Sand dollars. More expensive trash is larger or more dangerous to the environment (i.E. a discarded battery is worth more than a soda bottle)
   
-- [ ] **Limit for trash pickup**
+- [X] **Limit for trash pickup**
   The amount of trash the player can pick up should be limited. In the shop, the player can purchase mash bags to increse the amount of trash he can collect
 
 - [ ] **Add buoyancy to the DiveParameters**

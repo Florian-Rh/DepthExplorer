@@ -46,6 +46,12 @@ struct StatusPanel: View {
                 }
                 Text("Skill pts: \(profile.skillPoints) | Gear owned: \(profile.ownedGearIDs.count)/\(GearDefinition.allGear.count)")
                     .foregroundStyle(.cyan)
+                let gameTime = Int(viewModel.profileStore.currentGameTime)
+                let gtH = gameTime / 3600
+                let gtM = (gameTime % 3600) / 60
+                let gtS = gameTime % 60
+                Text("Game time: \(String(format: "%02d:%02d:%02d", gtH, gtM, gtS))")
+                    .foregroundStyle(.cyan)
                 HStack(spacing: 12) {
                     Button("Unlock All Gear") {
                         viewModel.profileStore.unlockAllGear()

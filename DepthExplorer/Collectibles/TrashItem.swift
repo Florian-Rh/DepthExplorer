@@ -1,23 +1,17 @@
 import Foundation
 
-/// A piece of trash the diver can pick up during a dive session.
-/// Trash is placed randomly within a depth range and awards Sand Dollars on collection.
-/// Sand Dollars are only credited when the diver surfaces safely.
+/// A trash item prepared for rendering and proximity detection during a dive.
+/// Combines persistent world state (`TrashWorldItem`) with catalog data (`TrashTypeDefinition`).
 struct TrashItem: Identifiable {
-    let id = UUID()
+    /// Matches `TrashWorldItem.id` for lookup when collecting.
+    let id: UUID
+    /// The type definition for appearance, value, etc.
+    let typeDef: TrashTypeDefinition
+    /// Depth in meters.
     let depth: Double
-    let sandDollarValue: Int
-    /// Whether this item is placed on the left side of the screen.
-    let isLeftSide: Bool
+    /// Normalized horizontal position [0, 1].
+    let xFraction: Double
 
-    /// Generate a random set of trash items for a new dive.
-    static func spawnForDive() -> [TrashItem] {
-        (0..<GameConstants.trashCountPerDive).map { index in
-            TrashItem(
-                depth: Double.random(in: GameConstants.trashMinDepth...GameConstants.trashMaxDepth),
-                sandDollarValue: Int.random(in: GameConstants.trashMinValue...GameConstants.trashMaxValue),
-                isLeftSide: index.isMultiple(of: 2)
-            )
-        }
-    }
+    /// Convenience: sand dollar value from the type definition.
+    var sandDollarValue: Int { typeDef.sandDollarValue }
 }

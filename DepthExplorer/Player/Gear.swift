@@ -4,16 +4,20 @@ import Foundation
 enum GearCategory: String, Codable, CaseIterable {
     case fins
     case suit
+    case meshBag
     /// Cylinder + regulator + BCD as a single equip slot.
     case scubaGear = "tank"
-    case scubaGearAccessory
+    case stageBottle
+    case dpv
 
     var displayName: String {
         switch self {
         case .fins: "Fins"
         case .suit: "Exposure Suit"
         case .scubaGear: "Scuba Gear"
-        case .scubaGearAccessory: "Scuba Gear Accessories"
+        case .stageBottle: "Stage Bottles"
+        case .dpv: "DPV"
+        case .meshBag: "Mesh Bag"
         }
     }
 
@@ -22,7 +26,9 @@ enum GearCategory: String, Codable, CaseIterable {
         case .fins: "shoe.2.fill"
         case .suit: "tshirt.fill"
         case .scubaGear: "cylinder.fill"
-        case .scubaGearAccessory: "cylinder.fill"
+        case .stageBottle: "cylinder.fill"
+        case .dpv: "arrow.right.circle.fill"
+        case .meshBag: "bag"
         }
     }
 
@@ -32,7 +38,20 @@ enum GearCategory: String, Codable, CaseIterable {
         case .fins: "Barefoot — reduced swim speed"
         case .suit: "No suit — no thermal protection"
         case .scubaGear: "Apnoe — lungs only (\(Int(GameConstants.apnoeLungCapacity)) bar)"
-        case .scubaGearAccessory: "No accessories"
+        case .stageBottle: "No stage bottles"
+        case .dpv: "No DPV — swim under your own power"
+        case .meshBag: "No bag — carry up to \(GameConstants.defaultCarryCapacity) items"
+        }
+    }
+
+    var minimumRank: DiverRank {
+        switch self {
+        case .fins, .suit, .meshBag:
+            return .freeDiver
+        case .scubaGear:
+            return .scubaDiver
+        case .stageBottle, .dpv:
+            return .techDiver
         }
     }
 }
@@ -45,6 +64,8 @@ enum GearModifier {
     case thermalProtection(factor: Double)
     /// Scuba gear air capacity in bar (replaces base constant).
     case airCapacity(bar: Double)
+    /// Trash carry capacity (number of items per dive).
+    case carryCapacity(count: Int)
 }
 
 /// A specific gear item available for purchase and equipping.
@@ -68,6 +89,8 @@ struct GearDefinition: Identifiable {
             return "\(percent)% thermal protection"
         case .airCapacity(let bar):
             return "\(Int(bar)) bar capacity"
+        case .carryCapacity(let count):
+            return "Carry up to \(count) items"
         }
     }
 
@@ -148,6 +171,58 @@ struct GearDefinition: Identifiable {
             modifier: .thermalProtection(factor: 0.8)
         ),
 
+        // Mesh Bags
+        GearDefinition(
+            id: "bag.small",
+            category: .meshBag,
+            name: "Small Mesh Bag",
+            description: "A basic collection bag for small debris.",
+            icon: "bag",
+            price: 15,
+            requiredLevel: 1,
+            modifier: .carryCapacity(count: 5)
+        ),
+        GearDefinition(
+            id: "bag.medium",
+            category: .meshBag,
+            name: "Medium Mesh Bag",
+            description: "Reinforced bag with room for more trash.",
+            icon: "bag.fill",
+            price: 40,
+            requiredLevel: 3,
+            modifier: .carryCapacity(count: 10)
+        ),
+        GearDefinition(
+            id: "bag.large",
+            category: .meshBag,
+            name: "Large Mesh Bag",
+            description: "Professional-grade collection bag for serious cleanup dives.",
+            icon: "bag.fill",
+            price: 100,
+            requiredLevel: 6,
+            modifier: .carryCapacity(count: 15)
+        ),
+        GearDefinition(
+            id: "liftBag.medium",
+            category: .meshBag,
+            name: "Lift Bag",
+            description: "A lift bag can be filled with air, which offsets the weight of the collected items, allowing you to carry more",
+            icon: "bag.fill",
+            price: 150,
+            requiredLevel: 8,
+            modifier: .carryCapacity(count: 20)
+        ),
+        GearDefinition(
+            id: "liftBag.large",
+            category: .meshBag,
+            name: "Large Lift Bag",
+            description: "Even larger lift bag for maximum payload.",
+            icon: "bag.fill",
+            price: 200,
+            requiredLevel: 10,
+            modifier: .carryCapacity(count: 25)
+        ),
+
         // Scuba Gear (cylinder + regulator + BCD)
         GearDefinition(
             id: "tank.standard",
@@ -169,11 +244,13 @@ struct GearDefinition: Identifiable {
             requiredLevel: 7,
             modifier: .airCapacity(bar: 400)
         ),
+
+        // Stage Bottles
         GearDefinition(
             id: "stage.single",
-            category: .scubaGearAccessory,
-            name: "Stage Tank (Single)",
-            description: "Side-mounted extra tank for longer dives.",
+            category: .stageBottle,
+            name: "Single Stage Bottle",
+            description: "One side-mounted extra tank for longer dives.",
             icon: "cylinder.fill",
             price: 200,
             requiredLevel: 10,
@@ -181,13 +258,35 @@ struct GearDefinition: Identifiable {
         ),
         GearDefinition(
             id: "stage.double",
-            category: .scubaGearAccessory,
-            name: "Stage Tank (Double)",
-            description: "Two side-mounted tanks for even longer dives.",
+            category: .stageBottle,
+            name: "Double Stage Bottles",
+            description: "Two side-mounted tanks for maximum air supply.",
             icon: "cylinder.fill",
             price: 400,
             requiredLevel: 12,
             modifier: .airCapacity(bar: 400)
+        ),
+
+        // DPV (Diver Propulsion Vehicle)
+        GearDefinition(
+            id: "dpv.basic",
+            category: .dpv,
+            name: "Basic DPV",
+            description: "A handheld diver propulsion vehicle for faster cruising.",
+            icon: "arrow.right.circle.fill",
+            price: 300,
+            requiredLevel: 10,
+            modifier: .movementSpeed(scrollSpeed: 12, horizontalSpeed: 6)
+        ),
+        GearDefinition(
+            id: "dpv.advanced",
+            category: .dpv,
+            name: "Advanced DPV",
+            description: "High-performance DPV with dual thrusters for serious speed.",
+            icon: "arrow.right.circle.fill",
+            price: 500,
+            requiredLevel: 12,
+            modifier: .movementSpeed(scrollSpeed: 24, horizontalSpeed: 12)
         ),
     ]
 }

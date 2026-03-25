@@ -11,9 +11,15 @@ struct DiverAppearance: Equatable {
     var scubaGear: ScubaGearTier?
     /// The equipped stage tank tier, or `nil` for no stage tanks.
     var stageTanks: StageTankTier?
+    /// The equipped mesh bag tier, or `nil` for no bag.
+    var meshBag: MeshBagTier?
+    /// The equipped lift bag tier, or `nil` for no lift bag.
+    var liftBag: LiftBagTier?
+    /// The equipped DPV tier, or `nil` for no DPV.
+    var dpv: DPVTier?
 
     /// Default appearance: no gear at all (naked diver).
-    static let naked = DiverAppearance(suit: nil, fins: nil, scubaGear: nil, stageTanks: nil)
+    static let naked = DiverAppearance(suit: nil, fins: nil, scubaGear: nil, stageTanks: nil, meshBag: nil, liftBag: nil, dpv: nil)
 
     /// Build appearance from a player profile's equipped gear.
     static func from(profile: PlayerProfile) -> DiverAppearance {
@@ -33,9 +39,19 @@ struct DiverAppearance: Equatable {
             // Scuba gear
             case "tank.standard": appearance.scubaGear = .standard
             case "tank.double":   appearance.scubaGear = .twinset
-            // Stage tanks
+            // Stage bottles
             case "stage.single":  appearance.stageTanks = .single
             case "stage.double":  appearance.stageTanks = .double
+            // DPV
+            case "dpv.basic":     appearance.dpv = .basic
+            case "dpv.advanced":  appearance.dpv = .advanced
+            // Mesh bags
+            case "bag.small":         appearance.meshBag = .small
+            case "bag.medium":        appearance.meshBag = .medium
+            case "bag.large":         appearance.meshBag = .large
+            // Lift bags
+            case "liftBag.medium":    appearance.liftBag = .medium
+            case "liftBag.large":     appearance.liftBag = .large
             default: break
             }
         }
@@ -74,5 +90,27 @@ enum StageTankTier: Equatable {
     case single
     /// Two stage tanks, one on each hip.
     case double
+}
+
+// MARK: - Mesh bag tiers
+
+enum MeshBagTier: Equatable {
+    case small
+    case medium
+    case large
+}
+
+// MARK: - Lift bag tiers
+
+enum LiftBagTier: Equatable {
+    case medium
+    case large
+}
+
+// MARK: - DPV tiers
+
+enum DPVTier: Equatable {
+    case basic
+    case advanced
 }
 

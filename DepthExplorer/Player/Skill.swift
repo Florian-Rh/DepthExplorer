@@ -10,7 +10,7 @@ enum SkillFamily: String, Codable, CaseIterable {
         switch self {
         case .breathingTechniques: "Breathing"
         case .finKicking: "Fin Kicking"
-        case .stressManagement: "Stress Mgmt"
+        case .stressManagement: "Stress Management"
         }
     }
 

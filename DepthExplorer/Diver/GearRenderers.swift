@@ -28,6 +28,17 @@ struct DiverRenderContext {
     let farFlex: Double
     let nearArmSwing: Double
     let farArmSwing: Double
+
+    /// Body tilt in degrees (used by lift bag to counter-rotate and always point up).
+    let bodyTilt: Double
+
+    /// Whether a DPV is equipped (affects arm posture).
+    let hasDPV: Bool
+    /// Whether the diver is currently submerged (DPV holding pose only when underwater).
+    let submersed: Bool
+
+    /// True when the diver should hold the DPV in extended-arm position.
+    var holdingDPV: Bool { hasDPV && submersed }
 }
 
 // MARK: - Skin Palette
@@ -126,18 +137,18 @@ struct BodyRenderer: GearRenderer {
         let trunkColor = Color(red: 0.15, green: 0.45, blue: 0.70)
         // Swim trunks (lower torso / hip area)
         ctx.fill(
-            Path(roundedRect: CGRect(x: 15, y: -3, width: 27, height: 16), cornerRadius: 5),
+            Path(roundedRect: CGRect(x: 15, y: -13, width: 27, height: 26), cornerRadius: 5),
             with: .color(trunkColor)
         )
         // Waistband
         ctx.fill(
-            Path(roundedRect: CGRect(x: 15, y: -3, width: 27, height: 4), cornerRadius: 2),
+            Path(roundedRect: CGRect(x: 15, y: -13, width: 27, height: 26), cornerRadius: 2),
             with: .color(trunkColor.opacity(0.7))
         )
         // Bikini top strap across upper chest
         let bikiniColor = Color(red: 0.85, green: 0.25, blue: 0.35)
         ctx.fill(
-            Path(roundedRect: CGRect(x: -38, y: -2, width: 24, height: 8), cornerRadius: 3),
+            Path(roundedRect: CGRect(x: -38, y: -2, width: 24, height: 16), cornerRadius: 3),
             with: .color(bikiniColor)
         )
         // Second strap line
@@ -247,15 +258,30 @@ struct BodyRenderer: GearRenderer {
     }
 
     private func drawNearArm(_ ctx: GraphicsContext, render: DiverRenderContext) {
-        renderArm(ctx, shoulder: render.nearShoulder,
-                  baseAngle: 25.0 + render.nearArmSwing, elbowBend: -14,
-                  scale: 1.00, alpha: 1.00)
+        if render.holdingDPV {
+            // Arms extended forward toward the DPV, slightly below the face.
+            // baseAngle -45° rotates the arm toward the head (-x direction).
+            // Straight elbow for a rigid grip on the DPV handle.
+            renderArm(ctx, shoulder: render.nearShoulder,
+                      baseAngle: 115, elbowBend: 40,
+                      scale: 1.00, alpha: 1.00)
+        } else {
+            renderArm(ctx, shoulder: render.nearShoulder,
+                      baseAngle: 25.0 + render.nearArmSwing, elbowBend: -14,
+                      scale: 1.00, alpha: 1.00)
+        }
     }
 
     private func drawFarArm(_ ctx: GraphicsContext, render: DiverRenderContext) {
-        renderArm(ctx, shoulder: render.farShoulder,
-                  baseAngle: 25.0 + render.farArmSwing, elbowBend: -11,
-                  scale: 0.91, alpha: 0.75)
+        if render.holdingDPV {
+            renderArm(ctx, shoulder: render.farShoulder,
+                      baseAngle: 115, elbowBend: 40,
+                      scale: 0.91, alpha: 0.75)
+        } else {
+            renderArm(ctx, shoulder: render.farShoulder,
+                      baseAngle: 25.0 + render.farArmSwing, elbowBend: -11,
+                      scale: 0.91, alpha: 0.75)
+        }
     }
 
     // MARK: Legs (without fins — fins drawn by FinsRenderer)
@@ -617,6 +643,452 @@ struct HeadGearRenderer: GearRenderer {
         // Exhaust port vents
         hc.fill(Path(roundedRect: CGRect(x: -22, y: 11, width: 5, height: 4), cornerRadius: 1),
                 with: .color(cReg.opacity(0.75)))
+    }
+}
+
+// MARK: - Mesh Bag Renderer
+
+/// Draws a mesh collection bag clipped to the diver's near hip.
+/// The bag is a rounded pouch with a net-like crosshatch pattern.
+/// Size scales with tier (small → medium → large).
+struct MeshBagGearRenderer: GearRenderer {
+    let tier: MeshBagTier
+
+    // Bag body size scaling per tier
+    private var bagWidth: CGFloat {
+        switch tier {
+        case .small:  return 16
+        case .medium: return 20
+        case .large:  return 26
+        }
+    }
+
+    private var bagHeight: CGFloat {
+        switch tier {
+        case .small:  return 22
+        case .medium: return 28
+        case .large:  return 36
+        }
+    }
+
+    private let cBag      = Color(red: 0.55, green: 0.58, blue: 0.52) // olive mesh
+    private let cBagDark  = Color(red: 0.38, green: 0.40, blue: 0.35)
+    private let cRing     = Color(red: 0.50, green: 0.50, blue: 0.54) // metal ring
+    private let cClip     = Color(red: 0.30, green: 0.30, blue: 0.34)
+
+    func draw(_ ctx: GraphicsContext, render: DiverRenderContext) {
+        let hip = render.nearHip
+
+        var bc = ctx
+        bc.translateBy(x: hip.x + 4, y: hip.y + 6)
+        // Tilt the bag so it dangles slightly behind and below
+        bc.rotate(by: .degrees(-25))
+
+        // Clip / carabiner attaching bag to harness
+        bc.fill(
+            Path(roundedRect: CGRect(x: -3, y: -6, width: 6, height: 7), cornerRadius: 1.5),
+            with: .color(cClip)
+        )
+        // Metal ring at top of bag
+        bc.stroke(
+            Path(ellipseIn: CGRect(x: -4, y: -3, width: 8, height: 6)),
+            with: .color(cRing), lineWidth: 1.5
+        )
+
+        // Bag body — rounded trapezoid shape (wider at bottom)
+        let topW = bagWidth * 0.7
+        let botW = bagWidth
+        var bagPath = Path()
+        bagPath.move(to: CGPoint(x: -topW / 2, y: 2))
+        bagPath.addLine(to: CGPoint(x: topW / 2, y: 2))
+        bagPath.addQuadCurve(
+            to: CGPoint(x: botW / 2, y: bagHeight - 4),
+            control: CGPoint(x: topW / 2 + 3, y: bagHeight * 0.4)
+        )
+        bagPath.addQuadCurve(
+            to: CGPoint(x: -botW / 2, y: bagHeight - 4),
+            control: CGPoint(x: 0, y: bagHeight + 2)
+        )
+        bagPath.addQuadCurve(
+            to: CGPoint(x: -topW / 2, y: 2),
+            control: CGPoint(x: -topW / 2 - 3, y: bagHeight * 0.4)
+        )
+        bagPath.closeSubpath()
+
+        // Fill bag body
+        bc.fill(bagPath, with: .color(cBag.opacity(0.65)))
+        bc.stroke(bagPath, with: .color(cBagDark.opacity(0.8)), lineWidth: 1.0)
+
+        // Net/mesh crosshatch pattern inside the bag
+        let meshSpacing: CGFloat = bagHeight > 30 ? 6 : 5
+        // Horizontal mesh lines
+        for yOff in stride(from: meshSpacing + 2, to: bagHeight - 5, by: meshSpacing) {
+            // Width at this height (interpolate between top and bottom)
+            let t = (yOff - 2) / (bagHeight - 6)
+            let w = topW + (botW - topW) * t
+            var line = Path()
+            line.move(to: CGPoint(x: -w / 2 + 1, y: yOff))
+            line.addLine(to: CGPoint(x: w / 2 - 1, y: yOff))
+            bc.stroke(line, with: .color(cBagDark.opacity(0.35)), lineWidth: 0.6)
+        }
+        // Diagonal mesh lines (\ direction)
+        for xOff in stride(from: -botW / 2, through: botW / 2, by: meshSpacing) {
+            var line = Path()
+            line.move(to: CGPoint(x: xOff, y: 4))
+            line.addLine(to: CGPoint(x: xOff + bagHeight * 0.25, y: bagHeight - 5))
+            // Clip to bag shape by using the context clip
+            bc.stroke(line, with: .color(cBagDark.opacity(0.25)), lineWidth: 0.5)
+        }
+        // Diagonal mesh lines (/ direction)
+        for xOff in stride(from: -botW / 2, through: botW / 2, by: meshSpacing) {
+            var line = Path()
+            line.move(to: CGPoint(x: xOff, y: 4))
+            line.addLine(to: CGPoint(x: xOff - bagHeight * 0.25, y: bagHeight - 5))
+            bc.stroke(line, with: .color(cBagDark.opacity(0.25)), lineWidth: 0.5)
+        }
+
+        // Drawstring / cinch cord at the opening
+        var drawstring = Path()
+        drawstring.move(to: CGPoint(x: -topW / 2 - 1, y: 3))
+        drawstring.addQuadCurve(
+            to: CGPoint(x: topW / 2 + 1, y: 3),
+            control: CGPoint(x: 0, y: 5)
+        )
+        bc.stroke(drawstring, with: .color(cBagDark.opacity(0.7)),
+                  style: StrokeStyle(lineWidth: 1.0, lineCap: .round))
+    }
+}
+
+// MARK: - Lift Bag Renderer
+
+/// Draws a lift bag attached by ropes to the diver's near hip.
+/// The bag resembles an inflated balloon with the lower third open,
+/// and always points upward regardless of body tilt.
+struct LiftBagGearRenderer: GearRenderer {
+    let tier: LiftBagTier
+
+    private var bagColor: Color {
+        switch tier {
+        case .medium: return Color(red: 0.95, green: 0.80, blue: 0.10)   // Yellow
+        case .large:  return Color(red: 0.85, green: 0.15, blue: 0.12)   // Red
+        }
+    }
+
+    private var bagHighlight: Color {
+        switch tier {
+        case .medium: return Color(red: 1.00, green: 0.92, blue: 0.50)
+        case .large:  return Color(red: 1.00, green: 0.45, blue: 0.40)
+        }
+    }
+
+    private var bagShadow: Color {
+        switch tier {
+        case .medium: return Color(red: 0.70, green: 0.58, blue: 0.05)
+        case .large:  return Color(red: 0.58, green: 0.08, blue: 0.06)
+        }
+    }
+
+    /// Bag envelope width.
+    private var bagWidth: CGFloat {
+        switch tier {
+        case .medium: return 28
+        case .large:  return 36
+        }
+    }
+
+    /// Bag envelope height (the inflated portion above the opening).
+    private var bagHeight: CGFloat {
+        switch tier {
+        case .medium: return 34
+        case .large:  return 44
+        }
+    }
+
+    /// Rope length from hip to the bottom opening of the bag.
+    private var ropeLength: CGFloat {
+        switch tier {
+        case .medium: return 28
+        case .large:  return 32
+        }
+    }
+
+    func draw(_ ctx: GraphicsContext, render: DiverRenderContext) {
+        let hip = render.nearHip
+
+        var lc = ctx
+        lc.translateBy(x: hip.x + 4, y: hip.y)
+
+        // Counter-rotate so the bag always points upward.
+        // The parent context has been rotated by bodyTilt degrees,
+        // and when facing right (bodyTilt 90–270) the Y-axis is flipped.
+        // We must undo both transformations to get world-vertical.
+        let isFlipped = render.bodyTilt > 90.0 && render.bodyTilt < 270.0
+        if isFlipped {
+            // Undo the Y-flip first, then counter-rotate
+            lc.scaleBy(x: 1.0, y: -1.0)
+            lc.rotate(by: .degrees(-render.bodyTilt))
+        } else {
+            lc.rotate(by: .degrees(-render.bodyTilt))
+        }
+
+        // The bag floats above the hip: ropes go up, bag sits on top.
+        // In counter-rotated (world) space, "up" is −y.
+        let openingY: CGFloat = -ropeLength       // bottom of the balloon opening
+        let topY: CGFloat = openingY - bagHeight   // top of the balloon
+
+        // — Ropes from hip to bag opening —
+        let ropeColor = Color(red: 0.35, green: 0.35, blue: 0.30)
+        // Left rope
+        var leftRope = Path()
+        leftRope.move(to: CGPoint(x: -3, y: 0))
+        leftRope.addQuadCurve(
+            to: CGPoint(x: -bagWidth * 0.35, y: openingY),
+            control: CGPoint(x: -bagWidth * 0.25, y: -ropeLength * 0.4)
+        )
+        lc.stroke(leftRope, with: .color(ropeColor.opacity(0.8)),
+                  style: StrokeStyle(lineWidth: 1.2, lineCap: .round))
+        // Right rope
+        var rightRope = Path()
+        rightRope.move(to: CGPoint(x: 3, y: 0))
+        rightRope.addQuadCurve(
+            to: CGPoint(x: bagWidth * 0.35, y: openingY),
+            control: CGPoint(x: bagWidth * 0.25, y: -ropeLength * 0.4)
+        )
+        lc.stroke(rightRope, with: .color(ropeColor.opacity(0.8)),
+                  style: StrokeStyle(lineWidth: 1.2, lineCap: .round))
+
+        // — Bag envelope (upper 2/3 of a sphere, open at bottom) —
+        // Drawn as a path: arc from left opening to right opening across the top.
+        let hw = bagWidth / 2  // half-width at the opening
+
+        var envelope = Path()
+        // Start at the left edge of the opening
+        envelope.move(to: CGPoint(x: -hw, y: openingY))
+        // Left side bulge curving up
+        envelope.addCurve(
+            to: CGPoint(x: 0, y: topY),
+            control1: CGPoint(x: -hw - 4, y: openingY - bagHeight * 0.45),
+            control2: CGPoint(x: -hw * 0.5, y: topY - 2)
+        )
+        // Top right side curving down to the right opening edge
+        envelope.addCurve(
+            to: CGPoint(x: hw, y: openingY),
+            control1: CGPoint(x: hw * 0.5, y: topY - 2),
+            control2: CGPoint(x: hw + 4, y: openingY - bagHeight * 0.45)
+        )
+        // Don't close — the bottom is open
+
+        // Fill the bag with gradient-like layering
+        var filled = envelope
+        filled.closeSubpath()
+        lc.fill(filled, with: .color(bagColor))
+
+        // Highlight on the left (light source)
+        var hlPath = Path()
+        hlPath.move(to: CGPoint(x: -hw + 3, y: openingY + 2))
+        hlPath.addCurve(
+            to: CGPoint(x: -2, y: topY + 4),
+            control1: CGPoint(x: -hw, y: openingY - bagHeight * 0.35),
+            control2: CGPoint(x: -hw * 0.4, y: topY + 2)
+        )
+        hlPath.addLine(to: CGPoint(x: -hw * 0.3, y: openingY - bagHeight * 0.3))
+        hlPath.closeSubpath()
+        lc.fill(hlPath, with: .color(bagHighlight.opacity(0.35)))
+
+        // Shadow on the right
+        var shPath = Path()
+        shPath.move(to: CGPoint(x: hw - 3, y: openingY + 2))
+        shPath.addCurve(
+            to: CGPoint(x: 4, y: topY + 6),
+            control1: CGPoint(x: hw, y: openingY - bagHeight * 0.3),
+            control2: CGPoint(x: hw * 0.5, y: topY + 3)
+        )
+        shPath.addLine(to: CGPoint(x: hw * 0.3, y: openingY - bagHeight * 0.25))
+        shPath.closeSubpath()
+        lc.fill(shPath, with: .color(bagShadow.opacity(0.30)))
+
+        // Outline
+        lc.stroke(envelope, with: .color(bagShadow.opacity(0.7)),
+                  style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
+
+        // Opening rim (thicker line at the bottom to show the cut-off)
+        var rim = Path()
+        rim.move(to: CGPoint(x: -hw, y: openingY))
+        rim.addLine(to: CGPoint(x: hw, y: openingY))
+        lc.stroke(rim, with: .color(bagShadow.opacity(0.6)),
+                  style: StrokeStyle(lineWidth: 2.0, lineCap: .round))
+
+        // Vertical seam lines on the bag for realism
+        let seamCount = tier == .large ? 4 : 3
+        for i in 1..<seamCount {
+            let frac = CGFloat(i) / CGFloat(seamCount)
+            let sx = -hw + bagWidth * frac
+            let seamTopY = topY + 3 + abs(sx) * 0.1  // slightly lower away from center
+            var seam = Path()
+            seam.move(to: CGPoint(x: sx * 0.8, y: seamTopY))
+            seam.addQuadCurve(
+                to: CGPoint(x: sx, y: openingY),
+                control: CGPoint(x: sx * 0.95, y: openingY - bagHeight * 0.35)
+            )
+            lc.stroke(seam, with: .color(bagShadow.opacity(0.20)),
+                      style: StrokeStyle(lineWidth: 0.7, lineCap: .round))
+        }
+    }
+}
+
+// MARK: - DPV Renderer
+
+/// Draws a diver propulsion vehicle held in front of the diver's body.
+/// When submerged, the DPV is held at arm's length in front of and slightly
+/// below the face, with both arms extended toward it. When on the surface,
+/// the DPV is not drawn (stowed).
+///
+/// Basic tier: compact single-thruster unit.
+/// Advanced tier: larger dual-thruster unit with a shroud.
+struct DPVGearRenderer: GearRenderer {
+    let tier: DPVTier
+
+    // Size scaling per tier
+    private var bodyLength: CGFloat {
+        switch tier {
+        case .basic:    return 58
+        case .advanced: return 74
+        }
+    }
+
+    private var bodyHeight: CGFloat {
+        switch tier {
+        case .basic:    return 14
+        case .advanced: return 18
+        }
+    }
+
+    private var thrusterRadius: CGFloat {
+        switch tier {
+        case .basic:    return 6
+        case .advanced: return 7
+        }
+    }
+
+    private var hullColor: Color {
+        switch tier {
+        case .basic:    return Color(red: 0.30, green: 0.32, blue: 0.36)
+        case .advanced: return Color(red: 0.12, green: 0.14, blue: 0.18)
+        }
+    }
+
+    private var hullAccent: Color {
+        switch tier {
+        case .basic:    return Color(red: 0.90, green: 0.55, blue: 0.10) // orange accent
+        case .advanced: return Color(red: 0.20, green: 0.65, blue: 0.90) // blue accent
+        }
+    }
+
+    private var thrusterColor: Color {
+        Color(red: 0.22, green: 0.22, blue: 0.26)
+    }
+
+    func draw(_ ctx: GraphicsContext, render: DiverRenderContext) {
+        // Only draw when submerged — on the surface the DPV is stowed.
+        guard render.submersed else { return }
+
+        // Position the DPV in front of the head, where the extended arms reach.
+        // In body-local coords: head center is at ~(-61, 0).
+        // The DPV sits ahead of the head and slightly below (toward belly = +y).
+        let headX = render.headCtr.x
+        var dc = ctx
+        dc.translateBy(x: headX - 50, y: 50)
+        // Rotate so the torpedo's long axis aligns with the body's -x direction
+        // (pointing forward). +y in the DPV's frame extends toward the diver's head direction.
+        dc.rotate(by: .degrees(-90))
+
+        let hw = bodyHeight / 2
+
+        // --- Main hull (torpedo body) ---
+        let hullRect = CGRect(x: -hw, y: 0, width: bodyHeight, height: bodyLength)
+        dc.fill(
+            Path(roundedRect: hullRect, cornerRadius: hw),
+            with: .color(hullColor)
+        )
+
+        // Hull sheen (top highlight)
+        dc.fill(
+            Path(roundedRect: CGRect(x: -hw + 1, y: 2, width: bodyHeight * 0.35, height: bodyLength - 4), cornerRadius: hw * 0.4),
+            with: .color(Color.white.opacity(0.12))
+        )
+
+        // --- Accent stripe ---
+        dc.fill(
+            Path(roundedRect: CGRect(x: -hw + 2, y: bodyLength * 0.3, width: bodyHeight - 4, height: 3), cornerRadius: 1),
+            with: .color(hullAccent.opacity(0.8))
+        )
+
+        // --- Nose cone (rounded tip) ---
+        dc.fill(
+            Path(ellipseIn: CGRect(x: -hw + 1, y: -3, width: bodyHeight - 2, height: 8)),
+            with: .color(hullColor.opacity(0.9))
+        )
+        // Nose highlight
+        dc.fill(
+            Path(ellipseIn: CGRect(x: -hw + 3, y: -1, width: 4, height: 4)),
+            with: .color(Color.white.opacity(0.18))
+        )
+
+        // --- Thruster(s) at the back ---
+        let thrusterY = bodyLength - 2
+
+        if tier == .advanced {
+            // Dual thrusters
+            let offset: CGFloat = hw * 0.48
+            for xOff in [-offset, offset] {
+                drawThruster(dc, x: xOff, y: thrusterY)
+            }
+            // Shroud connecting the two thrusters
+            dc.fill(
+                Path(roundedRect: CGRect(x: -hw - 1, y: thrusterY - 2, width: bodyHeight + 2, height: thrusterRadius * 2 + 4), cornerRadius: 3),
+                with: .color(thrusterColor.opacity(0.6))
+            )
+            // Redraw thrusters on top of shroud
+            for xOff in [-offset, offset] {
+                drawThruster(dc, x: xOff, y: thrusterY)
+            }
+        } else {
+            // Single thruster centered
+            drawThruster(dc, x: 0, y: thrusterY)
+        }
+
+        // --- Handle grip bar ---
+        let gripY = bodyLength * 0.18
+        dc.fill(
+            Path(roundedRect: CGRect(x: -hw - 3, y: gripY, width: bodyHeight + 6, height: 4), cornerRadius: 2),
+            with: .color(Color(red: 0.25, green: 0.25, blue: 0.28))
+        )
+        // Grip texture
+        for i in stride(from: CGFloat(-hw - 1), through: hw + 1, by: 3) {
+            var tick = Path()
+            tick.move(to: CGPoint(x: i, y: gripY))
+            tick.addLine(to: CGPoint(x: i, y: gripY + 4))
+            dc.stroke(tick, with: .color(Color.white.opacity(0.08)), lineWidth: 0.5)
+        }
+    }
+
+    private func drawThruster(_ ctx: GraphicsContext, x: CGFloat, y: CGFloat) {
+        let r = thrusterRadius
+        // Outer ring
+        ctx.fill(
+            Path(ellipseIn: CGRect(x: x - r, y: y, width: r * 2, height: r * 2)),
+            with: .color(thrusterColor)
+        )
+        // Inner dark (propeller void)
+        ctx.fill(
+            Path(ellipseIn: CGRect(x: x - r + 2, y: y + 2, width: r * 2 - 4, height: r * 2 - 4)),
+            with: .color(Color.black.opacity(0.5))
+        )
+        // Rim highlight
+        ctx.stroke(
+            Path(ellipseIn: CGRect(x: x - r, y: y, width: r * 2, height: r * 2)),
+            with: .color(Color.white.opacity(0.12)), lineWidth: 0.8
+        )
     }
 }
 

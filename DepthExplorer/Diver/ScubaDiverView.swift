@@ -70,7 +70,7 @@ private struct DiverScene {
                 y: size.height * 0.46 + bobY)
     }
 
-    private var renderContext: DiverRenderContext {
+    private func renderContext(bodyTilt: Double, submersed: Bool) -> DiverRenderContext {
         DiverRenderContext(
             headCtr: headCtr,
             nearShoulder: nearShoulder,
@@ -83,7 +83,10 @@ private struct DiverScene {
             farKick: farKick,
             farFlex: farFlex,
             nearArmSwing: nearArmSwing,
-            farArmSwing: farArmSwing
+            farArmSwing: farArmSwing,
+            bodyTilt: bodyTilt,
+            hasDPV: appearance.dpv != nil,
+            submersed: submersed
         )
     }
 
@@ -102,13 +105,13 @@ private struct DiverScene {
     // MARK: - Drawing
 
     func draw(_ ctx: GraphicsContext, bodyTilt: Double, submersed: Bool) {
-        drawDiver(ctx, bodyTilt: bodyTilt)
+        drawDiver(ctx, bodyTilt: bodyTilt, submersed: submersed)
         if submersed && appearance.scubaGear != nil {
             drawBubbles(ctx, bodyTilt: bodyTilt)
         }
     }
 
-    private func drawDiver(_ ctx: GraphicsContext, bodyTilt: Double) {
+    private func drawDiver(_ ctx: GraphicsContext, bodyTilt: Double, submersed: Bool) {
         var dc = ctx
         dc.translateBy(x: diverCenter.x, y: diverCenter.y)
         dc.rotate(by: .degrees(bodyTilt))
@@ -116,7 +119,7 @@ private struct DiverScene {
             dc.scaleBy(x: 1.0, y: -1.0)
         }
 
-        let rc = renderContext
+        let rc = renderContext(bodyTilt: bodyTilt, submersed: submersed)
 
         // Build renderers based on appearance
         let bodyRenderer = BodyRenderer(
@@ -148,10 +151,29 @@ private struct DiverScene {
         // Body (torso + all limbs)
         bodyRenderer.draw(dc, render: rc)
 
+
 //        // Near-side stage tank (in front of body)
         if let stageTier = appearance.stageTanks {
             let stageRenderer = StageTankGearRenderer(tier: stageTier)
             stageRenderer.drawStageTank(dc, render: rc, isFar: false)
+        }
+
+        // Mesh bag (in front of body, clipped to near hip)
+        if let bagTier = appearance.meshBag {
+            let bagRenderer = MeshBagGearRenderer(tier: bagTier)
+            bagRenderer.draw(dc, render: rc)
+        }
+
+        // Lift bag (attached to near hip, always points up)
+        if let liftTier = appearance.liftBag {
+            let liftRenderer = LiftBagGearRenderer(tier: liftTier)
+            liftRenderer.draw(dc, render: rc)
+        }
+
+        // DPV (held by near arm, in front of body)
+        if let dpvTier = appearance.dpv {
+            let dpvRenderer = DPVGearRenderer(tier: dpvTier)
+            dpvRenderer.draw(dc, render: rc)
         }
 
         // Near fin in front of body
@@ -346,3 +368,29 @@ private struct DiverScene {
     ScubaDiverView(appearance: DiverAppearance(suit: .drysuit, fins: .pro, scubaGear: .twinset, stageTanks: .double))
         .preferredColorScheme(.dark)
 }
+#Preview("With Mesh Bag") {
+    ScubaDiverView(appearance: DiverAppearance(suit: .wetsuit5mm, fins: .advanced, scubaGear: .standard, meshBag: .large))
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Medium Lift Bag") {
+    ScubaDiverView(appearance: DiverAppearance(suit: .wetsuit5mm, fins: .advanced, scubaGear: .standard, liftBag: .medium))
+        .preferredColorScheme(.dark)
+}
+#Preview("Large Lift Bag") {
+    ScubaDiverView(appearance: DiverAppearance(suit: .drysuit, fins: .pro, scubaGear: .twinset, liftBag: .large))
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Basic DPV") {
+    ScubaDiverView(appearance: DiverAppearance(suit: .wetsuit5mm, fins: .advanced, scubaGear: .standard, dpv: .basic))
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Advanced DPV") {
+    ScubaDiverView(appearance: DiverAppearance(suit: .drysuit, fins: .pro, scubaGear: .twinset, dpv: .advanced))
+        .preferredColorScheme(.dark)
+}
+
+
+
