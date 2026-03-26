@@ -5,16 +5,15 @@ import OpenSeasUI
 struct OceanView: View {
     static let viewId = "oceanView"
 
-    let depthInPixels: Double
+    let scalingFactor: Double
     let screenHeight: CGFloat
+    let contentOffset: CGFloat
 
     @State private var rotation: Double = 0.0
 
     private let motionManager = CMMotionManager()
 
-    static var adjustedMidnightAbyssGradient: Gradient {
-        Gradient(colors: [.oceanBlue, .deepSeaBlue, .abyssBlue, .black, .black, .black])
-    }
+    private static let surfaceCyan = Color(red: 0, green: 0.72, blue: 0.85)
 
     var body: some View {
         VStack(spacing: 0) {
@@ -35,22 +34,22 @@ struct OceanView: View {
                     animationBehaviour: .backAndForth(duration: 5.0, distance: 1),
                     rotation: rotation
                 )
-                .foregroundStyle(.oceanBlue)
+                .foregroundStyle(Self.surfaceCyan)
             }
             .frame(height: screenHeight)
-            Rectangle()
-                .frame(height: depthInPixels)
-                .foregroundStyle(
-                    LinearGradient(
-                        gradient: Self.adjustedMidnightAbyssGradient,
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
+
+            ForEach(DepthZone.allZones) { zone in
+                DepthZoneView(
+                    zone: zone,
+                    scalingFactor: scalingFactor,
+                    contentOffset: contentOffset,
+                    screenHeight: screenHeight
                 )
+            }
         }
         .id(Self.viewId)
-        .onAppear(perform: self.startDeviceMotionUpdates)
-        .onDisappear(perform: self.stopDeviceMotionUpdates)
+//        .onAppear(perform: self.startDeviceMotionUpdates)
+//        .onDisappear(perform: self.stopDeviceMotionUpdates)
     }
 
     private func startDeviceMotionUpdates() {

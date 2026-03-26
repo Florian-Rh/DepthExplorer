@@ -131,8 +131,8 @@
 - [ ] **Add warning and rescue animations**
   Visual feedback for warning escalation (screen tint, vignette, shake) and a rescue animation sequence (diver pulled to surface) instead of the current instant snap to surface.
 
-- [ ] **Add visual depth zones**
-  Distinct visual environments at depth ranges (coral reef, open water, twilight zone, abyss). The architecture should already support this from the continuous OceanView design.
+- [x] **Add visual depth zones**
+  Replaced the single-gradient ocean rectangle with 5 stacked zone views (Sunlight, Twilight, Midnight, Abyssal, Hadal) matching real oceanic pelagic zones. Each zone has its own gradient, Canvas-drawn ambient elements (corals, kelp, rocks, hydrothermal vents, trench walls), and particle effects (bubbles, plankton, bioluminescent specks, marine snow). Viewport culling ensures only visible zones render ambient/particle layers. Added KnowledgeableItem entries for each zone.
 
 ---
 

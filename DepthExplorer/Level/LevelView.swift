@@ -27,7 +27,7 @@ struct LevelView: View {
                 let screenSize = geo.size
 
                 ZStack {
-                    OceanView(depthInPixels: viewModel.maximumDepthInPixels, screenHeight: screenSize.height)
+                    OceanView(scalingFactor: viewModel.scalingFactor, screenHeight: screenSize.height, contentOffset: viewModel.contentOffset)
 
                     ForEach(
                         Array(KnowledgeableItem.allItems.enumerated()),
