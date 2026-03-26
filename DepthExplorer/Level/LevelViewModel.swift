@@ -110,10 +110,6 @@ class LevelViewModel: ObservableObject {
         warningSystem.objectWillChange
             .sink { [weak self] in self?.objectWillChange.send() }
             .store(in: &cancellables)
-
-#if DEBUG
-        self.poseidonMode = true
-#endif
     }
 
     func startSimulation() {
