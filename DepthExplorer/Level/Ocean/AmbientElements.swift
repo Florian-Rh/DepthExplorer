@@ -72,20 +72,8 @@ struct AmbientElements: View {
         let baseX: CGFloat
         let isLeft: Bool
 
-        /// Information about a point on the wall surface.
-        struct SurfaceInfo {
-            /// The position on the wall edge at the queried y.
-            let point: CGPoint
-            /// The angle of the surface normal (the direction "away" from rock).
-            /// 0 means straight up, positive = clockwise.
-            let surfaceAngle: CGFloat
-            /// Whether the surface faces upward (normal has a negative-y component),
-            /// meaning decorations can grow "up" from it without being upside-down.
-            let isUpwardFacing: Bool
-        }
-
         /// Returns surface information at the given y, or nil if y falls in a gap.
-        func surfaceInfo(at y: CGFloat) -> SurfaceInfo? {
+        func wallEdge(at y: CGFloat) -> CGPoint? {
             guard let seg = segments.first(where: { y >= $0.topY && y < $0.bottomY }) else {
                 return nil
             }
@@ -105,39 +93,14 @@ struct AmbientElements: View {
                     let t = (y - p0.y) / (p1.y - p0.y)
                     let edgeX = p0.x + t * (p1.x - p0.x)
 
-                    // Wall edge tangent vector (from p0 to p1)
-                    let dx = p1.x - p0.x
-                    let dy = p1.y - p0.y
-
-                    // Outward normal (perpendicular to tangent, pointing away from wall)
-                    // For left wall (isLeft): inward is +x, so outward normal is the
-                    // one pointing in +x direction → rotate tangent +90°: (dy, -dx)
-                    // For right wall: outward is -x → rotate tangent -90°: (-dy, dx)
-                    let nx: CGFloat
-                    let ny: CGFloat
-                    if isLeft {
-                        nx = dy; ny = -dx
-                    } else {
-                        nx = -dy; ny = dx
-                    }
-
-                    // Surface angle: rotation from straight-up (0, -1) to the normal
-                    let surfaceAngle = atan2(nx, -ny)
-                    // Upward-facing: normal has negative y component
-                    let isUpward = ny < 0
-
-                    return SurfaceInfo(
-                        point: CGPoint(x: edgeX, y: y),
-                        surfaceAngle: surfaceAngle,
-                        isUpwardFacing: isUpward
-                    )
+                    return CGPoint(x: edgeX, y: y)
                 }
             }
             // Fallback
             if let nearest = seg.profilePoints.min(by: { abs($0.y - y) < abs($1.y - y) }) {
-                return SurfaceInfo(point: CGPoint(x: nearest.x, y: y), surfaceAngle: 0, isUpwardFacing: true)
+                return CGPoint(x: nearest.x, y: y)
             }
-            return SurfaceInfo(point: CGPoint(x: baseX, y: y), surfaceAngle: 0, isUpwardFacing: true)
+            return CGPoint(x: baseX, y: y)
         }
 
         static func generate(
@@ -227,7 +190,8 @@ struct AmbientElements: View {
         rng: inout SeededRNG
     ) {
         var elementCount = 0
-        while elementCount < config.decorationCount {
+        var failedAttempts = 0
+        while elementCount < config.decorationCount && failedAttempts < 10 {
             let isLeft = Bool.random(using: &rng)
             // Consume RNG for position (keeps sequence stable regardless of wall shape)
             _ = CGFloat.random(in: config.wallWidthRange, using: &rng) // consumed for sequence stability
@@ -236,19 +200,25 @@ struct AmbientElements: View {
 
             // Query the actual wall profile at this y
             let profile = isLeft ? profiles.left : profiles.right
-            guard let surface = profile.surfaceInfo(at: y), surface.isUpwardFacing else {
+            guard let wallEdge = profile.wallEdge(at: y) else {
                 consumeRNG(forKind: kind, rng: &rng)
+                failedAttempts += 1
                 continue
             }
+            failedAttempts = 0
 
             let inward: CGFloat = isLeft ? 1 : -1
 
             // Draw in a rotated coordinate space so the decoration grows
             // perpendicular to the rock surface. We translate to the attach
             // point, rotate by the surface angle, then draw at the origin.
+            var offset = CGFloat.random(in: 10.0...15.0, using: &rng)
+            if isLeft {
+                offset *= -1
+            }
             var ctx = context
-            ctx.translateBy(x: surface.point.x, y: surface.point.y)
-            ctx.rotate(by: Angle(radians: surface.surfaceAngle))
+            ctx.translateBy(x: wallEdge.x + offset, y: wallEdge.y)
+            ctx.rotate(by: Angle(degrees: Double.random(in: -15...15, using: &rng)))
 
             let origin = CGPoint.zero
 
@@ -515,6 +485,10 @@ struct AmbientElements: View {
         let color = colors[Int.random(in: 0..<colors.count, using: &rng)]
         let tubeCount = Int.random(in: 2...4, using: &rng)
 
+        let horizontalOffset = CGFloat(tubeCount * 5) * inward
+        var origin = origin
+        origin.x -= horizontalOffset
+
         for i in 0..<tubeCount {
             let tubeHeight = CGFloat.random(in: 18...40, using: &rng)
             let tubeWidth = CGFloat.random(in: 5...10, using: &rng)
@@ -607,10 +581,10 @@ struct AmbientElements: View {
 
             // Query wall profile for attachment point
             let profile = isLeft ? profiles.left : profiles.right
-            guard let surface = profile.surfaceInfo(at: y), surface.isUpwardFacing else { continue }
+            guard let wallEdge = profile.wallEdge(at: y) else { continue }
 
-            let baseX = surface.point.x
-            let baseY = surface.point.y
+            let baseX = wallEdge.x
+            let baseY = wallEdge.y
             let baseColor = Color(red: 0.1, green: green, blue: 0.1)
 
             // Draw each branch — always grows vertically (no surface rotation)
@@ -710,12 +684,15 @@ struct AmbientElements: View {
 
             // Query wall profile for attachment point
             let profile = isLeft ? profiles.left : profiles.right
-            guard let surface = profile.surfaceInfo(at: y), surface.isUpwardFacing else { continue }
+            guard let wallEdge = profile.wallEdge(at: y) else { continue }
 
-            // Draw in rotated coordinate space
+            var offset = CGFloat.random(in: 10.0...15.0, using: &rng)
+            if isLeft {
+                offset *= -1
+            }
             var ctx = context
-            ctx.translateBy(x: surface.point.x, y: surface.point.y)
-            ctx.rotate(by: Angle(radians: surface.surfaceAngle))
+            ctx.translateBy(x: wallEdge.x + offset, y: wallEdge.y)
+            ctx.rotate(by: Angle(degrees: Double.random(in: -15...15, using: &rng)))
 
             // Chimney
             var chimney = Path()
