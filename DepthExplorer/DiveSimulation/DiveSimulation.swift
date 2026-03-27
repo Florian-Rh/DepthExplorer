@@ -55,9 +55,11 @@ class DiveSimulation: ObservableObject {
         self.session = session
         self.warningSystem = warningSystem
         resetSimulationData()
-        timer = Timer.scheduledTimer(withTimeInterval: GameConstants.simulationInterval, repeats: true) { [weak self] _ in
+        let t = Timer(timeInterval: GameConstants.simulationInterval, repeats: true) { [weak self] _ in
             self?.tick()
         }
+        RunLoop.main.add(t, forMode: .common)
+        timer = t
     }
 
     func stop() {

@@ -1,5 +1,5 @@
 import SwiftUI
-import CoreMotion
+//import CoreMotion
 import OpenSeasUI
 
 struct OceanView: View {
@@ -11,7 +11,7 @@ struct OceanView: View {
 
     @State private var rotation: Double = 0.0
 
-    private let motionManager = CMMotionManager()
+//    private let motionManager = CMMotionManager()
 
     private static let surfaceCyan = Color(red: 0, green: 0.72, blue: 0.85)
 
@@ -52,23 +52,23 @@ struct OceanView: View {
 //        .onDisappear(perform: self.stopDeviceMotionUpdates)
     }
 
-    private func startDeviceMotionUpdates() {
-        self.motionManager.deviceMotionUpdateInterval = 0.01
-        self.motionManager.startDeviceMotionUpdates(to: .main) { motion, _ in
-            if let gravity = motion?.gravity {
-                var angle = atan2(gravity.x, gravity.y) + .pi
-                // Normalize to [-π, π] so tilting clockwise gives a small
-                // negative value instead of wrapping to ~2π.
-                if angle > .pi { angle -= 2 * .pi }
-                // Cap the tilt so rotations beyond 45° are ignored.
-                let maxTilt: Double = .pi / 4
-                angle = min(max(angle, -maxTilt), maxTilt)
-                self.rotation = angle * 0.3
-            }
-        }
-    }
-
-    private func stopDeviceMotionUpdates() {
-        self.motionManager.stopDeviceMotionUpdates()
-    }
+//    private func startDeviceMotionUpdates() {
+//        self.motionManager.deviceMotionUpdateInterval = 0.01
+//        self.motionManager.startDeviceMotionUpdates(to: .main) { motion, _ in
+//            if let gravity = motion?.gravity {
+//                var angle = atan2(gravity.x, gravity.y) + .pi
+//                // Normalize to [-π, π] so tilting clockwise gives a small
+//                // negative value instead of wrapping to ~2π.
+//                if angle > .pi { angle -= 2 * .pi }
+//                // Cap the tilt so rotations beyond 45° are ignored.
+//                let maxTilt: Double = .pi / 4
+//                angle = min(max(angle, -maxTilt), maxTilt)
+//                self.rotation = angle * 0.3
+//            }
+//        }
+//    }
+//
+//    private func stopDeviceMotionUpdates() {
+//        self.motionManager.stopDeviceMotionUpdates()
+//    }
 }

@@ -30,6 +30,7 @@ struct JoystickView: View {
                 .frame(width: knobRadius * 2, height: knobRadius * 2)
                 .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
                 .offset(dragOffset)
+            #if !os(tvOS)
                 .gesture(
                     DragGesture()
                         .onChanged { value in
@@ -45,6 +46,7 @@ struct JoystickView: View {
                             onChanged(.zero, nil)
                         }
                 )
+            #endif
         }
         .frame(width: radius * 2 + 20, height: radius * 2 + 20)
     }

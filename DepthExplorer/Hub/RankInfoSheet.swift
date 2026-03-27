@@ -28,9 +28,11 @@ struct RankInfoSheet: View {
             }
             .background(Color(white: 0.06))
             .navigationTitle("Diver Ranks")
+#if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+#endif
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                 }
             }

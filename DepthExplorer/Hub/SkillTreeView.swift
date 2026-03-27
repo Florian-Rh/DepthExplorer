@@ -29,6 +29,7 @@ struct SkillTreeView: View {
 
     /// Tracks whether the horizontal scroll has more content to the right.
     @State private var showsScrollHint = true
+    @State private var visibleWidth: CGFloat = 0
 
     var body: some View {
         ScrollView(.vertical) {
@@ -65,6 +66,13 @@ struct SkillTreeView: View {
                             .transition(.opacity)
                     }
                 }
+                .background {
+                    GeometryReader { proxy in
+                        Color.clear
+                            .onAppear { visibleWidth = proxy.size.width }
+                            .onChange(of: proxy.size.width) { _, new in visibleWidth = new }
+                    }
+                }
                 .animation(.easeInOut(duration: 0.25), value: showsScrollHint)
             }
             .padding(.vertical, 16)
@@ -99,8 +107,7 @@ struct SkillTreeView: View {
 
     private func updateScrollHint(_ geo: GeometryProxy) {
         let trailingEdge = geo.frame(in: .global).maxX
-        let screenWidth = UIScreen.main.bounds.width
-        showsScrollHint = trailingEdge > screenWidth + 30
+        showsScrollHint = trailingEdge > visibleWidth + 30
     }
 
     // MARK: - Skill Grid

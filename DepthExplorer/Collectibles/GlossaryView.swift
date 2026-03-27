@@ -152,9 +152,11 @@ struct GlossaryView: View {
         NavigationStack {
             GlossaryContentView(discoveredItems: discoveredItems)
                 .navigationTitle("Glossary")
+#if os(iOS)
                 .navigationBarTitleDisplayMode(.large)
+#endif
                 .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
+                    ToolbarItem(placement: .confirmationAction) {
                         Button("Done") { dismiss() }
                     }
                 }

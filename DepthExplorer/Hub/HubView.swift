@@ -20,9 +20,11 @@ struct HubView: View {
             HubContentView(profileStore: profileStore, discoveredItems: discoveredItems, initialTab: initialTab)
                 .background(Color(white: 0.06))
                 .navigationTitle("Hub")
+#if os(iOS)
                 .navigationBarTitleDisplayMode(.inline)
+#endif
                 .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
+                    ToolbarItem(placement: .confirmationAction) {
                         Button("Done") { dismiss() }
                     }
                 }

@@ -1,3 +1,6 @@
+#if canImport(AppKit) && !targetEnvironment(macCatalyst)
+import AppKit
+#endif
 import QuartzCore
 
 /// Drives per-frame updates via `CADisplayLink`: diver smoothing and scroll offset.
@@ -8,7 +11,11 @@ class FrameUpdateDriver {
 
     func start(viewModel: LevelViewModel) {
         self.viewModel = viewModel
+        #if os(macOS)
+        guard let link = NSScreen.main?.displayLink(target: self, selector: #selector(tick)) else { return }
+        #else
         let link = CADisplayLink(target: self, selector: #selector(tick))
+        #endif
         link.add(to: .main, forMode: .common)
         displayLink = link
     }
