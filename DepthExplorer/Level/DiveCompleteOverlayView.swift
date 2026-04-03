@@ -19,7 +19,7 @@ struct DiveCompleteOverlayView: View {
 
     // XP section animation state
     @State private var showXPSection = false
-    @State private var xpLineProgress: [Double] = Array(repeating: 0, count: 3)
+    @State private var xpLineProgress: [Double] = Array(repeating: 0, count: 4)
     @State private var xpTotalProgress: Double = 0
 
     // Level progress bar animation state
@@ -70,6 +70,10 @@ struct DiveCompleteOverlayView: View {
     private var countedDiscoveryXP: Int {
         guard let s = activeStats else { return 0 }
         return Int(Double(s.experienceBreakdown.discoveryXP) * xpLineProgress[2])
+    }
+    private var countedTrashCollectionXP: Int {
+        guard let s = activeStats else { return 0 }
+        return Int(Double(s.experienceBreakdown.trashCollectionXP) * xpLineProgress[3])
     }
     private var countedTotalXP: Int {
         guard let s = activeStats else { return 0 }
@@ -301,6 +305,14 @@ struct DiveCompleteOverlayView: View {
                     label: "\(breakdown?.itemDetails.count ?? 0) Discovered Item\(breakdown?.itemDetails.count == 1 ? "" : "s")",
                     value: "+\(countedDiscoveryXP) XP",
                     xpIndex: 2
+                )
+            }
+
+            if breakdown?.trashCollectionXP ?? 0 > 0 {
+                xpRow(
+                    label: "Trash Collection",
+                    value: "+\(countedTrashCollectionXP) XP",
+                    xpIndex: 3
                 )
             }
 
@@ -549,7 +561,7 @@ struct DiveCompleteOverlayView: View {
         showButton = false
         showRecordBadges = false
         showXPSection = false
-        xpLineProgress = Array(repeating: 0, count: 3)
+        xpLineProgress = Array(repeating: 0, count: 4)
         xpTotalProgress = 0
         showLevelProgress = false
         levelBarFill = 0
@@ -598,7 +610,7 @@ struct DiveCompleteOverlayView: View {
         await wait(0.2)
 
         // XP line counts
-        for i in 0..<3 {
+        for i in 0..<4 {
             withAnimation(.easeOut(duration: dur(0.35))) {
                 xpLineProgress[i] = 1.0
             }
@@ -667,7 +679,7 @@ struct DiveCompleteOverlayView: View {
             showButton = false
             showRecordBadges = false
             showXPSection = false
-            xpLineProgress = Array(repeating: 0, count: 3)
+            xpLineProgress = Array(repeating: 0, count: 4)
             xpTotalProgress = 0
             showLevelProgress = false
             levelBarFill = 0
@@ -694,6 +706,7 @@ struct DiveCompleteOverlayView: View {
             diveProfileXP: 56,
             personalRecordXP: 50,
             discoveryXP: 170,
+            trashCollectionXP: 48,
             itemDetails: [
                 (name: "Clownfish", xp: 51),
                 (name: "Sea Turtle", xp: 60),

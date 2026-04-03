@@ -292,6 +292,7 @@ class LevelViewModel: ObservableObject {
                 maxDepthMeters: maxDepthReached,
                 diveTimeSeconds: diveTime,
                 discoveredItems: diveSession.discoveredItemRecords,
+                sandDollarsCollected: diveSession.collectedSandDollars,
                 previousRecordDepth: isFirstDive ? nil : profileStore.profile.recordMaxDepth,
                 previousRecordTime: isFirstDive ? nil : profileStore.profile.recordDiveTimeSeconds
             )

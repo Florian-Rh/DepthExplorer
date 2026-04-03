@@ -11,6 +11,8 @@ struct DiveResult {
     let maxDepthMeters: Int
     let diveTimeSeconds: Int
     let discoveredItems: [DiscoveredItemInfo]
+    /// Sand Dollars collected during the dive (from trash pickup).
+    let sandDollarsCollected: Int
     /// Previous personal depth record in meters. `nil` if this was the first dive.
     let previousRecordDepth: Int?
     /// Previous personal time record in simulated seconds. `nil` if this was the first dive.
@@ -25,6 +27,8 @@ struct ExperienceBreakdown {
     let personalRecordXP: Int
     /// XP earned from discovered Knowledgeable Items.
     let discoveryXP: Int
+    /// XP earned from collecting trash (Sand Dollars).
+    let trashCollectionXP: Int
 
     /// Per-item detail for UI display.
     let itemDetails: [(name: String, xp: Int)]
@@ -34,7 +38,7 @@ struct ExperienceBreakdown {
     let brokeTimeRecord: Bool
 
     /// Total XP earned this dive.
-    var totalXP: Int { diveProfileXP + personalRecordXP + discoveryXP }
+    var totalXP: Int { diveProfileXP + personalRecordXP + discoveryXP + trashCollectionXP }
 }
 
 /// Pure, stateless XP calculator. Takes dive parameters in, returns XP breakdown out.
@@ -115,10 +119,14 @@ struct ExperienceCalculator {
             discoveryXP += xp
         }
 
+        // Trash collection — XP per Sand Dollar earned
+        let trashCollectionXP = result.sandDollarsCollected * GameConstants.xpPerSandDollar
+
         return ExperienceBreakdown(
             diveProfileXP: diveProfileXP,
             personalRecordXP: personalRecordXP,
             discoveryXP: discoveryXP,
+            trashCollectionXP: trashCollectionXP,
             itemDetails: itemDetails,
             brokeDepthRecord: brokeDepth,
             brokeTimeRecord: brokeTime
