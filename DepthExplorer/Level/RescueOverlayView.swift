@@ -94,9 +94,9 @@ struct RescueOverlayView: View {
         }
         .opacity(overlayOpacity)
         .allowsHitTesting(overlayOpacity > 0)
-        .onChange(of: rescueInfo?.reason) { _, newValue in
-            if let info = rescueInfo, newValue != nil {
-                show(info: info)
+        .onAppear {
+            if let rescueInfo {
+                show(info: rescueInfo)
             }
         }
     }

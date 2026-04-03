@@ -5,7 +5,7 @@ import SwiftUI
 /// Always present in the view hierarchy but invisible until triggered.
 /// Stats appear one by one with numbers counting up from zero.
 struct DiveCompleteOverlayView: View {
-    @Binding var stats: LevelViewModel.DiveCompleteStats?
+    let stats: LevelViewModel.DiveCompleteStats
     var onDismiss: () -> Void
     var onOpenSkillTree: (() -> Void)?
 
@@ -260,10 +260,8 @@ struct DiveCompleteOverlayView: View {
                 RankInfoSheet(currentRank: rank, currentLevel: afterProgression?.level ?? 1)
             }
         }
-        .onChange(of: stats != nil) { _, isPresent in
-            if isPresent, let s = stats {
-                show(stats: s)
-            }
+        .onAppear {
+            show(stats: stats)
         }
     }
 
@@ -687,13 +685,12 @@ struct DiveCompleteOverlayView: View {
             confettiParticles = []
             animationFinished = false
             onDismiss()
-            stats = nil
         }
     }
 }
 
 #Preview {
-    @Previewable @State var stats: LevelViewModel.DiveCompleteStats? = .init(
+    @Previewable @State var stats: LevelViewModel.DiveCompleteStats = .init(
         diveTimeSeconds: 754,
         maxDepth: 87,
         sandDollarsCollected: 24,
@@ -719,7 +716,7 @@ struct DiveCompleteOverlayView: View {
     )
 
     DiveCompleteOverlayView(
-        stats: $stats,
+        stats: stats,
         onDismiss: {}
     )
 }

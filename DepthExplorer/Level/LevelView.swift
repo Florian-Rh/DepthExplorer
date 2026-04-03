@@ -186,25 +186,28 @@ struct LevelView: View {
 
                 Spacer()
             }
-            // Dive complete overlay — always in the tree, manages its own visibility
-            DiveCompleteOverlayView(
-                stats: $viewModel.diveCompleteStats,
-                onDismiss: {
-                    viewModel.dismissDiveComplete()
-                },
-                onOpenSkillTree: {
-                    hubInitialTab = .skills
-                    showHub = true
-                }
-            )
 
-            // Rescue overlay — always in the tree, manages its own visibility
-            RescueOverlayView(
-                rescueInfo: $viewModel.rescueInfo,
-                onResetPosition: {
-                    viewModel.resetToSurface()
-                }
-            )
+            if let stats = viewModel.diveCompleteStats {
+                DiveCompleteOverlayView(
+                    stats: stats,
+                    onDismiss: {
+                        viewModel.dismissDiveComplete()
+                    },
+                    onOpenSkillTree: {
+                        hubInitialTab = .skills
+                        showHub = true
+                    }
+                )
+            }
+
+            if viewModel.rescueInfo != nil {
+                RescueOverlayView(
+                    rescueInfo: $viewModel.rescueInfo,
+                    onResetPosition: {
+                        viewModel.resetToSurface()
+                    }
+                )
+            }
         }
         .clipped()
         .ignoresSafeArea()
