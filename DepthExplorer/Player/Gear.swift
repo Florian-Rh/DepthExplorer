@@ -106,7 +106,7 @@ struct GearDefinition: Identifiable {
             icon: "shoe.2.fill",
             price: 15,
             requiredLevel: 1,
-            modifier: .movementSpeed(scrollSpeed: GameConstants.scrollSpeed, horizontalSpeed: GameConstants.diverHorizontalSpeed)
+            modifier: .movementSpeed(scrollSpeed: 4, horizontalSpeed: 4)
         ),
         GearDefinition(
             id: "fins.advanced",
@@ -116,7 +116,7 @@ struct GearDefinition: Identifiable {
             icon: "shoe.2.fill",
             price: 50,
             requiredLevel: 3,
-            modifier: .movementSpeed(scrollSpeed: 10, horizontalSpeed: 5)
+            modifier: .movementSpeed(scrollSpeed: 6, horizontalSpeed: 5)
         ),
         GearDefinition(
             id: "fins.pro",
@@ -126,7 +126,7 @@ struct GearDefinition: Identifiable {
             icon: "shoe.2.fill",
             price: 150,
             requiredLevel: 6,
-            modifier: .movementSpeed(scrollSpeed: 12, horizontalSpeed: 6)
+            modifier: .movementSpeed(scrollSpeed: 8, horizontalSpeed: 6)
         ),
 
         // Suits
