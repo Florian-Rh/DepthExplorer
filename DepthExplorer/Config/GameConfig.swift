@@ -92,7 +92,7 @@ enum GameConstants {
     // MARK: - Simulation Timing
 
     /// Time acceleration factor. 1 real second = this many simulated seconds.
-    static let timeScale: Double = 60.0
+    static let timeScale: Double = 30.0
 
     /// Simulation tick interval in real seconds.
     static let simulationInterval: Double = 0.2
@@ -108,7 +108,7 @@ enum GameConstants {
 
     /// Lung capacity in bar when apnoe diving (no scuba gear equipped).
     /// A gameplay abstraction — represents the air a diver can hold in their lungs.
-    static let apnoeLungCapacity: Double = 10.0
+    static let apnoeLungCapacity: Double = 8.0
 
     /// Standard scuba gear capacity in bar (cylinder + regulator).
     static let scubaGearCapacity: Double = 200.0
@@ -212,12 +212,12 @@ enum GameConstants {
     static let xpPerSandDollar: Int = 2
 
     /// XP required to reach level 2 (the first level-up).
-    static let baseLevelUpXP: Int = 120
+    static let baseLevelUpXP: Int = 140
 
     /// Polynomial exponent for level-up XP scaling.
     /// XP for level N = baseLevelUpXP × N^levelUpExponent.
     /// e.g. level 2 = 100 × 2^1.5 ≈ 283, level 3 = 100 × 3^1.5 ≈ 520, …
-    static let levelUpExponent: Double = 1.35
+    static let levelUpExponent: Double = 1.2
 
     // MARK: - Gas Mixtures
 
