@@ -14,18 +14,18 @@ struct KnowledgeableItem: Identifiable {
     static let allItems: [KnowledgeableItem] = [
         // Depth zone entries
         .init(
-            depth: 5,
-            name: "Sunlight Zone",
-            image: "sun.max.fill",
-            category: .oceanography,
-            description: "The sunlight zone (epipelagic) extends from the surface to 200 meters. It receives enough light for photosynthesis and contains over 90% of all marine life, including coral reefs, seagrass meadows, and most fish species."
-        ),
-        .init(
-            depth: 10,
+            depth: 20,
             name: "Clownfish",
             image: "fish",
             category: .species,
             description: "Clownfish live in symbiosis with sea anemones, which protect them from predators with their stinging tentacles."
+        ),
+        .init(
+            depth: 30,
+            name: "Sunlight Zone",
+            image: "sun.max.fill",
+            category: .oceanography,
+            description: "The sunlight zone (epipelagic) extends from the surface to 200 meters. It receives enough light for photosynthesis and contains over 90% of all marine life, including coral reefs, seagrass meadows, and most fish species."
         ),
         .init(
             depth: 100,

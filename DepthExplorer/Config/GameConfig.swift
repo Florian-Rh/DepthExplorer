@@ -24,14 +24,12 @@ struct LevelDefinition {
     /// Minimum dive time in simulated seconds for the dive to count as completed.
     let minimumCompletionTime: Int
 
-    // TODO: Phase 2 — available gear for purchase at this level
-
     static let `default` = LevelDefinition(
         depthLimit: nil,
-        scalingFactor: 10.0,
-        autoSurfaceDepth: 10,
+        scalingFactor: 20.0,
+        autoSurfaceDepth: 5,
         autoSurfaceSpeed: 4.0,
-        minimumCompletionDepth: 20,
+        minimumCompletionDepth: 10,
         minimumCompletionTime: 120
     )
 
@@ -210,13 +208,16 @@ enum GameConstants {
 
     // MARK: - Leveling
 
+    /// Experience points awarded per Sand Dollar collected during a dive.
+    static let xpPerSandDollar: Int = 2
+
     /// XP required to reach level 2 (the first level-up).
-    static let baseLevelUpXP: Int = 100
+    static let baseLevelUpXP: Int = 120
 
     /// Polynomial exponent for level-up XP scaling.
     /// XP for level N = baseLevelUpXP × N^levelUpExponent.
     /// e.g. level 2 = 100 × 2^1.5 ≈ 283, level 3 = 100 × 3^1.5 ≈ 520, …
-    static let levelUpExponent: Double = 1.5
+    static let levelUpExponent: Double = 1.35
 
     // MARK: - Gas Mixtures
 
