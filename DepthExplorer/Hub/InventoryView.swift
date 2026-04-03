@@ -4,10 +4,20 @@ import SwiftUI
 struct InventoryView: View {
     @ObservedObject var profileStore: ProfileStore
 
+    private var playerLevel: Int {
+        LevelProgression.from(totalXP: profileStore.profile.experiencePoints).level
+    }
+
+    private var unlockedCategories: [GearCategory] {
+        GearCategory.allCases.filter {
+            $0.minimumRank.minimumLevel <= playerLevel
+        }
+    }
+
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
-                ForEach(GearCategory.allCases, id: \.self) { category in
+                ForEach(unlockedCategories, id: \.self) { category in
                     slotSection(category)
                 }
 
