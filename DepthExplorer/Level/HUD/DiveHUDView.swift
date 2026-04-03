@@ -19,6 +19,7 @@ struct DiveHUDView: View {
     let airCapacity: Double
     let ascentSpeed: Double
     let bodyTemperature: Double
+    let safeAscentSpeedMultiplier: Double
     let warnings: [DiveWarning]
     let isDiving: Bool
     let hasScubaGear: Bool
@@ -133,7 +134,7 @@ struct DiveHUDView: View {
                 Spacer()
 
                 if hasScubaGear {
-                    AscentRateBarView(ascentSpeed: ascentSpeed, depthMeters: Double(depth))
+                    AscentRateBarView(ascentSpeed: ascentSpeed, depthMeters: Double(depth), safeAscentSpeedMultiplier: safeAscentSpeedMultiplier)
                         .frame(height: 44)
                 }
             }
@@ -225,6 +226,7 @@ struct DiveHUDView: View {
             airCapacity: 200,
             ascentSpeed: 5,
             bodyTemperature: 36.2,
+            safeAscentSpeedMultiplier: 1.0,
             warnings: [],
             isDiving: true,
             hasScubaGear: true,
@@ -246,6 +248,7 @@ struct DiveHUDView: View {
             airCapacity: 200,
             ascentSpeed: 18,
             bodyTemperature: 35.5,
+            safeAscentSpeedMultiplier: 1.0,
             warnings: [
                 DiveWarning(kind: .airSupply, severity: .caution, message: "38 bar remaining"),
                 DiveWarning(kind: .thermal, severity: .critical, message: "Hypothermia setting in (35.5°C)")
@@ -270,6 +273,7 @@ struct DiveHUDView: View {
             airCapacity: 50,
             ascentSpeed: 0,
             bodyTemperature: 36.8,
+            safeAscentSpeedMultiplier: 1.0,
             warnings: [],
             isDiving: true,
             hasScubaGear: false,
@@ -291,6 +295,7 @@ struct DiveHUDView: View {
             airCapacity: 200,
             ascentSpeed: 0,
             bodyTemperature: 37,
+            safeAscentSpeedMultiplier: 1.0,
             warnings: [],
             isDiving: false,
             hasScubaGear: true,

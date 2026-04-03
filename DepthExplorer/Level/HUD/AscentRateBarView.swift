@@ -12,6 +12,8 @@ struct AscentRateBarView: View {
     let ascentSpeed: Double
     /// Current depth in meters, used to scale thresholds with depth leniency.
     let depthMeters: Double
+    /// Multiplier for safe ascent speed from Multi-Gas skill (1.0 = default).
+    var safeAscentSpeedMultiplier: Double = 1.0
 
     private let segmentCount = 8
     private let warnFraction = GameConstants.dcsWarningFraction / GameConstants.dcsFatalFraction
@@ -27,7 +29,7 @@ struct AscentRateBarView: View {
 
     /// The effective maximum display speed, adjusted for depth.
     private var maxDisplaySpeed: Double {
-        GameConstants.safeAscentSpeed * GameConstants.dcsFatalFraction * depthMultiplier
+        GameConstants.safeAscentSpeed * safeAscentSpeedMultiplier * GameConstants.dcsFatalFraction * depthMultiplier
     }
 
     /// How many segments are "filled" (0...segmentCount).

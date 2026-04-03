@@ -86,6 +86,7 @@ struct LevelView: View {
                     airCapacity: viewModel.diveParameters.airCapacity,
                     ascentSpeed: viewModel.diveSimulation.vitals.ascentSpeed ?? 0,
                     bodyTemperature: viewModel.diveSimulation.vitals.bodyTemperature ?? GameConstants.normalBodyTemperature,
+                    safeAscentSpeedMultiplier: viewModel.diveParameters.safeAscentSpeedMultiplier,
                     warnings: viewModel.warningSystem.activeWarnings,
                     isDiving: viewModel.diveSession.state == .diving,
                     hasScubaGear: viewModel.diveParameters.hasScubaGear,
