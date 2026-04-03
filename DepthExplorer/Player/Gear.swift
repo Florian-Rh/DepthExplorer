@@ -16,7 +16,7 @@ enum GearCategory: String, Codable, CaseIterable {
         case .suit: "Exposure Suit"
         case .scubaGear: "Scuba Gear"
         case .stageBottle: "Stage Bottles"
-        case .dpv: "DPV"
+        case .dpv: "Dive Propulsion Vehicle"
         case .meshBag: "Mesh Bag"
         }
     }
@@ -296,7 +296,7 @@ struct GearDefinition: Identifiable {
             icon: "arrow.right.circle.fill",
             price: 300,
             requiredLevel: 10,
-            modifier: .movementSpeed(scrollSpeed: 12, horizontalSpeed: 6)
+            modifier: .movementSpeed(scrollSpeed: 6, horizontalSpeed: 3)
         ),
         GearDefinition(
             id: "dpv.advanced",
@@ -306,7 +306,7 @@ struct GearDefinition: Identifiable {
             icon: "arrow.right.circle.fill",
             price: 500,
             requiredLevel: 13,
-            modifier: .movementSpeed(scrollSpeed: 24, horizontalSpeed: 12)
+            modifier: .movementSpeed(scrollSpeed: 12, horizontalSpeed: 6)
         ),
     ]
 }
