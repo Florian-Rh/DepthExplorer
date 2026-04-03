@@ -1,5 +1,15 @@
 import Foundation
 
+/// Describes how the diver is breathing and protected during a dive.
+enum DiveMode: Equatable {
+    /// Breath-hold diving — no equipment, lungs only.
+    case apnoe
+    /// Standard scuba equipment — compressed gas, pressure-sensitive consumption.
+    case scuba
+    /// Atmospheric diving suit — hard suit with battery power and depth rating.
+    case ads
+}
+
 /// Computed gameplay parameters for a single dive, derived from
 /// base constants + equipped gear + acquired skills.
 ///
@@ -20,15 +30,25 @@ struct DiveParameters {
     /// Shifts caution/critical/fatal thresholds to give the diver more margin.
     let warningThresholdTolerance: Double
 
-    /// Whether the diver has scuba gear equipped (vs. apnoe / breath-hold diving).
-    let hasScubaGear: Bool
+    /// The active dive mode for this loadout.
+    let diveMode: DiveMode
 
     /// Multiplier for safe ascent speed (1.0 = default, >1.0 = faster ascent allowed).
     /// Driven by the Multi-Gas Management skill tree.
     let safeAscentSpeedMultiplier: Double
 
+    let pressureRating: Double
+
+    let batteryMinutes: Double
+
     /// Maximum number of trash items the diver can carry per dive.
     let carryCapacity: Int
+
+    /// Convenience: whether the diver has scuba gear equipped (vs. apnoe or ADS).
+    var hasScubaGear: Bool { diveMode == .scuba }
+
+    /// Convenience: whether the diver is using an atmospheric diving suit.
+    var hasADS: Bool { if case .ads = diveMode { return true } else { return false } }
 
     /// Compute effective dive parameters from the current profile state.
     ///
@@ -43,10 +63,12 @@ struct DiveParameters {
         var sacRate = GameConstants.sacRate
         var thermalProtection = 0.0
         var warningTolerance = 1.0
-        var hasScubaGear = false
         var safeAscentMultiplier = 1.0
         var carryCapacity = GameConstants.defaultCarryCapacity
+        var pressureRating: Double = 0.0
+        var batteryMinutes: Double = 0.0
 
+        var diveMode: DiveMode = .apnoe
         // Apply equipped gear
         for (_, gearID) in profile.equippedGearIDs {
             guard let gear = GearDefinition.allGear.first(where: { $0.id == gearID }) else { continue }
@@ -58,13 +80,18 @@ struct DiveParameters {
                 thermalProtection = factor
             case .airCapacity(let bar):
                 airCapacity += bar
-                hasScubaGear = true
+                diveMode = .scuba
             case .carryCapacity(let count):
                 carryCapacity = count
+            case .atmosphericDivingSuit(let air, let battery, let pressure):
+                airCapacity += air
+                pressureRating = pressure
+                batteryMinutes = battery
+                diveMode = .ads
             }
         }
 
-        if !hasScubaGear {
+        if diveMode == .apnoe {
             airCapacity += GameConstants.apnoeLungCapacity
         }
 
@@ -91,8 +118,10 @@ struct DiveParameters {
             sacRate: sacRate,
             thermalProtectionFactor: thermalProtection,
             warningThresholdTolerance: warningTolerance,
-            hasScubaGear: hasScubaGear,
+            diveMode: diveMode,
             safeAscentSpeedMultiplier: safeAscentMultiplier,
+            pressureRating: pressureRating,
+            batteryMinutes: batteryMinutes,
             carryCapacity: carryCapacity
         )
     }
@@ -105,8 +134,10 @@ struct DiveParameters {
         sacRate: GameConstants.sacRate,
         thermalProtectionFactor: 0,
         warningThresholdTolerance: 1.0,
-        hasScubaGear: false,
+        diveMode: .apnoe,
         safeAscentSpeedMultiplier: 1.0,
+        pressureRating: 0.0,
+        batteryMinutes: 0.0,
         carryCapacity: GameConstants.defaultCarryCapacity
     )
 

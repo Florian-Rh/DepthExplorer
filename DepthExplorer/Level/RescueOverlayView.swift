@@ -25,6 +25,10 @@ struct RescueOverlayView: View {
             return "Hypothermia took hold!"
         case "Decompression sickness":
             return "Decompression sickness!"
+        case "Hull imploded":
+            return "Hull imploded!"
+        case "Battery dead":
+            return "Battery dead!"
         default:
             return "You were rescued!"
         }
@@ -38,6 +42,10 @@ struct RescueOverlayView: View {
             return "The cold became unbearable and you could no longer move. A rescue team pulled you from the water just in time."
         case "Decompression sickness":
             return "Nitrogen bubbles formed in your blood from ascending too fast. You were airlifted to a decompression chamber."
+        case "Hull imploded":
+            return "The external pressure exceeded the hull's strength, causing it to implode. It borders on a mircale, but you were rescued from the wreckage."
+        case "Battery dead":
+            return "Your battery has run out. With the last remaining power, you managed to broadcast an emergency signal, which was picked up by a rescue boat."
         default:
             return "You were pulled from the water by a rescue team."
         }

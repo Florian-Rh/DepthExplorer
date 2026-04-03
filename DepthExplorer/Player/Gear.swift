@@ -1,5 +1,16 @@
 import Foundation
 
+/// Classifies gear categories into mutually exclusive equipment classes.
+/// Equipping gear from one class automatically unequips gear from conflicting classes.
+enum EquipmentClass {
+    /// Standard scuba diving equipment (fins, suit, scuba gear, stage bottles, DPV).
+    case scuba
+    /// Specialist deep-sea equipment (atmospheric diving suits).
+    case specialist
+    /// Universally compatible equipment (mesh bags).
+    case universal
+}
+
 /// A category of gear. Each category has exactly one equip slot.
 enum GearCategory: String, Codable, CaseIterable {
     case fins
@@ -9,6 +20,7 @@ enum GearCategory: String, Codable, CaseIterable {
     case scubaGear = "tank"
     case stageBottle
     case dpv
+    case atmosphericSuit = "ads"
 
     var displayName: String {
         switch self {
@@ -18,6 +30,7 @@ enum GearCategory: String, Codable, CaseIterable {
         case .stageBottle: "Stage Bottles"
         case .dpv: "Dive Propulsion Vehicle"
         case .meshBag: "Mesh Bag"
+        case .atmosphericSuit: "Atmospheric Diving Suit"
         }
     }
 
@@ -29,6 +42,7 @@ enum GearCategory: String, Codable, CaseIterable {
         case .stageBottle: "cylinder.fill"
         case .dpv: "arrow.right.circle.fill"
         case .meshBag: "bag"
+        case .atmosphericSuit: "shield.checkered"
         }
     }
 
@@ -37,10 +51,11 @@ enum GearCategory: String, Codable, CaseIterable {
         switch self {
         case .fins: "Barefoot — reduced swim speed"
         case .suit: "No suit — no thermal protection"
-        case .scubaGear: "Apnoe — lungs only (\(Int(GameConstants.apnoeLungCapacity)) bar)"
+        case .scubaGear: "Apnoe — lungs only"
         case .stageBottle: "No stage bottles"
         case .dpv: "No DPV — swim under your own power"
         case .meshBag: "No bag — carry up to \(GameConstants.defaultCarryCapacity) items"
+        case .atmosphericSuit: "No ADS — use standard diving equipment"
         }
     }
 
@@ -52,6 +67,19 @@ enum GearCategory: String, Codable, CaseIterable {
             return .scubaDiver
         case .stageBottle, .dpv:
             return .techDiver
+        case .atmosphericSuit:
+            return .marineSpecialist
+        }
+    }
+
+    var equipmentClass: EquipmentClass {
+        switch self {
+        case .fins, .suit, .scubaGear, .stageBottle, .dpv:
+            return .scuba
+        case .atmosphericSuit:
+            return .specialist
+        case .meshBag:
+            return .universal
         }
     }
 }
@@ -66,6 +94,8 @@ enum GearModifier {
     case airCapacity(bar: Double)
     /// Trash carry capacity (number of items per dive).
     case carryCapacity(count: Int)
+    /// Atmospheric diving suit: self-contained hard suit with own air, battery, and depth rating.
+    case atmosphericDivingSuit(airCapacity: Double, batteryMinutes: Double, pressureRating: Double)
 }
 
 /// A specific gear item available for purchase and equipping.
@@ -91,6 +121,8 @@ struct GearDefinition: Identifiable {
             return "\(Int(bar)) bar capacity"
         case .carryCapacity(let count):
             return "Carry up to \(count) items"
+        case .atmosphericDivingSuit(_, _, let maxDepth):
+            return "Rated to \(Int(maxDepth)) bar of external pressure"
         }
     }
 
@@ -307,6 +339,38 @@ struct GearDefinition: Identifiable {
             price: 500,
             requiredLevel: 13,
             modifier: .movementSpeed(scrollSpeed: 12, horizontalSpeed: 6)
+        ),
+
+        // Atmospheric Diving Suits
+        GearDefinition(
+            id: "ads.jims",
+            category: .atmosphericSuit,
+            name: "JIM Suit",
+            description: "The original atmospheric diving suit. A one-atmosphere hard suit that protects against external pressure, allowing dives without decompression.",
+            icon: "shield.checkered",
+            price: 800,
+            requiredLevel: 15,
+            modifier: .atmosphericDivingSuit(airCapacity: 400, batteryMinutes: 30, pressureRating: 50)
+        ),
+        GearDefinition(
+            id: "ads.newtsuit",
+            category: .atmosphericSuit,
+            name: "Newtsuit",
+            description: "A modern rotary-joint ADS with improved mobility and deeper depth rating. The articulated limbs allow more precise work at extreme depths.",
+            icon: "shield.checkered",
+            price: 1500,
+            requiredLevel: 17,
+            modifier: .atmosphericDivingSuit(airCapacity: 600, batteryMinutes: 45, pressureRating: 100)
+        ),
+        GearDefinition(
+            id: "ads.exosuit",
+            category: .atmosphericSuit,
+            name: "Exosuit",
+            description: "A state-of-the-art exoskeleton diving suit with thruster packs and extended life support. Rated for the deepest operational dives.",
+            icon: "shield.checkered",
+            price: 3000,
+            requiredLevel: 19,
+            modifier: .atmosphericDivingSuit(airCapacity: 800, batteryMinutes: 60, pressureRating: 200)
         ),
     ]
 }

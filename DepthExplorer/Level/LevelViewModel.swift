@@ -84,8 +84,7 @@ class LevelViewModel: ObservableObject {
 
     init(
         level: LevelDefinition = .default,
-        profileStore: ProfileStore = ProfileStore(),
-        limitationModels: [any DiveLimitationModel]? = nil
+        profileStore: ProfileStore = ProfileStore()
     ) {
         let params = DiveParameters.from(profile: profileStore.profile)
         self.diveParameters = params
@@ -93,7 +92,7 @@ class LevelViewModel: ObservableObject {
         self.level = level
         self.profileStore = profileStore
         self.diveSimulation = DiveSimulation(
-            limitationModels: limitationModels ?? Self.makeLimitationModels(from: params, poseidonMode: false),
+            limitationModels: Self.makeLimitationModels(from: params, poseidonMode: false),
             minimumCompletionDepth: level.minimumCompletionDepth,
             minimumCompletionTime: level.minimumCompletionTime
         )
@@ -198,13 +197,27 @@ class LevelViewModel: ObservableObject {
     /// Returns an empty array when `poseidonMode` is true.
     private static func makeLimitationModels(from params: DiveParameters, poseidonMode: Bool = false) -> [any DiveLimitationModel] {
         guard !poseidonMode else { return [] }
-        var models: [any DiveLimitationModel] = [
-            AirSupplyModel(capacity: params.airCapacity, sacRate: params.sacRate, warningTolerance: params.warningThresholdTolerance, isPressureSensitive: params.hasScubaGear),
-            ThermalModel(protectionFactor: params.thermalProtectionFactor, warningTolerance: params.warningThresholdTolerance),
-        ]
-        if params.hasScubaGear {
-            models.append(DecompressionModel(warningTolerance: params.warningThresholdTolerance, safeAscentSpeedMultiplier: params.safeAscentSpeedMultiplier))
+        let models: [any DiveLimitationModel]
+        switch params.diveMode {
+        case .apnoe:
+            models = [
+                AirSupplyModel(capacity: params.airCapacity, sacRate: params.sacRate, warningTolerance: params.warningThresholdTolerance, isPressureSensitive: false),
+                ThermalModel(protectionFactor: params.thermalProtectionFactor, warningTolerance: params.warningThresholdTolerance)
+            ]
+        case .scuba:
+            models = [
+                AirSupplyModel(capacity: params.airCapacity, sacRate: params.sacRate, warningTolerance: params.warningThresholdTolerance, isPressureSensitive: true),
+                ThermalModel(protectionFactor: params.thermalProtectionFactor, warningTolerance: params.warningThresholdTolerance),
+                DecompressionModel(warningTolerance: params.warningThresholdTolerance, safeAscentSpeedMultiplier: params.safeAscentSpeedMultiplier)
+            ]
+        case .ads:
+            models = [
+                AirSupplyModel(capacity: params.airCapacity, sacRate: params.sacRate, warningTolerance: params.warningThresholdTolerance, isPressureSensitive: false),
+                ExternalPressureModel(pressureRating: params.pressureRating, warningTolerance: params.warningThresholdTolerance),
+                BatteryPowerModel(batteryMinutes: params.batteryMinutes, warningTolerance: params.warningThresholdTolerance)
+            ]
         }
+
         return models
     }
 

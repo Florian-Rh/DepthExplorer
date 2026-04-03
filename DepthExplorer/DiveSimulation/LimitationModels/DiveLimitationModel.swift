@@ -38,6 +38,12 @@ struct DiveVitals: Equatable {
 
     // Decompression / ascent
     var ascentSpeed: Double?
+
+    // External pressure (bar)
+    var externalPressure: Double?
+
+    // Battery level (percent)
+    var batteryFraction: Double?
 }
 
 /// A modular dive limitation that can trigger warnings and rescue conditions.

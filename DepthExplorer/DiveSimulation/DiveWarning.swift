@@ -7,6 +7,8 @@ enum DiveWarningKind: String, CaseIterable {
     case decompression
     case narcosis
     case barotrauma
+    case externalPressure
+    case batteryLevel
 }
 
 /// Severity of a dive warning. Ordered from least to most severe.

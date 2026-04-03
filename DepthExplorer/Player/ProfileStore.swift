@@ -87,12 +87,14 @@ final class ProfileStore: ObservableObject {
         profile.ownedGearIDs.insert(id)
         // Auto-equip newly purchased gear
         if let gear = GearDefinition.allGear.first(where: { $0.id == id }) {
+            enforceEquipmentExclusivity(for: gear.category)
             profile.equippedGearIDs[gear.category.rawValue] = id
         }
         save()
     }
 
     func equipGear(id: String, category: GearCategory) {
+        enforceEquipmentExclusivity(for: category)
         profile.equippedGearIDs[category.rawValue] = id
         save()
     }
@@ -100,6 +102,24 @@ final class ProfileStore: ObservableObject {
     func unequipGear(category: GearCategory) {
         profile.equippedGearIDs.removeValue(forKey: category.rawValue)
         save()
+    }
+
+    /// Unequip gear from conflicting equipment classes before equipping a new category.
+    private func enforceEquipmentExclusivity(for category: GearCategory) {
+        switch category.equipmentClass {
+        case .specialist:
+            // Unequip all scuba-class gear
+            for cat in GearCategory.allCases where cat.equipmentClass == .scuba {
+                profile.equippedGearIDs.removeValue(forKey: cat.rawValue)
+            }
+        case .scuba:
+            // Unequip all specialist-class gear
+            for cat in GearCategory.allCases where cat.equipmentClass == .specialist {
+                profile.equippedGearIDs.removeValue(forKey: cat.rawValue)
+            }
+        case .universal:
+            break
+        }
     }
 
     // MARK: - Skills
