@@ -99,7 +99,7 @@ struct DepthZone: Identifiable {
         gradientColors: [surfaceCyan, brightTurquoise, deepBlue],
         particleConfig: ParticleConfig(
             type: .bubble,
-            density: 25,
+            density: 50,
             color: .white.opacity(0.6),
             speed: -30,
             sizeRange: 2...6,
@@ -122,7 +122,7 @@ struct DepthZone: Identifiable {
         gradientColors: [deepBlue, indigo, darkNavy],
         particleConfig: ParticleConfig(
             type: .plankton,
-            density: 600,
+            density: 1000,
             color: Color(red: 0.8, green: 0.7, blue: 0.5).opacity(0.5),
             speed: -5,
             sizeRange: 1...3,
@@ -145,10 +145,10 @@ struct DepthZone: Identifiable {
         gradientColors: [darkNavy, nearBlack],
         particleConfig: ParticleConfig(
             type: .bioluminescent,
-            density: 1000,
+            density: 2000,
             color: Color(red: 0.3, green: 0.8, blue: 0.9),
             speed: -2,
-            sizeRange: 1...2,
+            sizeRange: 1.5...3.0,
             pulses: true
         ),
         ambientConfig: AmbientConfig(
@@ -168,7 +168,7 @@ struct DepthZone: Identifiable {
         gradientColors: [nearBlack, pureBlack],
         particleConfig: ParticleConfig(
             type: .marineSnow,
-            density: 1000,
+            density: 5000,
             color: .white.opacity(0.3),
             speed: 10,
             sizeRange: 1...2,
@@ -191,7 +191,7 @@ struct DepthZone: Identifiable {
         gradientColors: [pureBlack, pureBlack],
         particleConfig: ParticleConfig(
             type: .marineSnow,
-            density: 5000,
+            density: 25000,
             color: .white.opacity(0.5),
             speed: 8,
             sizeRange: 1...1.5,
