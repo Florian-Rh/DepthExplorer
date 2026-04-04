@@ -350,7 +350,7 @@ struct GearDefinition: Identifiable {
             icon: "shield.checkered",
             price: 800,
             requiredLevel: 15,
-            modifier: .atmosphericDivingSuit(airCapacity: 400, batteryMinutes: 30, pressureRating: 50)
+            modifier: .atmosphericDivingSuit(airCapacity: 400, batteryMinutes: 30, pressureRating: 200)
         ),
         GearDefinition(
             id: "ads.newtsuit",
@@ -360,7 +360,7 @@ struct GearDefinition: Identifiable {
             icon: "shield.checkered",
             price: 1500,
             requiredLevel: 17,
-            modifier: .atmosphericDivingSuit(airCapacity: 600, batteryMinutes: 45, pressureRating: 100)
+            modifier: .atmosphericDivingSuit(airCapacity: 600, batteryMinutes: 45, pressureRating: 300)
         ),
         GearDefinition(
             id: "ads.exosuit",
@@ -370,7 +370,7 @@ struct GearDefinition: Identifiable {
             icon: "shield.checkered",
             price: 3000,
             requiredLevel: 19,
-            modifier: .atmosphericDivingSuit(airCapacity: 800, batteryMinutes: 60, pressureRating: 200)
+            modifier: .atmosphericDivingSuit(airCapacity: 800, batteryMinutes: 60, pressureRating: 400)
         ),
     ]
 }
