@@ -90,6 +90,10 @@ struct LevelView: View {
                     warnings: viewModel.warningSystem.activeWarnings,
                     isDiving: viewModel.diveSession.state == .diving,
                     hasScubaGear: viewModel.diveParameters.hasScubaGear,
+                    hasADS: viewModel.diveParameters.hasADS,
+                    batteryFraction: viewModel.diveSimulation.vitals.batteryFraction ?? 1.0,
+                    depthPressure: viewModel.diveSimulation.vitals.externalPressure ?? 1.0,
+                    pressureRating: viewModel.diveParameters.pressureRating,
                     trashCollected: viewModel.diveSession.collectedTrashCount,
                     carryCapacity: viewModel.diveSession.carryCapacity,
                     onJoystickChanged: { offset, angle in

@@ -23,6 +23,10 @@ struct DiveHUDView: View {
     let warnings: [DiveWarning]
     let isDiving: Bool
     let hasScubaGear: Bool
+    let hasADS: Bool
+    let batteryFraction: Double
+    let depthPressure: Double
+    let pressureRating: Double
     let trashCollected: Int
     let carryCapacity: Int
     var onJoystickChanged: (_ offset: CGSize, _ angleDegrees: Double?) -> Void
@@ -47,6 +51,25 @@ struct DiveHUDView: View {
 
     private var temperatureFormatted: String {
         String(format: "%.1f°C", bodyTemperature)
+    }
+
+    // ADS-specific derived values
+
+    private var depthFraction: Double {
+        guard pressureRating > 0 else { return 0 }
+        return min(1, max(0, depthPressure / pressureRating))
+    }
+
+    private var depthLimitBarColor: Color {
+        if depthFraction >= 0.95 { return .red }
+        if depthFraction >= 0.80 { return .yellow }
+        return Color(red: 0.2, green: 0.85, blue: 0.4)
+    }
+
+    private var batteryBarColor: Color {
+        if batteryFraction <= 0.10 { return .red }
+        if batteryFraction <= 0.25 { return .yellow }
+        return Color(red: 0.2, green: 0.85, blue: 0.4)
     }
 
     // MARK: - Body
@@ -92,7 +115,7 @@ struct DiveHUDView: View {
 
     private var instrumentPanel: some View {
         VStack(spacing: 0) {
-            // ── Top row: dive time & temperature ──────────────────
+            // ── Top row: dive time & (temperature or battery) ──────────────────
             HStack {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("DIVE TIME")
@@ -106,19 +129,32 @@ struct DiveHUDView: View {
 
                 Spacer()
 
-                VStack(alignment: .trailing, spacing: 1) {
-                    Text("BODY TEMP")
-                        .font(.system(size: 8, weight: .medium, design: .monospaced))
-                        .foregroundStyle(.white.opacity(0.5))
-                    Text(temperatureFormatted)
-                        .font(.system(size: 14, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(.white)
-                        .monospacedDigit()
+                if hasADS {
+                    // ADS: battery indicator replaces body temperature
+                    VStack(alignment: .trailing, spacing: 1) {
+                        Text("PRESSURE")
+                            .font(.system(size: 8, weight: .medium, design: .monospaced))
+                            .foregroundStyle(.white.opacity(0.5))
+                        Text(String(format: "%.1f bar", depthPressure))
+                            .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(depthLimitBarColor)
+                            .monospacedDigit()
+                    }
+                } else {
+                    VStack(alignment: .trailing, spacing: 1) {
+                        Text("BODY TEMP")
+                            .font(.system(size: 8, weight: .medium, design: .monospaced))
+                            .foregroundStyle(.white.opacity(0.5))
+                        Text(temperatureFormatted)
+                            .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(.white)
+                            .monospacedDigit()
+                    }
                 }
             }
             .padding(.bottom, 8)
 
-            // ── Center row: depth + ascent rate ──────────────────
+            // ── Center row: depth + (ascent rate or depth limit) ──────────────────
             HStack(alignment: .center, spacing: 8) {
                 HStack(alignment: .bottom, spacing: 0) {
                     Text(String(format: "%05d", depth))
@@ -133,7 +169,11 @@ struct DiveHUDView: View {
 
                 Spacer()
 
-                if hasScubaGear {
+                if hasADS {
+                    // ADS: depth limit bar replaces ascent rate
+                    depthLimitBar
+                        .frame(height: 44)
+                } else if hasScubaGear {
                     AscentRateBarView(ascentSpeed: ascentSpeed, depthMeters: Double(depth), safeAscentSpeedMultiplier: safeAscentSpeedMultiplier)
                         .frame(height: 44)
                 }
@@ -142,7 +182,7 @@ struct DiveHUDView: View {
 
             // ── Air supply bar ───────────────────────────────────
             VStack(alignment: .leading, spacing: 2) {
-                Text(hasScubaGear ? "AIR" : "BREATH")
+                Text(hasScubaGear || hasADS ? "AIR" : "BREATH")
                     .font(.system(size: 8, weight: .medium, design: .monospaced))
                     .foregroundStyle(.white.opacity(0.5))
 
@@ -156,8 +196,8 @@ struct DiveHUDView: View {
                             .frame(width: geo.size.width * airFraction)
                             .animation(.linear(duration: 0.3), value: airFraction)
 
-                        // Threshold markers (only with a cylinder)
-                        if hasScubaGear {
+                        // Threshold markers (with a cylinder or ADS)
+                        if hasScubaGear || hasADS {
                             Rectangle()
                                 .fill(Color.yellow.opacity(0.7))
                                 .frame(width: 1.5)
@@ -172,7 +212,7 @@ struct DiveHUDView: View {
                 }
                 .frame(height: 5)
 
-                if hasScubaGear {
+                if hasScubaGear || hasADS {
                     HStack(spacing: 0) {
                         Text(String(format: "%03d", Int(remainingBar)))
                             .font(.system(size: 12, weight: .semibold, design: .monospaced))
@@ -196,6 +236,40 @@ struct DiveHUDView: View {
                 }
             }
 
+            // ── Battery bar (ADS only) ────────────────────────
+            if hasADS {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("BATTERY")
+                        .font(.system(size: 8, weight: .medium, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.5))
+
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(Color.white.opacity(0.12))
+
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(batteryBarColor.opacity(0.85))
+                                .frame(width: geo.size.width * batteryFraction)
+                                .animation(.linear(duration: 0.3), value: batteryFraction)
+
+                            // Threshold markers
+                            Rectangle()
+                                .fill(Color.yellow.opacity(0.7))
+                                .frame(width: 1.5)
+                                .offset(x: geo.size.width * 0.25)
+
+                            Rectangle()
+                                .fill(Color.red.opacity(0.7))
+                                .frame(width: 1.5)
+                                .offset(x: geo.size.width * 0.10)
+                        }
+                    }
+                    .frame(height: 5)
+                }
+                .padding(.top, 4)
+            }
+
             // ── Bag capacity indicator ────────────────────────
             if isDiving {
                 HStack(spacing: 4) {
@@ -214,6 +288,49 @@ struct DiveHUDView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
     }
+
+    // MARK: - Depth limit bar (ADS)
+
+    /// Vertical bar showing current depth as fraction of the ADS pressure rating.
+    /// Fills from bottom to top with green→yellow→red color zones.
+    private var depthLimitBar: some View {
+        HStack(alignment: .bottom, spacing: 4) {
+            VStack(alignment: .trailing, spacing: 0) {
+                Text("HULL")
+                    .font(.system(size: 7, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.5))
+                Text(String(format: "%d%%", Int(depthFraction * 100)))
+                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(depthLimitBarColor)
+                    .monospacedDigit()
+            }
+
+            GeometryReader { geo in
+                ZStack(alignment: .bottom) {
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.white.opacity(0.12))
+
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(depthLimitBarColor.opacity(0.85))
+                        .frame(height: geo.size.height * depthFraction)
+                        .animation(.linear(duration: 0.3), value: depthFraction)
+
+                    // 80% warning marker
+                    Rectangle()
+                        .fill(Color.yellow.opacity(0.7))
+                        .frame(height: 1.5)
+                        .offset(y: -geo.size.height * 0.80)
+
+                    // 95% critical marker
+                    Rectangle()
+                        .fill(Color.red.opacity(0.7))
+                        .frame(height: 1.5)
+                        .offset(y: -geo.size.height * 0.95)
+                }
+            }
+            .frame(width: 8)
+        }
+    }
 }
 
 #Preview("Diving") {
@@ -230,6 +347,10 @@ struct DiveHUDView: View {
             warnings: [],
             isDiving: true,
             hasScubaGear: true,
+            hasADS: false,
+            batteryFraction: 1.0,
+            depthPressure: 0,
+            pressureRating: 0,
             trashCollected: 1,
             carryCapacity: 5,
             onJoystickChanged: { _, _ in }
@@ -255,6 +376,10 @@ struct DiveHUDView: View {
             ],
             isDiving: true,
             hasScubaGear: true,
+            hasADS: false,
+            batteryFraction: 1.0,
+            depthPressure: 0,
+            pressureRating: 0,
             trashCollected: 5,
             carryCapacity: 5,
             onJoystickChanged: { _, _ in }
@@ -277,8 +402,38 @@ struct DiveHUDView: View {
             warnings: [],
             isDiving: true,
             hasScubaGear: false,
+            hasADS: false,
+            batteryFraction: 1.0,
+            depthPressure: 0,
+            pressureRating: 0,
             trashCollected: 2,
             carryCapacity: 3,
+            onJoystickChanged: { _, _ in }
+        )
+        .padding(.horizontal, 16)
+    }
+}
+
+#Preview("ADS") {
+    ZStack {
+        Color(white: 0.08)
+        DiveHUDView(
+            depth: 380,
+            diveTimeSeconds: 900,
+            remainingBar: 280,
+            airCapacity: 400,
+            ascentSpeed: 0,
+            bodyTemperature: 37,
+            safeAscentSpeedMultiplier: 1.0,
+            warnings: [],
+            isDiving: true,
+            hasScubaGear: false,
+            hasADS: true,
+            batteryFraction: 0.72,
+            depthPressure: 39.0,
+            pressureRating: 51.0,
+            trashCollected: 3,
+            carryCapacity: 5,
             onJoystickChanged: { _, _ in }
         )
         .padding(.horizontal, 16)
@@ -299,6 +454,10 @@ struct DiveHUDView: View {
             warnings: [],
             isDiving: false,
             hasScubaGear: true,
+            hasADS: false,
+            batteryFraction: 1.0,
+            depthPressure: 0,
+            pressureRating: 0,
             trashCollected: 0,
             carryCapacity: 3,
             onJoystickChanged: { _, _ in }
