@@ -54,7 +54,7 @@ class BatteryPowerModel: ObservableObject, DiveLimitationModel {
         let baseDrain = Double(simulatedSeconds) / 60.0
 
         if isMoving {
-            batteryMinutesRemaining -= baseDrain * 5.5
+            batteryMinutesRemaining -= baseDrain * 1.5
         } else {
             batteryMinutesRemaining -= baseDrain
         }

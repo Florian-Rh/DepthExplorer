@@ -91,7 +91,7 @@ class DiveSession: ObservableObject {
         if collectedSandDollars > 0 {
             store.addSandDollars(collectedSandDollars)
         }
-        // TODO: Phase 1 — add XP for discovered items
+
         reset()
     }
 
