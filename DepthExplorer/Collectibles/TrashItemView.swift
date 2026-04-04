@@ -49,7 +49,7 @@ struct TrashItemView: View {
                 .frame(width: 40, height: 40)
                 .rotationEffect(.degrees(sway), anchor: rotationAnchor)
 
-                Text("$\(item.sandDollarValue)")
+                Text("$\(Int(item.sandDollarValue))")
                     .font(.system(size: 11, weight: .semibold, design: .monospaced))
                     .foregroundStyle(.green.opacity(0.8))
             }

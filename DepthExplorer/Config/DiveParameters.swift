@@ -30,6 +30,10 @@ struct DiveParameters {
     /// Shifts caution/critical/fatal thresholds to give the diver more margin.
     let warningThresholdTolerance: Double
 
+    let coolingRate: Double
+
+    let earningsFactor: Double
+
     /// The active dive mode for this loadout.
     let diveMode: DiveMode
 
@@ -59,6 +63,8 @@ struct DiveParameters {
         // Start with apnoe (no-gear) defaults
         var scrollSpeed = GameConstants.apnoeScrollSpeed
         var horizontalSpeed = GameConstants.apnoeHorizontalSpeed
+        var coolingRate = GameConstants.coolingRate
+        var earningsMultiplier = 1.0
         var airCapacity = 0.0
         var sacRate = GameConstants.sacRate
         var thermalProtection = 0.0
@@ -108,6 +114,10 @@ struct DiveParameters {
                 warningTolerance *= multiplier
             case .safeAscentSpeedMultiplier(let multiplier):
                 safeAscentMultiplier *= multiplier
+            case .coldResistanceMultiplier(let multiplier):
+                coolingRate *= multiplier
+            case .earningsMuliplier(let multiplier):
+                earningsMultiplier *= multiplier
             }
         }
 
@@ -118,6 +128,8 @@ struct DiveParameters {
             sacRate: sacRate,
             thermalProtectionFactor: thermalProtection,
             warningThresholdTolerance: warningTolerance,
+            coolingRate: coolingRate,
+            earningsFactor: earningsMultiplier,
             diveMode: diveMode,
             safeAscentSpeedMultiplier: safeAscentMultiplier,
             pressureRating: pressureRating,
@@ -134,6 +146,8 @@ struct DiveParameters {
         sacRate: GameConstants.sacRate,
         thermalProtectionFactor: 0,
         warningThresholdTolerance: 1.0,
+        coolingRate: GameConstants.coolingRate,
+        earningsFactor: 1.0,
         diveMode: .apnoe,
         safeAscentSpeedMultiplier: 1.0,
         pressureRating: 0.0,

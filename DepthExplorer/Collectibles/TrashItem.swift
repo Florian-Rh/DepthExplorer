@@ -13,5 +13,5 @@ struct TrashItem: Identifiable {
     let xFraction: Double
 
     /// Convenience: sand dollar value from the type definition.
-    var sandDollarValue: Int { typeDef.sandDollarValue }
+    var sandDollarValue: Double { typeDef.sandDollarValue }
 }

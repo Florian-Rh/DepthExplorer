@@ -17,9 +17,12 @@ class ThermalModel: ObservableObject, DiveLimitationModel {
     /// Warning threshold tolerance (1.0 = default, >1.0 = thresholds shift down, more tolerant).
     private let warningTolerance: Double
 
-    init(protectionFactor: Double = 0, warningTolerance: Double = 1.0) {
+    private let baseCoolingRate: Double
+
+    init(protectionFactor: Double = 0, coolingRate: Double = GameConstants.coolingRate, warningTolerance: Double = 1.0) {
         self.protectionFactor = protectionFactor
         self.warningTolerance = warningTolerance
+        self.baseCoolingRate = coolingRate
         bodyTemperature = GameConstants.normalBodyTemperature
     }
 
@@ -55,7 +58,7 @@ class ThermalModel: ObservableObject, DiveLimitationModel {
 
         guard difference > 0 else { return } // water is warmer; no cooling
 
-        let effectiveCoolingRate = GameConstants.coolingRate * (1.0 - protectionFactor)
+        let effectiveCoolingRate = baseCoolingRate * (1.0 - protectionFactor)
         let coolingPerMinute = difference * effectiveCoolingRate
         let cooling = coolingPerMinute * (Double(simulatedSeconds) / 60.0)
         bodyTemperature = max(waterTemp, bodyTemperature - cooling)

@@ -88,7 +88,7 @@ class LevelViewModel: ObservableObject {
     ) {
         let params = DiveParameters.from(profile: profileStore.profile)
         self.diveParameters = params
-        self.diveSession = DiveSession(carryCapacity: params.carryCapacity)
+        self.diveSession = DiveSession(carryCapacity: params.carryCapacity, earningsFactor: params.earningsFactor)
         self.level = level
         self.profileStore = profileStore
         self.diveSimulation = DiveSimulation(
@@ -131,7 +131,7 @@ class LevelViewModel: ObservableObject {
         diveParameters = DiveParameters.from(profile: profileStore.profile)
 
         // Recreate dive session with updated carry capacity.
-        let newSession = DiveSession(carryCapacity: diveParameters.carryCapacity)
+        let newSession = DiveSession(carryCapacity: diveParameters.carryCapacity, earningsFactor: diveParameters.earningsFactor)
         diveSession = newSession
         newSession.objectWillChange
             .sink { [weak self] in self?.objectWillChange.send() }
@@ -202,12 +202,12 @@ class LevelViewModel: ObservableObject {
         case .apnoe:
             models = [
                 AirSupplyModel(capacity: params.airCapacity, sacRate: params.sacRate, warningTolerance: params.warningThresholdTolerance, isPressureSensitive: false),
-                ThermalModel(protectionFactor: params.thermalProtectionFactor, warningTolerance: params.warningThresholdTolerance)
+                ThermalModel(protectionFactor: params.thermalProtectionFactor, coolingRate: params.coolingRate, warningTolerance: params.warningThresholdTolerance)
             ]
         case .scuba:
             models = [
                 AirSupplyModel(capacity: params.airCapacity, sacRate: params.sacRate, warningTolerance: params.warningThresholdTolerance, isPressureSensitive: true),
-                ThermalModel(protectionFactor: params.thermalProtectionFactor, warningTolerance: params.warningThresholdTolerance),
+                ThermalModel(protectionFactor: params.thermalProtectionFactor, coolingRate: params.coolingRate, warningTolerance: params.warningThresholdTolerance),
                 DecompressionModel(warningTolerance: params.warningThresholdTolerance, safeAscentSpeedMultiplier: params.safeAscentSpeedMultiplier)
             ]
         case .ads:
@@ -305,7 +305,7 @@ class LevelViewModel: ObservableObject {
                 maxDepthMeters: maxDepthReached,
                 diveTimeSeconds: diveTime,
                 discoveredItems: diveSession.discoveredItemRecords,
-                sandDollarsCollected: diveSession.collectedSandDollars,
+                sandDollarsCollected: Int(diveSession.collectedSandDollars),
                 previousRecordDepth: isFirstDive ? nil : profileStore.profile.recordMaxDepth,
                 previousRecordTime: isFirstDive ? nil : profileStore.profile.recordDiveTimeSeconds
             )
@@ -316,7 +316,7 @@ class LevelViewModel: ObservableObject {
             diveCompleteStats = DiveCompleteStats(
                 diveTimeSeconds: diveTime,
                 maxDepth: maxDepthReached,
-                sandDollarsCollected: diveSession.collectedSandDollars,
+                sandDollarsCollected: Int(diveSession.collectedSandDollars),
                 itemsDiscovered: diveSession.discoveredItemNames.count,
                 totalDivesBefore: totalDivesBefore,
                 totalDiveTimeBefore: totalTimeBefore,
@@ -337,7 +337,7 @@ class LevelViewModel: ObservableObject {
         if case .rescued(let reason) = currentState, previousSessionState == .diving {
             rescueInfo = RescueInfo(
                 reason: reason,
-                lostSandDollars: diveSession.collectedSandDollars
+                lostSandDollars: Int(diveSession.collectedSandDollars)
             )
             trashItems = []
         }

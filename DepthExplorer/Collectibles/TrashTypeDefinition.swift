@@ -8,7 +8,7 @@ struct TrashTypeDefinition: Identifiable {
     /// Accent color for the circle background and icon tint.
     let color: Color
     /// Sand Dollars awarded on collection.
-    let sandDollarValue: Int
+    let sandDollarValue: Double
     /// Shallowest depth (meters) this type can spawn at.
     let minDepth: Double
     /// Deepest depth (meters) this type can spawn at.
@@ -24,7 +24,7 @@ struct TrashTypeDefinition: Identifiable {
         TrashTypeDefinition(
             id: "trash.sodaCan",
             color: .red,
-            sandDollarValue: 1,
+            sandDollarValue: 1.0,
             minDepth: 10,
             maxDepth: 100,
             respawnTime: 400,
@@ -33,7 +33,7 @@ struct TrashTypeDefinition: Identifiable {
         TrashTypeDefinition(
             id: "trash.plasticBag",
             color: .white,
-            sandDollarValue: 2,
+            sandDollarValue: 2.0,
             minDepth: 20,
             maxDepth: 150,
             respawnTime: 600,
@@ -42,7 +42,7 @@ struct TrashTypeDefinition: Identifiable {
         TrashTypeDefinition(
             id: "trash.bottle",
             color: .green,
-            sandDollarValue: 2,
+            sandDollarValue: 2.0,
             minDepth: 50,
             maxDepth: 300,
             respawnTime: 580,
@@ -51,7 +51,7 @@ struct TrashTypeDefinition: Identifiable {
         TrashTypeDefinition(
             id: "trash.tire",
             color: .gray,
-            sandDollarValue: 4,
+            sandDollarValue: 4.0,
             minDepth: 50,
             maxDepth: 200,
             respawnTime: 1200,
@@ -60,7 +60,7 @@ struct TrashTypeDefinition: Identifiable {
         TrashTypeDefinition(
             id: "trash.battery",
             color: .yellow,
-            sandDollarValue: 5,
+            sandDollarValue: 5.0,
             minDepth: 100,
             maxDepth: 300,
             respawnTime: 900,
@@ -69,7 +69,7 @@ struct TrashTypeDefinition: Identifiable {
         TrashTypeDefinition(
             id: "trash.fishingNet",
             color: .orange,
-            sandDollarValue: 6,
+            sandDollarValue: 6.0,
             minDepth: 100,
             maxDepth: 200,
             respawnTime: 1000,
@@ -78,7 +78,7 @@ struct TrashTypeDefinition: Identifiable {
         TrashTypeDefinition(
             id: "trash.shoppingCart",
             color: .cyan,
-            sandDollarValue: 10,
+            sandDollarValue: 10.0,
             minDepth: 300,
             maxDepth: 800,
             respawnTime: 2000,
@@ -87,7 +87,7 @@ struct TrashTypeDefinition: Identifiable {
         TrashTypeDefinition(
             id: "trash.oilDrum",
             color: Color(red: 0.55, green: 0.35, blue: 0.15),
-            sandDollarValue: 12,
+            sandDollarValue: 12.0,
             minDepth: 300,
             maxDepth: 1000,
             respawnTime: 2000,
@@ -96,7 +96,7 @@ struct TrashTypeDefinition: Identifiable {
         TrashTypeDefinition(
             id: "trash.anchor",
             color: Color(red: 0.25, green: 0.35, blue: 0.55),
-            sandDollarValue: 15,
+            sandDollarValue: 15.0,
             minDepth: 800,
             maxDepth: 1200,
             respawnTime: 2600,
@@ -105,7 +105,7 @@ struct TrashTypeDefinition: Identifiable {
         TrashTypeDefinition(
             id: "trash.container",
             color: Color(red: 0.80, green: 0.30, blue: 0.10),
-            sandDollarValue: 20,
+            sandDollarValue: 20.0,
             minDepth: 1300,
             maxDepth: 2800,
             respawnTime: 4000,

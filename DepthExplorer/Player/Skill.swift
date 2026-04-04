@@ -4,15 +4,19 @@ import Foundation
 enum SkillFamily: String, Codable, CaseIterable {
     case breathingTechniques
     case finKicking
+    case coldResistance
     case stressManagement
+    case negotiator
     case multiGasManagement
 
     var displayName: String {
         switch self {
         case .breathingTechniques: "Breathing"
         case .finKicking: "Fin Kicking"
+        case .coldResistance: "Cold Resistance"
         case .stressManagement: "Stress Management"
-        case .multiGasManagement: "Multi-Gas"
+        case .negotiator: "Negotiator"
+        case .multiGasManagement: "Multi-Gas Management"
         }
     }
 
@@ -20,7 +24,9 @@ enum SkillFamily: String, Codable, CaseIterable {
         switch self {
         case .breathingTechniques: "lungs.fill"
         case .finKicking: "figure.pool.swim"
+        case .coldResistance: "snowflake"
         case .stressManagement: "brain.head.profile"
+        case .negotiator: "dollarsign.ring.dashed"
         case .multiGasManagement: "gauge.with.dots.needle.67percent"
         }
     }
@@ -29,9 +35,11 @@ enum SkillFamily: String, Codable, CaseIterable {
     /// Below this level the family is shown redacted ("???").
     var minimumLevel: Int? {
         switch self {
+        case .coldResistance: 3
         case .stressManagement: 5
+        case .negotiator: 8
         case .multiGasManagement: 10
-        default: nil
+        case .breathingTechniques, .finKicking: nil
         }
     }
 }
@@ -48,6 +56,11 @@ enum SkillModifier {
     /// Multiplier applied to the safe ascent speed. Values > 1 increase the
     /// safe speed, allowing the diver to ascend faster without triggering DCS warnings.
     case safeAscentSpeedMultiplier(Double)
+    /// Multiplier applied to the cooling rate. Values < 1 reduce cooling
+    case coldResistanceMultiplier(Double)
+    /// Multiplier applied to the earnings through trash collection. Values > 1 increase the
+    /// amount of Sand Dollars per trash item
+    case earningsMuliplier(Double)
 }
 
 /// A single skill within a family, at a specific level.
@@ -79,6 +92,12 @@ struct SkillDefinition: Identifiable {
         case .safeAscentSpeedMultiplier(let m):
             let percent = Int((m - 1.0) * 100)
             return "+\(percent)% safe ascent speed"
+        case .coldResistanceMultiplier(let m):
+            let percent = Int((1.0 - m) * 100)
+            return "\(percent)% slower cooling"
+        case .earningsMuliplier(let m):
+            let percent = Int((m - 1.0) * 100)
+            return "+\(percent)% more Sand Dollars for collected trash"
         }
     }
 
@@ -137,6 +156,32 @@ struct SkillDefinition: Identifiable {
             modifier: .movementSpeedMultiplier(1.30)
         ),
 
+        // Cold Resistance
+        SkillDefinition(
+            id: "coldResistance.1",
+            family: .coldResistance,
+            level: 1,
+            name: "Thermal Acclimatization",
+            description: "Adapting to cooler waters with reduced discomfort",
+            modifier: .coldResistanceMultiplier(0.9)
+        ),
+        SkillDefinition(
+            id: "coldResistance.2",
+            family: .coldResistance,
+            level: 2,
+            name: "Coldwater training",
+            description: "Maintaining performance and composure in frigid conditions",
+            modifier: .coldResistanceMultiplier(0.8)
+        ),
+        SkillDefinition(
+            id: "coldResistance.3",
+            family: .coldResistance,
+            level: 3,
+            name: "Warm thoughts",
+            description: "Staying warm through sheer power of will",
+            modifier: .coldResistanceMultiplier(0.7)
+        ),
+
         // Stress Management
         SkillDefinition(
             id: "stressManagement.1",
@@ -161,6 +206,32 @@ struct SkillDefinition: Identifiable {
             name: "Ice Veins",
             description: "Total mental control. Critical situations feel routine.",
             modifier: .warningThresholdMultiplier(1.30)
+        ),
+
+        // Negotiator
+        SkillDefinition(
+            id: "negotiator.1",
+            family: .negotiator,
+            level: 1,
+            name: "Haggler",
+            description: "Get slightly better deals through basic bargaining.",
+            modifier: .earningsMuliplier(1.3)
+        ),
+        SkillDefinition(
+            id: "negotiator.2",
+            family: .negotiator,
+            level: 2,
+            name: "Market Knowledge",
+            description: "Knowing the local market can help you get better deals.",
+            modifier: .earningsMuliplier(1.5)
+        ),
+        SkillDefinition(
+            id: "negotiator.3",
+            family: .negotiator,
+            level: 3,
+            name: "Silver Tongue",
+            description: "Convince people to pay way more than they should.",
+            modifier: .earningsMuliplier(2.0)
         ),
 
         // Multi-Gas Management

@@ -19,7 +19,7 @@ enum DiveSessionState: Equatable {
 class DiveSession: ObservableObject {
     @Published private(set) var state: DiveSessionState = .surface
     @Published private(set) var discoveredItemNames: Set<String> = []
-    @Published private(set) var collectedSandDollars: Int = 0
+    @Published private(set) var collectedSandDollars: Double = 0
     @Published private(set) var collectedTrashCount: Int = 0
 
     /// Items discovered this session with their depths, for XP calculation.
@@ -31,13 +31,16 @@ class DiveSession: ObservableObject {
     /// Maximum number of trash items the diver can carry per dive.
     let carryCapacity: Int
 
+    let earningsFactor: Double
+
     /// Whether the diver's bag is full.
     var isBagFull: Bool {
         collectedTrashCount >= carryCapacity
     }
 
-    init(carryCapacity: Int = GameConstants.defaultCarryCapacity) {
+    init(carryCapacity: Int = GameConstants.defaultCarryCapacity, earningsFactor: Double = 1.0) {
         self.carryCapacity = carryCapacity
+        self.earningsFactor = earningsFactor
     }
 
     /// Transition to diving state when the diver descends past the activation depth.
@@ -74,10 +77,10 @@ class DiveSession: ObservableObject {
 
     /// Record trash pickup during the dive. Returns `false` if the bag is full.
     @discardableResult
-    func collectTrash(id: UUID, value: Int) -> Bool {
+    func collectTrash(id: UUID, value: Double) -> Bool {
         guard state == .diving else { return false }
         guard !isBagFull else { return false }
-        collectedSandDollars += value
+        collectedSandDollars += value * earningsFactor
         collectedTrashCount += 1
         collectedTrashIDs.append(id)
         return true
@@ -89,7 +92,7 @@ class DiveSession: ObservableObject {
     func commitRewards(to store: ProfileStore) {
         guard state == .surfacedSafely else { return }
         if collectedSandDollars > 0 {
-            store.addSandDollars(collectedSandDollars)
+            store.addSandDollars(Int(collectedSandDollars))
         }
 
         reset()
