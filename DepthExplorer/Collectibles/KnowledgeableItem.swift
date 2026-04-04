@@ -107,7 +107,7 @@ struct KnowledgeableItem: Identifiable {
         .init(
             depth: 332,
             name: "Deepest Scuba Dive",
-            image: "figure.scuba.diving",
+            image: "figure.dance",
             category: .humanHistory,
             description: "In 2014, Ahmed Gabr set the world record for the deepest scuba dive at 332.35 meters in the Red Sea."
         ),
