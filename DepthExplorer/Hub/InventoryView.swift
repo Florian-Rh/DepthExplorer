@@ -1,30 +1,150 @@
 import SwiftUI
 
 /// Loadout management: equip and unequip owned gear, one item per category slot.
+///
+/// When specialist equipment is unlocked, shows a picker to navigate between
+/// "Scuba Equipment" and "Specialist Equipment" sub-views.
+/// Before that unlock, shows the flat scuba list directly.
 struct InventoryView: View {
     @ObservedObject var profileStore: ProfileStore
-
-    @State private var equipmentClass: EquipmentClass = .scuba
 
     private var playerLevel: Int {
         LevelProgression.from(totalXP: profileStore.profile.experiencePoints).level
     }
 
-    var body: some View {
-        let availableCategories = GearCategory.allCases.filter {
-            $0.minimumRank.minimumLevel <= playerLevel
-            && ($0.equipmentClass == equipmentClass || $0.equipmentClass == .universal)
+    /// Whether the player has unlocked any specialist-class category.
+    private var hasSpecialistUnlocked: Bool {
+        GearCategory.allCases.contains { cat in
+            cat.equipmentClass == .specialist
+            && cat.minimumRank.minimumLevel <= playerLevel
         }
+    }
 
-        return ScrollView {
+    var body: some View {
+        if hasSpecialistUnlocked {
+            InventoryClassPicker(profileStore: profileStore)
+        } else {
+            InventoryGearList(
+                profileStore: profileStore,
+                categories: scubaCategories
+            )
+        }
+    }
+
+    private var scubaCategories: [GearCategory] {
+        GearCategory.allCases.filter {
+            ($0.equipmentClass == .scuba || $0.equipmentClass == .universal)
+            && $0.minimumRank.minimumLevel <= playerLevel
+        }
+    }
+}
+
+// MARK: - Equipment class picker
+
+/// Two large buttons that switch between Scuba and Specialist loadout lists.
+private struct InventoryClassPicker: View {
+    @ObservedObject var profileStore: ProfileStore
+    @State private var selectedClass: EquipmentClass = .scuba
+
+    private var playerLevel: Int {
+        LevelProgression.from(totalXP: profileStore.profile.experiencePoints).level
+    }
+
+    private var scubaCategories: [GearCategory] {
+        GearCategory.allCases.filter {
+            ($0.equipmentClass == .scuba || $0.equipmentClass == .universal)
+            && $0.minimumRank.minimumLevel <= playerLevel
+        }
+    }
+
+    private var specialistCategories: [GearCategory] {
+        GearCategory.allCases.filter {
+            $0.equipmentClass == .specialist
+            && $0.minimumRank.minimumLevel <= playerLevel
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // ── Class selector ───────────────────────────────
+            HStack(spacing: 0) {
+                classTab(
+                    title: "Scuba",
+                    icon: "figure.pool.swim",
+                    equipmentClass: .scuba
+                )
+                classTab(
+                    title: "Specialist",
+                    icon: "shield.checkered",
+                    equipmentClass: .specialist
+                )
+            }
+            .padding(3)
+            .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 10))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+
+            // ── Content ──────────────────────────────────────
+            switch selectedClass {
+            case .scuba:
+                InventoryGearList(
+                    profileStore: profileStore,
+                    categories: scubaCategories
+                )
+            case .specialist:
+                InventoryGearList(
+                    profileStore: profileStore,
+                    categories: specialistCategories
+                )
+            case .universal:
+                EmptyView()
+            }
+        }
+    }
+
+    private func classTab(title: String, icon: String, equipmentClass: EquipmentClass) -> some View {
+        let isSelected = selectedClass == equipmentClass
+        return Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                selectedClass = equipmentClass
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 12))
+                Text(title)
+                    .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
+            }
+            .foregroundStyle(isSelected ? .white : .white.opacity(0.5))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .background(
+                isSelected
+                    ? Color.white.opacity(0.12)
+                    : Color.clear,
+                in: RoundedRectangle(cornerRadius: 8)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Gear list for a set of categories
+
+/// Displays gear slot sections for the given categories.
+/// Reused for both the scuba and specialist sub-views.
+private struct InventoryGearList: View {
+    @ObservedObject var profileStore: ProfileStore
+    let categories: [GearCategory]
+
+    private var hasAnyGear: Bool {
+        !profileStore.profile.ownedGearIDs.isEmpty
+    }
+
+    var body: some View {
+        ScrollView {
             VStack(spacing: 24) {
-                Picker("Equipment Class", selection: $equipmentClass) {
-                    Text("Apnoe / Scuba")
-                        .tag(EquipmentClass.scuba)
-                    Text("Specialist")
-                        .tag(EquipmentClass.specialist)
-                }
-                ForEach(availableCategories, id: \.self) { category in
+                ForEach(categories, id: \.self) { category in
                     slotSection(category)
                 }
 
@@ -34,10 +154,6 @@ struct InventoryView: View {
             }
             .padding(16)
         }
-    }
-
-    private var hasAnyGear: Bool {
-        !profileStore.profile.ownedGearIDs.isEmpty
     }
 
     // MARK: - Slot Section
@@ -105,7 +221,6 @@ struct InventoryView: View {
     ) -> some View {
         Button(action: onTap) {
             HStack(spacing: 12) {
-                // Icon
                 ZStack {
                     RoundedRectangle(cornerRadius: 10)
                         .fill(isEquipped ? Color.cyan.opacity(0.15) : Color.white.opacity(0.06))
@@ -115,7 +230,6 @@ struct InventoryView: View {
                         .foregroundStyle(isEquipped ? .cyan : .white.opacity(0.5))
                 }
 
-                // Info
                 VStack(alignment: .leading, spacing: 2) {
                     Text(name)
                         .font(.system(size: 15, weight: .semibold))
@@ -127,7 +241,6 @@ struct InventoryView: View {
 
                 Spacer()
 
-                // Equipped indicator
                 if isEquipped {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 20))
