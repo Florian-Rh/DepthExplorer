@@ -91,17 +91,8 @@ class BatteryPowerModel: ObservableObject, DiveLimitationModel {
                 message: "\(Int(batteryFraction * 100))% battery power remaining"
             ))
         } else {
-            // warningSystem.clear(.batteryLevel)
-            // for debugging:
-            warningSystem.set(DiveWarning(
-                kind: .batteryLevel,
-                severity: .caution,
-                message: "\(Int(batteryFraction * 100))% battery power remaining"
-            ))
+             warningSystem.clear(.batteryLevel)
         }
-
-
-
 
         return .ok
     }
