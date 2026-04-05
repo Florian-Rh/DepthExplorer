@@ -1,8 +1,128 @@
 import SwiftUI
 
 /// Gear purchase UI. Items are grouped by category with clear state indicators.
+///
+/// When submersible equipment is unlocked, shows a picker to navigate between
+/// "Scuba" and "Submersible" shop sections.
+/// Before that unlock, shows the flat scuba shop directly.
 struct ShopView: View {
     @ObservedObject var profileStore: ProfileStore
+
+    private var playerLevel: Int {
+        LevelProgression.from(totalXP: profileStore.profile.experiencePoints).level
+    }
+
+    /// Whether the player has unlocked any submersible-class category.
+    private var hasSubmersibleUnlocked: Bool {
+        GearCategory.allCases.contains { cat in
+            cat.equipmentClass == .submersible
+            && cat.minimumRank.minimumLevel <= playerLevel
+        }
+    }
+
+    var body: some View {
+        if hasSubmersibleUnlocked {
+            ShopClassPicker(profileStore: profileStore)
+        } else {
+            ShopGearList(
+                profileStore: profileStore,
+                categories: GearCategory.allCases.filter {
+                    $0.equipmentClass == .scuba
+                }
+            )
+        }
+    }
+}
+
+// MARK: - Equipment class picker
+
+/// Segmented control switching between Scuba and Submersible shop sections.
+private struct ShopClassPicker: View {
+    @ObservedObject var profileStore: ProfileStore
+    @State private var selectedClass: EquipmentClass = .scuba
+
+    private var scubaCategories: [GearCategory] {
+        GearCategory.allCases.filter {
+            $0.equipmentClass == .scuba
+        }
+    }
+
+    private var submersibleCategories: [GearCategory] {
+        GearCategory.allCases.filter {
+            $0.equipmentClass == .submersible
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // ── Class selector ───────────────────────────────
+            HStack(spacing: 0) {
+                classTab(
+                    title: "Scuba",
+                    icon: "figure.pool.swim",
+                    equipmentClass: .scuba
+                )
+                classTab(
+                    title: "Submersible",
+                    icon: "shield.checkered",
+                    equipmentClass: .submersible
+                )
+            }
+            .padding(3)
+            .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 10))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+
+            // ── Content ──────────────────────────────────────
+            switch selectedClass {
+            case .scuba:
+                ShopGearList(
+                    profileStore: profileStore,
+                    categories: scubaCategories
+                )
+            case .submersible:
+                ShopGearList(
+                    profileStore: profileStore,
+                    categories: submersibleCategories
+                )
+            }
+        }
+    }
+
+    private func classTab(title: String, icon: String, equipmentClass: EquipmentClass) -> some View {
+        let isSelected = selectedClass == equipmentClass
+        return Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                selectedClass = equipmentClass
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 12))
+                Text(title)
+                    .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
+            }
+            .foregroundStyle(isSelected ? .white : .white.opacity(0.5))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .background(
+                isSelected
+                    ? Color.white.opacity(0.12)
+                    : Color.clear,
+                in: RoundedRectangle(cornerRadius: 8)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Gear list for a set of categories
+
+/// Displays shop sections for the given categories.
+/// Reused for both the scuba and submersible tabs.
+private struct ShopGearList: View {
+    @ObservedObject var profileStore: ProfileStore
+    let categories: [GearCategory]
 
     /// Raw JSON string of collapsed category raw values, persisted across launches.
     @AppStorage("shop.collapsedSections") private var collapsedData: String = "[]"
@@ -35,7 +155,7 @@ struct ShopView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
-                ForEach(GearCategory.allCases, id: \.self) { category in
+                ForEach(categories, id: \.self) { category in
                     gearSection(category)
                 }
             }

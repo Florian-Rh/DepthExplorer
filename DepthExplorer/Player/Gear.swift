@@ -6,9 +6,7 @@ enum EquipmentClass {
     /// Standard scuba diving equipment (fins, suit, scuba gear, stage bottles, DPV).
     case scuba
     /// Specialist deep-sea equipment (atmospheric diving suits).
-    case specialist
-    /// Universally compatible equipment (mesh bags).
-    case universal
+    case submersible
 }
 
 /// A category of gear. Each category has exactly one equip slot.
@@ -21,6 +19,9 @@ enum GearCategory: String, Codable, CaseIterable {
     case stageBottle
     case dpv
     case atmosphericSuit = "ads"
+    case submersibleBattery
+    case submersibleThruster
+    case submersibleStorage
 
     var displayName: String {
         switch self {
@@ -31,6 +32,9 @@ enum GearCategory: String, Codable, CaseIterable {
         case .dpv: "Dive Propulsion Vehicle"
         case .meshBag: "Mesh Bag"
         case .atmosphericSuit: "Atmospheric Diving Suit"
+        case .submersibleBattery: "Extra Battery"
+        case .submersibleThruster: "Thrusters"
+        case .submersibleStorage: "Storage compartments"
         }
     }
 
@@ -43,6 +47,9 @@ enum GearCategory: String, Codable, CaseIterable {
         case .dpv: "arrow.right.circle.fill"
         case .meshBag: "bag"
         case .atmosphericSuit: "shield.checkered"
+        case .submersibleBattery: "battery.100percent.bolt"
+        case .submersibleThruster: "arrow.right.circle.fill"
+        case .submersibleStorage: "bag"
         }
     }
 
@@ -56,6 +63,9 @@ enum GearCategory: String, Codable, CaseIterable {
         case .dpv: "No DPV — swim under your own power"
         case .meshBag: "No bag — carry up to \(GameConstants.defaultCarryCapacity) items"
         case .atmosphericSuit: "No ADS — use standard diving equipment"
+        case .submersibleBattery: "No extra battery"
+        case .submersibleThruster: "No thruster upgrades"
+        case .submersibleStorage: "No extra storage"
         }
     }
 
@@ -67,19 +77,17 @@ enum GearCategory: String, Codable, CaseIterable {
             return .scubaDiver
         case .stageBottle, .dpv:
             return .techDiver
-        case .atmosphericSuit:
+        case .atmosphericSuit, .submersibleBattery, .submersibleStorage, .submersibleThruster:
             return .marineSpecialist
         }
     }
 
     var equipmentClass: EquipmentClass {
         switch self {
-        case .fins, .suit, .scubaGear, .stageBottle, .dpv:
+        case .fins, .suit, .scubaGear, .stageBottle, .dpv, .meshBag:
             return .scuba
-        case .atmosphericSuit:
-            return .specialist
-        case .meshBag:
-            return .universal
+        case .atmosphericSuit, .submersibleBattery, .submersibleStorage, .submersibleThruster:
+            return .submersible
         }
     }
 }
@@ -90,12 +98,14 @@ enum GearModifier {
     case movementSpeed(scrollSpeed: CGFloat, horizontalSpeed: CGFloat)
     /// Thermal protection factor (0 = none, 1 = full insulation).
     case thermalProtection(factor: Double)
-    /// Scuba gear air capacity in bar (replaces base constant).
+    /// Air capacity in bar (replaces base constant).
     case airCapacity(bar: Double)
     /// Trash carry capacity (number of items per dive).
     case carryCapacity(count: Int)
-    /// Atmospheric diving suit: self-contained hard suit with own air, battery, and depth rating.
-    case atmosphericDivingSuit(airCapacity: Double, batteryMinutes: Double, pressureRating: Double)
+    /// Atmospheric diving suit: self-contained hard suit with own air, battery, depth rating, and built-in storage.
+    case atmosphericDivingSuit(airCapacity: Double, baseBatteryMinutes: Double, pressureRating: Double, baseStorage: Int, baseSpeed: Double)
+    /// Extra battery capacity for submersibles
+    case batteryCapacity(minutes: Double)
 }
 
 /// A specific gear item available for purchase and equipping.
@@ -121,8 +131,10 @@ struct GearDefinition: Identifiable {
             return "\(Int(bar)) bar capacity"
         case .carryCapacity(let count):
             return "Carry up to \(count) items"
-        case .atmosphericDivingSuit(_, _, let maxDepth):
-            return "Rated to \(Int(maxDepth)) bar of external pressure"
+        case .atmosphericDivingSuit(let airCapacity, let batteryMinutes, let pressureRating, let storage, let speed):
+            return "\(Int(airCapacity)) bar air · \(Int(batteryMinutes)) min battery · \(Int(pressureRating)) bar rated · \(storage) storage · speed \(Int(speed))"
+        case .batteryCapacity(let minutes):
+            return "Increases the suits battery capacity by \(Int(minutes)) minutes"
         }
     }
 
@@ -136,7 +148,7 @@ struct GearDefinition: Identifiable {
             name: "Basic Fins",
             description: "Standard rubber fins for recreational diving.",
             icon: "shoe.2.fill",
-            price: 15,
+            price: 10,
             requiredLevel: 1,
             modifier: .movementSpeed(scrollSpeed: 4, horizontalSpeed: 4)
         ),
@@ -198,7 +210,7 @@ struct GearDefinition: Identifiable {
             name: "Drysuit",
             description: "Sealed suit with insulating undergarments. Essential for deep, cold water.",
             icon: "tshirt.fill",
-            price: 250,
+            price: 200,
             requiredLevel: 8,
             modifier: .thermalProtection(factor: 0.8)
         ),
@@ -208,7 +220,7 @@ struct GearDefinition: Identifiable {
             name: "Heated Drysuit",
             description: "Sealed suit with an integrated electric heating vest. With this system, the cold has very little effect on you.",
             icon: "tshirt.fill",
-            price: 400,
+            price: 300,
             requiredLevel: 10,
             modifier: .thermalProtection(factor: 0.95)
         ),
@@ -220,7 +232,7 @@ struct GearDefinition: Identifiable {
             name: "Small Mesh Bag",
             description: "A basic collection bag for small debris.",
             icon: "bag",
-            price: 15,
+            price: 10,
             requiredLevel: 1,
             modifier: .carryCapacity(count: 5)
         ),
@@ -230,7 +242,7 @@ struct GearDefinition: Identifiable {
             name: "Medium Mesh Bag",
             description: "Reinforced bag with room for more trash.",
             icon: "bag.fill",
-            price: 40,
+            price: 30,
             requiredLevel: 3,
             modifier: .carryCapacity(count: 10)
         ),
@@ -240,7 +252,7 @@ struct GearDefinition: Identifiable {
             name: "Large Mesh Bag",
             description: "Professional-grade collection bag for serious cleanup dives.",
             icon: "bag.fill",
-            price: 100,
+            price: 80,
             requiredLevel: 6,
             modifier: .carryCapacity(count: 15)
         ),
@@ -250,7 +262,7 @@ struct GearDefinition: Identifiable {
             name: "Lift Bag",
             description: "A lift bag can be filled with air, which offsets the weight of the collected items, allowing you to carry more",
             icon: "bag.fill",
-            price: 150,
+            price: 120,
             requiredLevel: 8,
             modifier: .carryCapacity(count: 20)
         ),
@@ -260,7 +272,7 @@ struct GearDefinition: Identifiable {
             name: "Large Lift Bag",
             description: "Even larger lift bag for maximum payload.",
             icon: "bag.fill",
-            price: 200,
+            price: 180,
             requiredLevel: 10,
             modifier: .carryCapacity(count: 25)
         ),
@@ -272,7 +284,7 @@ struct GearDefinition: Identifiable {
             name: "Standard Scuba Gear",
             description: "A 200 bar cylinder with single-stage regulator and basic BCD.",
             icon: "cylinder.fill",
-            price: 100,
+            price: 80,
             requiredLevel: 5,
             modifier: .airCapacity(bar: 200)
         ),
@@ -282,7 +294,7 @@ struct GearDefinition: Identifiable {
             name: "Twinset Scuba Gear",
             description: "Twin cylinders in a manifold with redundant regulators for extended dive time.",
             icon: "cylinder.fill",
-            price: 200,
+            price: 180,
             requiredLevel: 7,
             modifier: .airCapacity(bar: 400)
         ),
@@ -350,7 +362,7 @@ struct GearDefinition: Identifiable {
             icon: "shield.checkered",
             price: 800,
             requiredLevel: 15,
-            modifier: .atmosphericDivingSuit(airCapacity: 400, batteryMinutes: 30, pressureRating: 200)
+            modifier: .atmosphericDivingSuit(airCapacity: 400, baseBatteryMinutes: 45, pressureRating: 200, baseStorage: 10, baseSpeed: 12)
         ),
         GearDefinition(
             id: "ads.newtsuit",
@@ -360,7 +372,7 @@ struct GearDefinition: Identifiable {
             icon: "shield.checkered",
             price: 1500,
             requiredLevel: 17,
-            modifier: .atmosphericDivingSuit(airCapacity: 600, batteryMinutes: 45, pressureRating: 300)
+            modifier: .atmosphericDivingSuit(airCapacity: 600, baseBatteryMinutes: 60, pressureRating: 300, baseStorage: 15, baseSpeed: 16)
         ),
         GearDefinition(
             id: "ads.exosuit",
@@ -370,7 +382,73 @@ struct GearDefinition: Identifiable {
             icon: "shield.checkered",
             price: 3000,
             requiredLevel: 19,
-            modifier: .atmosphericDivingSuit(airCapacity: 800, batteryMinutes: 60, pressureRating: 400)
+            modifier: .atmosphericDivingSuit(airCapacity: 800, baseBatteryMinutes: 90, pressureRating: 400, baseStorage: 20, baseSpeed: 20)
+        ),
+
+        // Submersible Batteries
+        GearDefinition(
+            id: "sub.battery.standard",
+            category: .submersibleBattery,
+            name: "Standard Battery Pack",
+            description: "An additional lithium-ion battery pack that extends operational time underwater.",
+            icon: "battery.100percent.bolt",
+            price: 600,
+            requiredLevel: 16,
+            modifier: .batteryCapacity(minutes: 20)
+        ),
+        GearDefinition(
+            id: "sub.battery.extended",
+            category: .submersibleBattery,
+            name: "Extended Battery Pack",
+            description: "A high-density battery array providing significantly longer dive endurance.",
+            icon: "battery.100percent.bolt",
+            price: 1200,
+            requiredLevel: 18,
+            modifier: .batteryCapacity(minutes: 45)
+        ),
+
+        // Submersible Thrusters
+        GearDefinition(
+            id: "sub.thruster.standard",
+            category: .submersibleThruster,
+            name: "Auxiliary Thrusters",
+            description: "A pair of bolt-on electric thrusters that increase suit maneuverability.",
+            icon: "arrow.right.circle.fill",
+            price: 700,
+            requiredLevel: 16,
+            modifier: .movementSpeed(scrollSpeed: 4, horizontalSpeed: 2)
+        ),
+        GearDefinition(
+            id: "sub.thruster.advanced",
+            category: .submersibleThruster,
+            name: "High-Output Thrusters",
+            description: "Powerful vectored thrusters with variable nozzles for rapid repositioning at depth.",
+            icon: "arrow.right.circle.fill",
+            price: 1400,
+            requiredLevel: 18,
+            modifier: .movementSpeed(scrollSpeed: 8, horizontalSpeed: 4)
+        ),
+
+        // Submersible Storage
+        GearDefinition(
+            id: "sub.storage.standard",
+            category: .submersibleStorage,
+            name: "External Cargo Rack",
+            description: "A frame-mounted rack that adds external storage capacity to the suit.",
+            icon: "bag",
+            price: 500,
+            requiredLevel: 16,
+            modifier: .carryCapacity(count: 10)
+        ),
+        GearDefinition(
+            id: "sub.storage.large",
+            category: .submersibleStorage,
+            name: "Heavy-Duty Cargo Pod",
+            description: "A sealed cargo pod with hydraulic clamps, designed for hauling large debris from the deep.",
+            icon: "bag.fill",
+            price: 1100,
+            requiredLevel: 18,
+            modifier: .carryCapacity(count: 20)
         ),
     ]
 }

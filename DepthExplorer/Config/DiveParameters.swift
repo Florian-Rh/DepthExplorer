@@ -29,6 +29,8 @@ struct DiveParameters {
     /// Warning threshold tolerance multiplier (1.0 = default, >1.0 = more tolerant).
     /// Shifts caution/critical/fatal thresholds to give the diver more margin.
     let warningThresholdTolerance: Double
+    /// Multiplier for the time it takes to pick up an item (1.0 = default, >1.0 = fastert).
+    let pickupSpeedMultiplier: Double
 
     let coolingRate: Double
 
@@ -70,7 +72,7 @@ struct DiveParameters {
         var thermalProtection = 0.0
         var warningTolerance = 1.0
         var safeAscentMultiplier = 1.0
-        var carryCapacity = GameConstants.defaultCarryCapacity
+        var carryCapacity = 0
         var pressureRating: Double = 0.0
         var batteryMinutes: Double = 0.0
 
@@ -88,17 +90,26 @@ struct DiveParameters {
                 airCapacity += bar
                 diveMode = .scuba
             case .carryCapacity(let count):
-                carryCapacity = count
-            case .atmosphericDivingSuit(let air, let battery, let pressure):
+                carryCapacity += count
+            case .atmosphericDivingSuit(let air, let battery, let pressure, let storage, let speed):
                 airCapacity += air
                 pressureRating = pressure
-                batteryMinutes = battery
+                batteryMinutes += battery
+                carryCapacity += storage
+                scrollSpeed = speed
+                horizontalSpeed = speed * 0.5
                 diveMode = .ads
+            case .batteryCapacity(let minutes):
+                batteryMinutes += minutes
             }
         }
 
         if diveMode == .apnoe {
             airCapacity += GameConstants.apnoeLungCapacity
+        }
+
+        if carryCapacity == 0 {
+            carryCapacity = GameConstants.defaultCarryCapacity
         }
 
         // Apply skills (highest level per family only)
@@ -128,6 +139,7 @@ struct DiveParameters {
             sacRate: sacRate,
             thermalProtectionFactor: thermalProtection,
             warningThresholdTolerance: warningTolerance,
+            pickupSpeedMultiplier: 1.0,
             coolingRate: coolingRate,
             earningsFactor: earningsMultiplier,
             diveMode: diveMode,
@@ -146,6 +158,7 @@ struct DiveParameters {
         sacRate: GameConstants.sacRate,
         thermalProtectionFactor: 0,
         warningThresholdTolerance: 1.0,
+        pickupSpeedMultiplier: 1.0,
         coolingRate: GameConstants.coolingRate,
         earningsFactor: 1.0,
         diveMode: .apnoe,

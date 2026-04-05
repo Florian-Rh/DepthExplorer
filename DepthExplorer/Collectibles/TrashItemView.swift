@@ -5,6 +5,8 @@ struct TrashItemView: View {
     let scalingFactor: Double
     let contentOffset: Double
     let screenSize: CGSize
+    /// Pickup progress 0…1 (0 = not hovering, 1 = collected). Drives the filling circle.
+    var pickupProgress: Double = 0
 
     var yPosition: Double {
         item.depth * scalingFactor
@@ -47,6 +49,18 @@ struct TrashItemView: View {
                     drawTrashShape(ctx, size: size, typeID: item.typeDef.id)
                 }
                 .frame(width: 40, height: 40)
+                .overlay {
+                    if pickupProgress > 0 {
+                        Circle()
+                            .trim(from: 0, to: pickupProgress)
+                            .stroke(
+                                Color.white.opacity(0.9),
+                                style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                            )
+                            .rotationEffect(.degrees(-90))
+                            .frame(width: 48, height: 48)
+                    }
+                }
                 .rotationEffect(.degrees(sway), anchor: rotationAnchor)
 
                 Text("$\(Int(item.sandDollarValue))")

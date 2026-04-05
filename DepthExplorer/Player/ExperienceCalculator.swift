@@ -57,7 +57,7 @@ struct ExperienceCalculator {
 
     /// Minimum percentage improvement over the previous record to qualify for a bonus.
     /// e.g. 5.0 means the record must be beaten by at least 5%.
-    static let recordMinimumImprovementPercent: Double = 5.0
+    static let recordMinimumImprovementPercent: Double = 1.0
 
     /// Bonus XP for breaking the personal depth record.
     static let depthRecordBonus: Int = 50

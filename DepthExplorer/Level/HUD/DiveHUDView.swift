@@ -53,6 +53,12 @@ struct DiveHUDView: View {
         String(format: "%.1f°C", bodyTemperature)
     }
 
+    private var temperatureColor: Color {
+        if bodyTemperature < GameConstants.hypothermiaCriticalThreshold { return .red }
+        if bodyTemperature < GameConstants.hypothermiaWarningThreshold { return .yellow }
+        return Color(red: 0.2, green: 0.85, blue: 0.4)
+    }
+
     // ADS-specific derived values
 
     private var depthFraction: Double {
@@ -147,7 +153,7 @@ struct DiveHUDView: View {
                             .foregroundStyle(.white.opacity(0.5))
                         Text(temperatureFormatted)
                             .font(.system(size: 14, weight: .semibold, design: .monospaced))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(temperatureColor)
                             .monospacedDigit()
                     }
                 }
@@ -296,9 +302,10 @@ struct DiveHUDView: View {
     private var depthLimitBar: some View {
         HStack(alignment: .bottom, spacing: 4) {
             VStack(alignment: .trailing, spacing: 0) {
-                Text("HULL")
+                Text("HULL\nSTRESS")
                     .font(.system(size: 7, weight: .medium, design: .monospaced))
                     .foregroundStyle(.white.opacity(0.5))
+                    .multilineTextAlignment(.trailing)
                 Text(String(format: "%d%%", Int(depthFraction * 100)))
                     .font(.system(size: 10, weight: .semibold, design: .monospaced))
                     .foregroundStyle(depthLimitBarColor)

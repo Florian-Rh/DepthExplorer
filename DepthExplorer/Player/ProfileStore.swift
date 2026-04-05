@@ -107,18 +107,16 @@ final class ProfileStore: ObservableObject {
     /// Unequip gear from conflicting equipment classes before equipping a new category.
     private func enforceEquipmentExclusivity(for category: GearCategory) {
         switch category.equipmentClass {
-        case .specialist:
+        case .submersible:
             // Unequip all scuba-class gear
             for cat in GearCategory.allCases where cat.equipmentClass == .scuba {
                 profile.equippedGearIDs.removeValue(forKey: cat.rawValue)
             }
         case .scuba:
-            // Unequip all specialist-class gear
-            for cat in GearCategory.allCases where cat.equipmentClass == .specialist {
+            // Unequip all submersible-class gear
+            for cat in GearCategory.allCases where cat.equipmentClass == .submersible {
                 profile.equippedGearIDs.removeValue(forKey: cat.rawValue)
             }
-        case .universal:
-            break
         }
     }
 
@@ -172,30 +170,31 @@ final class ProfileStore: ObservableObject {
         save()
     }
 
-    /// Spawn any trash items whose scheduled spawn time has been reached,
-    /// and ensure every type has a spawn schedule if below its max count.
-    /// Call this before loading trash for a dive.
+    /// Spawn trash items whose scheduled spawn time has been reached.
+    /// Spawns one item per elapsed respawn interval (items trickle in
+    /// rather than all appearing at once). Call this before loading
+    /// trash for a dive.
     func spawnDueTrash() {
         let now = currentGameTime
         var changed = false
 
         for typeDef in TrashTypeDefinition.allTypes {
-            // Check if a spawn is due for this type
-            if let spawnAt = profile.trashSpawnSchedule[typeDef.id], now >= spawnAt {
+            // Spawn one item each time the respawn interval elapses,
+            // advancing the schedule forward until it's in the future
+            // or the world is at max count for this type.
+            while let spawnAt = profile.trashSpawnSchedule[typeDef.id], now >= spawnAt {
                 let currentCount = profile.trashWorldState.filter { $0.typeID == typeDef.id }.count
-                let missing = typeDef.maxCount - currentCount
-
-                if missing > 0 {
-                    // Spawn all missing items at once (catch-up)
-                    for _ in 0..<missing {
-                        profile.trashWorldState.append(.random(for: typeDef))
-                    }
+                if currentCount < typeDef.maxCount {
+                    profile.trashWorldState.append(.random(for: typeDef))
+                    // Schedule the next spawn one interval later
+                    profile.trashSpawnSchedule[typeDef.id] = spawnAt + typeDef.respawnTime
                     changed = true
+                } else {
+                    // At max count — clear the schedule
+                    profile.trashSpawnSchedule.removeValue(forKey: typeDef.id)
+                    changed = true
+                    break
                 }
-
-                // Clear the schedule — world is at max now
-                profile.trashSpawnSchedule.removeValue(forKey: typeDef.id)
-                changed = true
             }
 
             // Ensure types below max count always have a pending schedule.

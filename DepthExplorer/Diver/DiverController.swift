@@ -40,9 +40,9 @@ class DiverController: ObservableObject {
             lastJoystickWasRight = joystickHorizontal > 0
         }
 
-        if atSurface || joystickReleased {
+        if atSurface {
             x += (0 - x) * (1 - smoothing)
-        } else {
+        } else if !joystickReleased {
             x += joystickHorizontal * horizontalSpeed
             x = max(-maxX, min(x, maxX))
         }

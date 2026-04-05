@@ -37,6 +37,8 @@ class DiveSimulation: ObservableObject {
     private var maxDepthReached: Int = 0
     private weak var session: DiveSession?
     private weak var warningSystem: DiveWarningSystem?
+    /// Wall-clock time when `pause()` was called, used to adjust `diveStart` on resume.
+    private var pauseStartDate: Date?
 
     init(
         limitationModels: [any DiveLimitationModel],
@@ -65,6 +67,29 @@ class DiveSimulation: ObservableObject {
     func stop() {
         timer?.invalidate()
         timer = nil
+    }
+
+    /// Pause the simulation timer without resetting state. Call `resume()` to continue.
+    func pause() {
+        timer?.invalidate()
+        timer = nil
+        pauseStartDate = Date()
+    }
+
+    /// Resume a paused simulation. Adjusts `diveStart` to compensate for paused wall-clock time.
+    func resume() {
+        guard timer == nil, session != nil else { return }
+        // Shift diveStart forward so the paused duration is not counted.
+        if let pauseStart = pauseStartDate {
+            let pausedDuration = Date().timeIntervalSince(pauseStart)
+            diveStart = diveStart.addingTimeInterval(pausedDuration)
+            pauseStartDate = nil
+        }
+        let t = Timer(timeInterval: GameConstants.simulationInterval, repeats: true) { [weak self] _ in
+            self?.tick()
+        }
+        RunLoop.main.add(t, forMode: .common)
+        timer = t
     }
 
     func resetSimulationData() {

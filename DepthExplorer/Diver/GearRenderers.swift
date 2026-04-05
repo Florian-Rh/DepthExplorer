@@ -36,6 +36,8 @@ struct DiverRenderContext {
     let hasDPV: Bool
     /// Whether the diver is currently submerged (DPV holding pose only when underwater).
     let submersed: Bool
+    /// Whether an atmospheric diving suit is equipped (stiff posture, no kicking).
+    let hasADS: Bool
 
     /// True when the diver should hold the DPV in extended-arm position.
     var holdingDPV: Bool { hasDPV && submersed }
@@ -1335,5 +1337,315 @@ struct StageTankGearRenderer: GearRenderer {
         )
         tc.stroke(bungee, with: .color(Color.black.opacity(0.4 * alpha)),
                   style: StrokeStyle(lineWidth: 1.2, lineCap: .round))
+    }
+}
+
+// MARK: - Atmospheric Diving Suit Renderer
+
+/// Draws a rigid atmospheric diving suit (ADS) enclosing the diver.
+/// The suit is a hard shell with a viewport dome, arm/leg cylinders,
+/// and thruster nozzles on the back. Tier affects color and size.
+///
+/// Split into three draw passes so `ScubaDiverView` can layer the body
+/// between the hull (behind) and the viewport + thrusters (in front).
+struct ADSGearRenderer {
+    let tier: ADSTier
+
+    // MARK: - Palette
+
+    private var hullColor: Color {
+        switch tier {
+        case .jims:     return Color(red: 0.85, green: 0.85, blue: 0.82) // White/silver
+        case .newtsuit: return Color(red: 0.78, green: 0.68, blue: 0.20) // Classic yellow
+        case .exosuit:  return Color(red: 0.90, green: 0.90, blue: 0.90) // Near black
+        }
+    }
+
+    private var hullShade: Color {
+        switch tier {
+        case .jims:     return Color(red: 0.58, green: 0.50, blue: 0.12)
+        case .newtsuit: return Color(red: 0.60, green: 0.60, blue: 0.58)
+        case .exosuit:  return Color(red: 0.65, green: 0.28, blue: 0.06)
+        }
+    }
+
+    private var hullHighlight: Color {
+        switch tier {
+        case .jims:     return Color(red: 0.92, green: 0.84, blue: 0.40)
+        case .newtsuit: return Color(red: 0.96, green: 0.96, blue: 0.94)
+        case .exosuit:  return Color(red: 1.00, green: 0.60, blue: 0.30)
+        }
+    }
+
+    private var jointColor: Color {
+        Color(red: 0.35, green: 0.35, blue: 0.38)
+    }
+
+    private var viewportFrame: Color {
+        Color(red: 0.22, green: 0.22, blue: 0.26)
+    }
+
+    private var viewportGlass: Color {
+        Color(red: 0.25, green: 0.70, blue: 0.88).opacity(0.55)
+    }
+
+    private var thrusterMetal: Color {
+        Color(red: 0.28, green: 0.28, blue: 0.32)
+    }
+
+    /// Hull width scales with tier (more advanced suits are bulkier).
+    private var hullScale: CGFloat {
+        switch tier {
+        case .jims:     return 1.0
+        case .newtsuit: return 1.08
+        case .exosuit:  return 1.15
+        }
+    }
+
+    // MARK: - Hull (drawn behind body)
+
+    /// Draws the main suit hull — a rounded rectangular shell enclosing
+    /// the torso and extending over the limbs as rigid cylindrical segments.
+    func drawHull(_ ctx: GraphicsContext, render: DiverRenderContext) {
+        let sc = hullScale
+
+        // --- Main torso hull ---
+        // Slightly wider and taller than the body's torso rect (-42..+40, -13..+13)
+        let torsoRect = CGRect(x: -48 * sc, y: -18 * sc, width: 96 * sc, height: 36 * sc)
+        ctx.fill(
+            Path(roundedRect: torsoRect, cornerRadius: 14 * sc),
+            with: .color(hullColor)
+        )
+        // Top highlight
+        ctx.fill(
+            Path(roundedRect: CGRect(x: torsoRect.minX + 3, y: torsoRect.minY + 2,
+                                     width: torsoRect.width - 6, height: 6 * sc),
+                 cornerRadius: 3),
+            with: .color(hullHighlight.opacity(0.25))
+        )
+        // Outline
+        ctx.stroke(
+            Path(roundedRect: torsoRect, cornerRadius: 14 * sc),
+            with: .color(hullShade.opacity(0.6)), lineWidth: 1.5
+        )
+
+        // --- Reinforcement seams ---
+        // Horizontal seam across the chest
+        var seam = Path()
+        seam.move(to: CGPoint(x: torsoRect.minX + 8, y: 0))
+        seam.addLine(to: CGPoint(x: torsoRect.maxX - 8, y: 0))
+        ctx.stroke(seam, with: .color(hullShade.opacity(0.3)),
+                   style: StrokeStyle(lineWidth: 1.0, lineCap: .round))
+
+        // Vertical seam down the center
+        var vSeam = Path()
+        vSeam.move(to: CGPoint(x: 0, y: torsoRect.minY + 6))
+        vSeam.addLine(to: CGPoint(x: 0, y: torsoRect.maxY - 6))
+        ctx.stroke(vSeam, with: .color(hullShade.opacity(0.2)),
+                   style: StrokeStyle(lineWidth: 0.8, lineCap: .round))
+
+        // --- Arm cylinders ---
+        drawArmCylinder(ctx, shoulder: render.nearShoulder,
+                        armSwing: render.nearArmSwing, scale: 1.0, alpha: 1.0)
+        drawArmCylinder(ctx, shoulder: render.farShoulder,
+                        armSwing: render.farArmSwing, scale: 0.91, alpha: 0.7)
+
+        // --- Leg cylinders ---
+        drawLegCylinder(ctx, hip: render.nearHip,
+                        kickAngle: render.nearKick, scale: 1.0, alpha: 1.0)
+        drawLegCylinder(ctx, hip: render.farHip,
+                        kickAngle: render.farKick, scale: 0.91, alpha: 0.7)
+
+        // --- Life support pack on back ---
+        let packRect = CGRect(x: -20 * sc, y: -28 * sc, width: 40 * sc, height: 14 * sc)
+        ctx.fill(
+            Path(roundedRect: packRect, cornerRadius: 5 * sc),
+            with: .color(hullShade.opacity(0.85))
+        )
+        ctx.stroke(
+            Path(roundedRect: packRect, cornerRadius: 5 * sc),
+            with: .color(Color.black.opacity(0.3)), lineWidth: 1.0
+        )
+        // Vent grille on the pack
+        for xOff in stride(from: packRect.minX + 5, to: packRect.maxX - 4, by: 4 * sc) {
+            var vent = Path()
+            vent.move(to: CGPoint(x: xOff, y: packRect.minY + 3))
+            vent.addLine(to: CGPoint(x: xOff, y: packRect.maxY - 3))
+            ctx.stroke(vent, with: .color(Color.black.opacity(0.2)), lineWidth: 0.6)
+        }
+    }
+
+    private func drawArmCylinder(_ ctx: GraphicsContext, shoulder: CGPoint,
+                                  armSwing: Double, scale: CGFloat, alpha: Double) {
+        let sc = hullScale
+        var ac = ctx
+        ac.translateBy(x: shoulder.x, y: shoulder.y)
+        ac.scaleBy(x: scale, y: scale)
+        ac.rotate(by: .degrees(-90 + 25 + armSwing))
+
+        // Rotary joint at shoulder
+        ac.fill(Path(ellipseIn: CGRect(x: -8 * sc, y: -4, width: 16 * sc, height: 8)),
+                with: .color(jointColor.opacity(alpha)))
+
+        // Upper arm cylinder
+        let uaRect = CGRect(x: -7 * sc, y: 2, width: 14 * sc, height: 28)
+        ac.fill(Path(roundedRect: uaRect, cornerRadius: 5 * sc),
+                with: .color(hullColor.opacity(alpha)))
+        ac.stroke(Path(roundedRect: uaRect, cornerRadius: 5 * sc),
+                  with: .color(hullShade.opacity(0.4 * alpha)), lineWidth: 1.0)
+
+        // Elbow joint
+        ac.fill(Path(ellipseIn: CGRect(x: -7 * sc, y: 28, width: 14 * sc, height: 10)),
+                with: .color(jointColor.opacity(alpha)))
+
+        // Forearm cylinder
+        var fc = ac
+        fc.translateBy(x: 0, y: 32)
+        let faRect = CGRect(x: -6 * sc, y: 0, width: 12 * sc, height: 24)
+        fc.fill(Path(roundedRect: faRect, cornerRadius: 4 * sc),
+                with: .color(hullColor.opacity(alpha)))
+        fc.stroke(Path(roundedRect: faRect, cornerRadius: 4 * sc),
+                  with: .color(hullShade.opacity(0.4 * alpha)), lineWidth: 1.0)
+
+        // Manipulator claw at the end
+        let clawColor = Color(red: 0.30, green: 0.30, blue: 0.34)
+        fc.fill(Path(roundedRect: CGRect(x: -7 * sc, y: 22, width: 14 * sc, height: 10), cornerRadius: 3),
+                with: .color(clawColor.opacity(alpha)))
+        // Claw fingers
+        var finger1 = Path()
+        finger1.move(to: CGPoint(x: -4 * sc, y: 30))
+        finger1.addLine(to: CGPoint(x: -6 * sc, y: 36))
+        var finger2 = Path()
+        finger2.move(to: CGPoint(x: 4 * sc, y: 30))
+        finger2.addLine(to: CGPoint(x: 6 * sc, y: 36))
+        fc.stroke(finger1, with: .color(clawColor.opacity(alpha)),
+                  style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+        fc.stroke(finger2, with: .color(clawColor.opacity(alpha)),
+                  style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+    }
+
+    private func drawLegCylinder(_ ctx: GraphicsContext, hip: CGPoint,
+                                  kickAngle: Double, scale: CGFloat, alpha: Double) {
+        let sc = hullScale
+        var lc = ctx
+        lc.translateBy(x: hip.x, y: hip.y)
+        lc.scaleBy(x: scale, y: scale)
+        lc.rotate(by: .degrees(-90 + kickAngle))
+
+        // Rotary joint at hip
+        lc.fill(Path(ellipseIn: CGRect(x: -9 * sc, y: -4, width: 18 * sc, height: 8)),
+                with: .color(jointColor.opacity(alpha)))
+
+        // Thigh cylinder
+        let thighRect = CGRect(x: -8 * sc, y: 2, width: 16 * sc, height: 34)
+        lc.fill(Path(roundedRect: thighRect, cornerRadius: 6 * sc),
+                with: .color(hullColor.opacity(alpha)))
+        lc.stroke(Path(roundedRect: thighRect, cornerRadius: 6 * sc),
+                  with: .color(hullShade.opacity(0.4 * alpha)), lineWidth: 1.0)
+
+        // Knee joint
+        lc.fill(Path(ellipseIn: CGRect(x: -8 * sc, y: 32, width: 16 * sc, height: 10)),
+                with: .color(jointColor.opacity(alpha)))
+
+        // Shin cylinder
+        var kc = lc
+        kc.translateBy(x: 0, y: 38)
+        let shinRect = CGRect(x: -7 * sc, y: 0, width: 14 * sc, height: 30)
+        kc.fill(Path(roundedRect: shinRect, cornerRadius: 5 * sc),
+                with: .color(hullColor.opacity(alpha)))
+        kc.stroke(Path(roundedRect: shinRect, cornerRadius: 5 * sc),
+                  with: .color(hullShade.opacity(0.4 * alpha)), lineWidth: 1.0)
+
+        // Foot plate (flat bottom)
+        kc.fill(Path(roundedRect: CGRect(x: -9 * sc, y: 28, width: 18 * sc, height: 8), cornerRadius: 3),
+                with: .color(hullShade.opacity(alpha)))
+    }
+
+    // MARK: - Viewport (drawn in front of body, replaces head rendering)
+
+    /// Draws the dome viewport where the diver's face would be visible.
+    func drawViewport(_ ctx: GraphicsContext, render: DiverRenderContext) {
+        let sc = hullScale
+        var hc = ctx
+        hc.translateBy(x: render.headCtr.x, y: render.headCtr.y)
+
+        // Helmet dome (larger than the normal head)
+        let domeR: CGFloat = 26 * sc
+        let domeRect = CGRect(x: -domeR, y: -domeR, width: domeR * 2, height: domeR * 2)
+        hc.fill(Path(ellipseIn: domeRect), with: .color(hullColor))
+        hc.stroke(Path(ellipseIn: domeRect), with: .color(hullShade.opacity(0.6)), lineWidth: 1.5)
+
+        // Viewport glass (front-facing window)
+        let vpRect = CGRect(x: -domeR - 2, y: -12 * sc, width: 18 * sc, height: 24 * sc)
+        hc.fill(Path(roundedRect: vpRect, cornerRadius: 6 * sc),
+                with: .color(viewportFrame))
+        let glassRect = CGRect(x: vpRect.minX + 2, y: vpRect.minY + 2,
+                               width: vpRect.width - 4, height: vpRect.height - 4)
+        hc.fill(Path(roundedRect: glassRect, cornerRadius: 4 * sc),
+                with: .color(viewportGlass))
+        // Glass specular highlight
+        hc.fill(Path(roundedRect: CGRect(x: glassRect.minX + 2, y: glassRect.minY + 2,
+                                         width: 6, height: 8), cornerRadius: 2),
+                with: .color(Color.white.opacity(0.35)))
+
+        // Helmet bolts around the dome
+        let boltR: CGFloat = 2.0
+        let boltPositions: [CGPoint] = [
+            CGPoint(x: -domeR + 6, y: -domeR + 6),
+            CGPoint(x: -domeR + 6, y: domeR - 6),
+            CGPoint(x: domeR - 6, y: -domeR + 6),
+            CGPoint(x: domeR - 6, y: domeR - 6),
+            CGPoint(x: 0, y: -domeR + 4),
+            CGPoint(x: 0, y: domeR - 4),
+        ]
+        for bp in boltPositions {
+            hc.fill(Path(ellipseIn: CGRect(x: bp.x - boltR, y: bp.y - boltR,
+                                           width: boltR * 2, height: boltR * 2)),
+                    with: .color(jointColor.opacity(0.7)))
+        }
+    }
+
+    // MARK: - Thrusters (drawn on top of everything)
+
+    /// Draws thruster nozzles on the foot-side (+x) edge of the life support pack.
+    /// The nozzles open toward +x (feet direction) so exhaust shoots backward.
+    func drawThrusters(_ ctx: GraphicsContext, render: DiverRenderContext) {
+        let sc = hullScale
+        let nozzleR: CGFloat = 5 * sc
+
+        // Nozzles sit at the +x edge of the life support pack, offset along y
+        // Pack spans x: -20*sc..+20*sc, y: -28*sc..-14*sc
+        let packRightEdge = 20 * sc
+        let packMidY = (-28 * sc + -14 * sc) / 2  // vertical center of pack
+        let nozzlePositions: [CGPoint] = [
+            CGPoint(x: packRightEdge, y: packMidY - 5 * sc),
+            CGPoint(x: packRightEdge, y: packMidY + 5 * sc)
+        ]
+
+        for pos in nozzlePositions {
+            var nc = ctx
+            nc.translateBy(x: pos.x, y: pos.y)
+
+            // Nozzle bell opening toward +x (feet direction)
+            var bell = Path()
+            bell.move(to: CGPoint(x: 0, y: -nozzleR * 0.6))
+            bell.addLine(to: CGPoint(x: 8 * sc, y: -nozzleR))
+            bell.addQuadCurve(
+                to: CGPoint(x: 8 * sc, y: nozzleR),
+                control: CGPoint(x: 10 * sc, y: 0)
+            )
+            bell.addLine(to: CGPoint(x: 0, y: nozzleR * 0.6))
+            bell.closeSubpath()
+
+            nc.fill(bell, with: .color(thrusterMetal))
+            nc.stroke(bell, with: .color(Color.black.opacity(0.3)), lineWidth: 1.0)
+
+            // Inner void at the opening
+            nc.fill(
+                Path(ellipseIn: CGRect(x: 7 * sc, y: -nozzleR * 0.5,
+                                       width: nozzleR * 0.6, height: nozzleR)),
+                with: .color(Color.black.opacity(0.4))
+            )
+        }
     }
 }

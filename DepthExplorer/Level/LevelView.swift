@@ -40,7 +40,8 @@ struct LevelView: View {
                                 scalingFactor: viewModel.scalingFactor,
                                 contentOffset: viewModel.contentOffset,
                                 screenSize: screenSize,
-                                isDiscovered: false
+                                isDiscovered: false,
+                                pickupProgress: viewModel.knowledgePickupProgress[item.name] ?? 0
                             )
                             .offset(y: 50)
                         }
@@ -52,7 +53,8 @@ struct LevelView: View {
                             item: item,
                             scalingFactor: viewModel.scalingFactor,
                             contentOffset: viewModel.contentOffset,
-                            screenSize: screenSize
+                            screenSize: screenSize,
+                            pickupProgress: viewModel.trashPickupProgress[item.id] ?? 0
                         )
                         .offset(y: 50)
                     }
@@ -63,6 +65,23 @@ struct LevelView: View {
                         factor: viewModel.scalingFactor
                     )
                     .offset(y: screenSize.height / 3 + 15)
+
+                    // Personal depth record marker
+                    if profileStore.profile.recordMaxDepth > 0 {
+                        let recordY = Double(profileStore.profile.recordMaxDepth) * viewModel.scalingFactor
+                        Rectangle()
+                            .fill(Color.red.opacity(0.5))
+                            .frame(width: screenSize.width, height: 1)
+                            .overlay(alignment: .trailing) {
+                                Text("RECORD \(profileStore.profile.recordMaxDepth)m")
+                                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                    .foregroundStyle(.red.opacity(0.7))
+                                    .padding(.trailing, 8)
+                                    .offset(y: -8)
+                            }
+                            .position(x: screenSize.width / 2, y: recordY)
+                            .offset(y: screenSize.height / 3 + 15)
+                    }
                 }
                 .offset(y: -viewModel.contentOffset)
                 .onAppear { viewModel.screenSize = screenSize }
@@ -189,6 +208,15 @@ struct LevelView: View {
                 }
 
                 Spacer()
+            }
+
+            if let item = viewModel.discoveredKnowledgeItem {
+                KnowledgeDiscoveryOverlayView(
+                    item: item,
+                    onDismiss: {
+                        viewModel.dismissDiscovery()
+                    }
+                )
             }
 
             if let stats = viewModel.diveCompleteStats {

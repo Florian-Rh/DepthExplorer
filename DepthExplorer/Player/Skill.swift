@@ -4,9 +4,9 @@ import Foundation
 enum SkillFamily: String, Codable, CaseIterable {
     case breathingTechniques
     case finKicking
+    case negotiator
     case coldResistance
     case stressManagement
-    case negotiator
     case multiGasManagement
 
     var displayName: String {
@@ -35,11 +35,12 @@ enum SkillFamily: String, Codable, CaseIterable {
     /// Below this level the family is shown redacted ("???").
     var minimumLevel: Int? {
         switch self {
-        case .coldResistance: 3
-        case .stressManagement: 5
-        case .negotiator: 8
-        case .multiGasManagement: 10
         case .breathingTechniques, .finKicking: nil
+        case .negotiator: 3
+        case .coldResistance: 4
+        case .stressManagement: 5
+        // Level 8: Environmentalist
+        case .multiGasManagement: 10
         }
     }
 }

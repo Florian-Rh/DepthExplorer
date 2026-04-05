@@ -26,6 +26,8 @@ class LevelViewModel: ObservableObject {
     @Published var rescueInfo: RescueInfo?
     /// Set when the diver surfaces safely; cleared after the overlay is dismissed.
     @Published var diveCompleteStats: DiveCompleteStats?
+    /// Set when a knowledgeable item is discovered; pauses the simulation until dismissed.
+    @Published var discoveredKnowledgeItem: KnowledgeableItem?
     @Published var screenSize: CGSize = .zero
     @Published var trashItems: [TrashItem] = []
 
@@ -41,6 +43,11 @@ class LevelViewModel: ObservableObject {
     @Published private(set) var discoveredItemNames: Set<String> = []
     @Published private(set) var contentOffset: CGFloat = 0
 
+    /// Pickup progress per trash item (0…1). Resets when the diver moves away.
+    @Published private(set) var trashPickupProgress: [UUID: Double] = [:]
+    /// Pickup progress per knowledgeable item (0…1), keyed by item name. Resets when the diver moves away.
+    @Published private(set) var knowledgePickupProgress: [String: Double] = [:]
+
 
     let diverController = DiverController()
     private(set) var diveSimulation: DiveSimulation
@@ -53,6 +60,8 @@ class LevelViewModel: ObservableObject {
     private var cancellables: Set<AnyCancellable> = []
     private var previousSessionState: DiveSessionState = .surface
     private var maxDepthReached: Int = 0
+    /// Timestamp of the last `update()` call, used to compute delta time for hover progress.
+    private var lastUpdateTime: Date?
 
     var scalingFactor: Double {
         level.scalingFactor
@@ -153,6 +162,17 @@ class LevelViewModel: ObservableObject {
         newSimulation.start(session: diveSession, warningSystem: warningSystem)
     }
 
+    /// Commit the discovery and resume the simulation after the discovery overlay is dismissed.
+    func dismissDiscovery() {
+        guard let item = discoveredKnowledgeItem else { return }
+        diveSession.discoverItem(named: item.name, atDepth: item.depth)
+        profileStore.discoverItem(named: item.name)
+        discoveredItemNames.insert(item.name)
+        discoveredKnowledgeItem = nil
+        // Resume simulation
+        diveSimulation.resume()
+    }
+
     /// Commit rewards and reset session after the dive complete overlay is dismissed.
     func dismissDiveComplete() {
         if let breakdown = diveCompleteStats?.experienceBreakdown {
@@ -175,6 +195,13 @@ class LevelViewModel: ObservableObject {
 
     /// Called every display frame by the scroll driver.
     func update() {
+        // Skip updates while a discovery overlay is showing (simulation is paused).
+        guard discoveredKnowledgeItem == nil else { return }
+
+        let now = Date()
+        let dt = lastUpdateTime.map { now.timeIntervalSince($0) } ?? 0
+        lastUpdateTime = now
+
         diverController.updateSmoothing(
             contentOffset: contentOffset,
             currentDepth: currentDepth,
@@ -186,7 +213,7 @@ class LevelViewModel: ObservableObject {
             maxDepthReached = currentDepth
         }
         checkSessionTransitions()
-        checkProximity()
+        checkProximity(dt: dt)
         updateContentOffset()
     }
 
@@ -331,15 +358,28 @@ class LevelViewModel: ObservableObject {
                 profileStore.collectTrashItem(id: trashID)
             }
             trashItems = []
+            trashPickupProgress = [:]
+            knowledgePickupProgress = [:]
         }
 
-        // Detect rescue → show overlay, clear trash
+        // Detect rescue → award discovery XP, show overlay, clear trash
         if case .rescued(let reason) = currentState, previousSessionState == .diving {
+            // Discoveries persist even on rescue — award their XP immediately.
+            if !diveSession.discoveredItemRecords.isEmpty {
+                var discoveryXP = 0
+                for item in diveSession.discoveredItemRecords {
+                    discoveryXP += ExperienceCalculator.baseItemXP + Int(item.depthMeters * ExperienceCalculator.itemDepthBonusPerMeter)
+                }
+                profileStore.addExperience(discoveryXP)
+            }
+
             rescueInfo = RescueInfo(
                 reason: reason,
                 lostSandDollars: Int(diveSession.collectedSandDollars)
             )
             trashItems = []
+            trashPickupProgress = [:]
+            knowledgePickupProgress = [:]
         }
 
         previousSessionState = currentState
@@ -369,12 +409,13 @@ class LevelViewModel: ObservableObject {
         return sqrt(dx * dx + dy * dy)
     }
 
-    private func checkProximity() {
+    private func checkProximity(dt: TimeInterval) {
         guard diveSession.state == .diving else { return }
         let diverPos = diverScreenPosition
         let radius = GameConstants.pickupRadius
 
-        // Knowledgeable Items
+        // Knowledgeable Items — hover-to-discover
+        var knowledgeInRange: Set<String> = []
         for (index, item) in KnowledgeableItem.allItems.enumerated() {
             guard !discoveredItemNames.contains(item.name) else { continue }
             let itemPos = itemScreenPosition(
@@ -383,23 +424,63 @@ class LevelViewModel: ObservableObject {
                 hPadding: 60
             )
             guard distance(diverPos, itemPos) <= radius else { continue }
-            diveSession.discoverItem(named: item.name, atDepth: item.depth)
-            profileStore.discoverItem(named: item.name)
-            discoveredItemNames.insert(item.name)
+
+            knowledgeInRange.insert(item.name)
+
+            let simulatedDt = dt
+            let effectiveDuration = item.pickupDuration / diveParameters.pickupSpeedMultiplier
+            let increment = effectiveDuration > 0 ? simulatedDt / effectiveDuration : 1.0
+            let progress = (knowledgePickupProgress[item.name] ?? 0) + increment
+
+            if progress >= 1.0 {
+                knowledgePickupProgress.removeValue(forKey: item.name)
+                // Pause simulation and show discovery overlay
+                discoveredKnowledgeItem = item
+                diveSimulation.pause()
+                lastUpdateTime = nil
+                return
+            } else {
+                knowledgePickupProgress[item.name] = progress
+            }
         }
 
-        // Trash Items
+        // Reset progress for knowledge items no longer in range
+        for name in knowledgePickupProgress.keys where !knowledgeInRange.contains(name) {
+            knowledgePickupProgress.removeValue(forKey: name)
+        }
+
+        // Trash Items — hover-to-collect
+        var inRangeIDs: Set<UUID> = []
         var pickedUp: [UUID] = []
         for item in trashItems {
-            guard !diveSession.isBagFull else { break }
             let screenY = item.depth * scalingFactor - contentOffset + screenSize.height / 3 + 50
             let screenX = item.xFraction * screenSize.width
             let itemPos = CGPoint(x: screenX, y: screenY)
             guard distance(diverPos, itemPos) <= radius else { continue }
-            if diveSession.collectTrash(id: item.id, value: item.sandDollarValue) {
-                pickedUp.append(item.id)
+            guard !diveSession.isBagFull else { break }
+
+            inRangeIDs.insert(item.id)
+
+            // Accumulate hover progress
+            let effectiveDuration = item.typeDef.pickupDuration / diveParameters.pickupSpeedMultiplier
+            let increment = effectiveDuration > 0 ? dt / effectiveDuration : 1.0
+            let progress = (trashPickupProgress[item.id] ?? 0) + increment
+
+            if progress >= 1.0 {
+                if diveSession.collectTrash(id: item.id, value: item.sandDollarValue) {
+                    pickedUp.append(item.id)
+                }
+                trashPickupProgress.removeValue(forKey: item.id)
+            } else {
+                trashPickupProgress[item.id] = progress
             }
         }
+
+        // Reset progress for items no longer in range
+        for id in trashPickupProgress.keys where !inRangeIDs.contains(id) {
+            trashPickupProgress.removeValue(forKey: id)
+        }
+
         if !pickedUp.isEmpty {
             trashItems.removeAll { pickedUp.contains($0.id) }
         }

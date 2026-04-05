@@ -7,6 +7,8 @@ struct KnowledgeableItemView: View {
     let contentOffset: Double
     let screenSize: CGSize
     let isDiscovered: Bool
+    /// Pickup progress 0…1 (0 = not hovering, 1 = discovered). Drives the filling circle.
+    var pickupProgress: Double = 0.25
 
     private let hPadding = 60.0
 
@@ -27,12 +29,16 @@ struct KnowledgeableItemView: View {
         VStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .fill((isDiscovered ? Color.yellow : Color.blue).opacity(0.3))
+                    .fill(Color.blue).opacity(0.3)
                     .frame(width: 60, height: 60)
                     .blur(radius: 8)
-                Circle()
-                    .stroke(isDiscovered ? Color.yellow : Color.blue, lineWidth: 3)
-                    .frame(width: 50, height: 50)
+                if pickupProgress > 0 {
+                    Circle()
+                        .trim(from: 0, to: pickupProgress)
+                        .stroke(Color.blue, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .frame(width: 50, height: 50)
+                }
                 Image(systemName: item.image)
                     .resizable()
                     .scaledToFit()
@@ -40,7 +46,6 @@ struct KnowledgeableItemView: View {
                     .frame(width: 50, height: 50)
                     .clipShape(.circle)
             }
-            .scaleEffect(isDiscovered ? 1.1 : 1.0)
             .animation(.spring(response: 0.3, dampingFraction: 0.5), value: isDiscovered)
 
             Text(item.name)

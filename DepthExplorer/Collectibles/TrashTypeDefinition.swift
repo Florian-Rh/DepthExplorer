@@ -17,6 +17,8 @@ struct TrashTypeDefinition: Identifiable {
     let respawnTime: TimeInterval
     /// Maximum number of this type that can exist in the world simultaneously.
     let maxCount: Int
+    /// Base time in simulated seconds to pick up this item (multiplied by pickupSpeedMultiplier).
+    let pickupDuration: TimeInterval
 
     // MARK: - Catalog
 
@@ -28,7 +30,8 @@ struct TrashTypeDefinition: Identifiable {
             minDepth: 10,
             maxDepth: 100,
             respawnTime: 400,
-            maxCount: 6
+            maxCount: 40,
+            pickupDuration: 1.0
         ),
         TrashTypeDefinition(
             id: "trash.plasticBag",
@@ -36,8 +39,9 @@ struct TrashTypeDefinition: Identifiable {
             sandDollarValue: 2.0,
             minDepth: 20,
             maxDepth: 150,
-            respawnTime: 600,
-            maxCount: 4
+            respawnTime: 60,
+            maxCount: 30,
+            pickupDuration: 1.5
         ),
         TrashTypeDefinition(
             id: "trash.bottle",
@@ -46,70 +50,78 @@ struct TrashTypeDefinition: Identifiable {
             minDepth: 50,
             maxDepth: 300,
             respawnTime: 580,
-            maxCount: 4
+            maxCount: 30,
+            pickupDuration: 1.5
         ),
         TrashTypeDefinition(
             id: "trash.tire",
             color: .gray,
             sandDollarValue: 4.0,
-            minDepth: 50,
-            maxDepth: 200,
+            minDepth: 100,
+            maxDepth: 300,
             respawnTime: 1200,
-            maxCount: 4
+            maxCount: 25,
+            pickupDuration: 3.0
         ),
         TrashTypeDefinition(
             id: "trash.battery",
             color: .yellow,
             sandDollarValue: 5.0,
-            minDepth: 100,
-            maxDepth: 300,
+            minDepth: 250,
+            maxDepth: 500,
             respawnTime: 900,
-            maxCount: 3
+            maxCount: 15,
+            pickupDuration: 2.0
         ),
         TrashTypeDefinition(
             id: "trash.fishingNet",
             color: .orange,
             sandDollarValue: 6.0,
-            minDepth: 100,
-            maxDepth: 200,
+            minDepth: 500,
+            maxDepth: 1000,
             respawnTime: 1000,
-            maxCount: 3
+            maxCount: 15,
+            pickupDuration: 3.5
         ),
         TrashTypeDefinition(
             id: "trash.shoppingCart",
             color: .cyan,
             sandDollarValue: 10.0,
-            minDepth: 300,
-            maxDepth: 800,
+            minDepth: 800,
+            maxDepth: 1500,
             respawnTime: 2000,
-            maxCount: 3
+            maxCount: 15,
+            pickupDuration: 4.0
         ),
         TrashTypeDefinition(
             id: "trash.oilDrum",
             color: Color(red: 0.55, green: 0.35, blue: 0.15),
             sandDollarValue: 12.0,
-            minDepth: 300,
-            maxDepth: 1000,
+            minDepth: 900,
+            maxDepth: 2000,
             respawnTime: 2000,
-            maxCount: 4
+            maxCount: 20,
+            pickupDuration: 5.0
         ),
         TrashTypeDefinition(
             id: "trash.anchor",
             color: Color(red: 0.25, green: 0.35, blue: 0.55),
             sandDollarValue: 15.0,
-            minDepth: 800,
-            maxDepth: 1200,
+            minDepth: 1000,
+            maxDepth: 3000,
             respawnTime: 2600,
-            maxCount: 2
+            maxCount: 20,
+            pickupDuration: 6.0
         ),
         TrashTypeDefinition(
             id: "trash.container",
             color: Color(red: 0.80, green: 0.30, blue: 0.10),
             sandDollarValue: 20.0,
-            minDepth: 1300,
-            maxDepth: 2800,
+            minDepth: 2000,
+            maxDepth: 4000,
             respawnTime: 4000,
-            maxCount: 3
+            maxCount: 10,
+            pickupDuration: 8.0
         ),
     ]
 }

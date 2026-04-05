@@ -17,9 +17,11 @@ struct DiverAppearance: Equatable {
     var liftBag: LiftBagTier?
     /// The equipped DPV tier, or `nil` for no DPV.
     var dpv: DPVTier?
+    /// The equipped atmospheric diving suit tier, or `nil` for no ADS.
+    var ads: ADSTier?
 
     /// Default appearance: no gear at all (naked diver).
-    static let naked = DiverAppearance(suit: nil, fins: nil, scubaGear: nil, stageTanks: nil, meshBag: nil, liftBag: nil, dpv: nil)
+    static let naked = DiverAppearance(suit: nil, fins: nil, scubaGear: nil, stageTanks: nil, meshBag: nil, liftBag: nil, dpv: nil, ads: nil)
 
     /// Build appearance from a player profile's equipped gear.
     static func from(profile: PlayerProfile) -> DiverAppearance {
@@ -53,6 +55,10 @@ struct DiverAppearance: Equatable {
             // Lift bags
             case "liftBag.medium":    appearance.liftBag = .medium
             case "liftBag.large":     appearance.liftBag = .large
+            // Atmospheric diving suits
+            case "ads.jims":          appearance.ads = .jims
+            case "ads.newtsuit":      appearance.ads = .newtsuit
+            case "ads.exosuit":       appearance.ads = .exosuit
             default: break
             }
         }
@@ -114,5 +120,13 @@ enum LiftBagTier: Equatable {
 enum DPVTier: Equatable {
     case basic
     case advanced
+}
+
+// MARK: - ADS tiers
+
+enum ADSTier: Equatable {
+    case jims
+    case newtsuit
+    case exosuit
 }
 

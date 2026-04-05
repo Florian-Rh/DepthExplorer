@@ -2,8 +2,8 @@ import SwiftUI
 
 /// Loadout management: equip and unequip owned gear, one item per category slot.
 ///
-/// When specialist equipment is unlocked, shows a picker to navigate between
-/// "Scuba Equipment" and "Specialist Equipment" sub-views.
+/// When submersible equipment is unlocked, shows a picker to navigate between
+/// "Scuba Equipment" and "Submersible Equipment" sub-views.
 /// Before that unlock, shows the flat scuba list directly.
 struct InventoryView: View {
     @ObservedObject var profileStore: ProfileStore
@@ -12,16 +12,16 @@ struct InventoryView: View {
         LevelProgression.from(totalXP: profileStore.profile.experiencePoints).level
     }
 
-    /// Whether the player has unlocked any specialist-class category.
-    private var hasSpecialistUnlocked: Bool {
+    /// Whether the player has unlocked any submersible-class category.
+    private var hasSubmersibleUnlocked: Bool {
         GearCategory.allCases.contains { cat in
-            cat.equipmentClass == .specialist
+            cat.equipmentClass == .submersible
             && cat.minimumRank.minimumLevel <= playerLevel
         }
     }
 
     var body: some View {
-        if hasSpecialistUnlocked {
+        if hasSubmersibleUnlocked {
             InventoryClassPicker(profileStore: profileStore)
         } else {
             InventoryGearList(
@@ -33,7 +33,7 @@ struct InventoryView: View {
 
     private var scubaCategories: [GearCategory] {
         GearCategory.allCases.filter {
-            ($0.equipmentClass == .scuba || $0.equipmentClass == .universal)
+            $0.equipmentClass == .scuba
             && $0.minimumRank.minimumLevel <= playerLevel
         }
     }
@@ -41,7 +41,7 @@ struct InventoryView: View {
 
 // MARK: - Equipment class picker
 
-/// Two large buttons that switch between Scuba and Specialist loadout lists.
+/// Two large buttons that switch between Scuba and Submersible loadout lists.
 private struct InventoryClassPicker: View {
     @ObservedObject var profileStore: ProfileStore
     @State private var selectedClass: EquipmentClass = .scuba
@@ -52,14 +52,14 @@ private struct InventoryClassPicker: View {
 
     private var scubaCategories: [GearCategory] {
         GearCategory.allCases.filter {
-            ($0.equipmentClass == .scuba || $0.equipmentClass == .universal)
+            $0.equipmentClass == .scuba
             && $0.minimumRank.minimumLevel <= playerLevel
         }
     }
 
-    private var specialistCategories: [GearCategory] {
+    private var submersibleCategories: [GearCategory] {
         GearCategory.allCases.filter {
-            $0.equipmentClass == .specialist
+            $0.equipmentClass == .submersible
             && $0.minimumRank.minimumLevel <= playerLevel
         }
     }
@@ -74,9 +74,9 @@ private struct InventoryClassPicker: View {
                     equipmentClass: .scuba
                 )
                 classTab(
-                    title: "Specialist",
+                    title: "Submersible",
                     icon: "shield.checkered",
-                    equipmentClass: .specialist
+                    equipmentClass: .submersible
                 )
             }
             .padding(3)
@@ -91,13 +91,11 @@ private struct InventoryClassPicker: View {
                     profileStore: profileStore,
                     categories: scubaCategories
                 )
-            case .specialist:
+            case .submersible:
                 InventoryGearList(
                     profileStore: profileStore,
-                    categories: specialistCategories
+                    categories: submersibleCategories
                 )
-            case .universal:
-                EmptyView()
             }
         }
     }
@@ -132,7 +130,7 @@ private struct InventoryClassPicker: View {
 // MARK: - Gear list for a set of categories
 
 /// Displays gear slot sections for the given categories.
-/// Reused for both the scuba and specialist sub-views.
+/// Reused for both the scuba and submersible sub-views.
 private struct InventoryGearList: View {
     @ObservedObject var profileStore: ProfileStore
     let categories: [GearCategory]

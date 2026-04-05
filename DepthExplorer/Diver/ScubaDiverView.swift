@@ -57,9 +57,11 @@ private struct DiverScene {
     private var bobY: CGFloat { CGFloat(sin(t * 1.10) * 15) }
     private var bobX: CGFloat { CGFloat(cos(t * 0.57) * 15) }
 
-    private var nearKick: Double { sin(phase) * 15.0 }
+    private var hasADS: Bool { appearance.ads != nil }
+
+    private var nearKick: Double { hasADS ? 0 : sin(phase) * 15.0 }
     private var nearFlex: Double { -cos(phase) }
-    private var farKick: Double { -sin(phase) * 15.0 }
+    private var farKick: Double { hasADS ? 0 : -sin(phase) * 15.0 }
     private var farFlex: Double { cos(phase) }
 
     private var nearArmSwing: Double { sin(phase * 0.5 + .pi) * 4.0 }
@@ -86,7 +88,8 @@ private struct DiverScene {
             farArmSwing: farArmSwing,
             bodyTilt: bodyTilt,
             hasDPV: appearance.dpv != nil,
-            submersed: submersed
+            submersed: submersed,
+            hasADS: hasADS
         )
     }
 
@@ -106,8 +109,11 @@ private struct DiverScene {
 
     func draw(_ ctx: GraphicsContext, bodyTilt: Double, submersed: Bool) {
         drawDiver(ctx, bodyTilt: bodyTilt, submersed: submersed)
-        if submersed && appearance.scubaGear != nil && appearance.scubaGear != .rebreather {
+        if submersed && !hasADS && appearance.scubaGear != nil && appearance.scubaGear != .rebreather {
             drawBubbles(ctx, bodyTilt: bodyTilt)
+        }
+        if submersed && hasADS {
+            drawThrusterExhaust(ctx, bodyTilt: bodyTilt)
         }
     }
 
@@ -121,7 +127,31 @@ private struct DiverScene {
 
         let rc = renderContext(bodyTilt: bodyTilt, submersed: submersed)
 
-        // Build renderers based on appearance
+        if let adsTier = appearance.ads {
+            drawADSDiver(dc, render: rc, tier: adsTier)
+        } else {
+            drawScubaDiver(dc, render: rc)
+        }
+    }
+
+    /// Draws the diver in a standard atmospheric diving suit — a rigid hull
+    /// enclosing the body, with thruster nozzles on the back. No fins, no
+    /// scuba tank, no kicking animation.
+    private func drawADSDiver(_ dc: GraphicsContext, render: DiverRenderContext, tier: ADSTier) {
+        let adsRenderer = ADSGearRenderer(tier: tier)
+
+        // The ADS hull replaces the body entirely — no BodyRenderer needed.
+        adsRenderer.drawHull(dc, render: render)
+
+        // ADS viewport (replaces the normal head)
+        adsRenderer.drawViewport(dc, render: render)
+
+        // Thruster nozzles on top of everything
+        adsRenderer.drawThrusters(dc, render: render)
+    }
+
+    /// Normal scuba/apnoe rendering path.
+    private func drawScubaDiver(_ dc: GraphicsContext, render: DiverRenderContext) {
         let bodyRenderer = BodyRenderer(
             suit: appearance.suit,
             hasFins: appearance.fins != nil,
@@ -133,67 +163,63 @@ private struct DiverScene {
             suit: appearance.suit,
             hasScubaGear: appearance.scubaGear != nil
         )
-        headRenderer.draw(dc, render: rc)
+        headRenderer.draw(dc, render: render)
 
-        // Paint order: far fins → near fins → tank → body (far limbs, torso, near limbs) → head
-        // Far fins behind body
+        // Paint order: far fins → near fins → tank → body → head
         if let finsTier = appearance.fins {
-            // Draw only far fin first (behind body)
             let finsRenderer = FinsGearRenderer(tier: finsTier)
-            drawFarFinOnly(dc, renderer: finsRenderer, render: rc)
+            drawFarFinOnly(dc, renderer: finsRenderer, render: render)
         }
 
-        // Near fin in front of body
         if let finsTier = appearance.fins {
             let finsRenderer = FinsGearRenderer(tier: finsTier)
-            drawNearFinOnly(dc, renderer: finsRenderer, render: rc)
+            drawNearFinOnly(dc, renderer: finsRenderer, render: render)
         }
 
         // Tank / rebreather behind body
         if let tankTier = appearance.scubaGear {
             if tankTier == .rebreather {
                 let rebreatherRenderer = RebreatherGearRenderer()
-                rebreatherRenderer.draw(dc, render: rc)
+                rebreatherRenderer.draw(dc, render: render)
             } else {
                 let tankRenderer = TankGearRenderer(tier: tankTier, suitColor: suitColor)
-                tankRenderer.draw(dc, render: rc)
+                tankRenderer.draw(dc, render: render)
             }
         }
-
 
         // Far-side stage tank (behind body, only for double)
         if appearance.stageTanks == .double {
             let stageRenderer = StageTankGearRenderer(tier: .double)
-            stageRenderer.drawStageTank(dc, render: rc, isFar: true)
+            stageRenderer.drawStageTank(dc, render: render, isFar: true)
         }
 
         // Body (torso + all limbs)
-        bodyRenderer.draw(dc, render: rc)
+        bodyRenderer.draw(dc, render: render)
 
         // Near-side stage tank (in front of body)
         if let stageTier = appearance.stageTanks {
             let stageRenderer = StageTankGearRenderer(tier: stageTier)
-            stageRenderer.drawStageTank(dc, render: rc, isFar: false)
+            stageRenderer.drawStageTank(dc, render: render, isFar: false)
         }
 
         // Mesh bag (in front of body, clipped to near hip)
         if let bagTier = appearance.meshBag {
             let bagRenderer = MeshBagGearRenderer(tier: bagTier)
-            bagRenderer.draw(dc, render: rc)
+            bagRenderer.draw(dc, render: render)
         }
 
         // Lift bag (attached to near hip, always points up)
         if let liftTier = appearance.liftBag {
             let liftRenderer = LiftBagGearRenderer(tier: liftTier)
-            liftRenderer.draw(dc, render: rc)
+            liftRenderer.draw(dc, render: render)
             let bagRenderer = MeshBagGearRenderer(tier: .large)
-            bagRenderer.draw(dc, render: rc)
+            bagRenderer.draw(dc, render: render)
         }
 
         // DPV (held by near arm, in front of body)
         if let dpvTier = appearance.dpv {
             let dpvRenderer = DPVGearRenderer(tier: dpvTier)
-            dpvRenderer.draw(dc, render: rc)
+            dpvRenderer.draw(dc, render: render)
         }
     }
 
@@ -309,6 +335,85 @@ private struct DiverScene {
     //   x_w =  x_b · cos θ + y_b · sin θ  +  center.x
     //   y_w = −x_b · sin θ + y_b · cos θ  +  center.y
 
+    // MARK: - Thruster Exhaust
+
+    /// Draws turbulent water jets from the ADS thrusters on the suit's back.
+    /// Similar approach to bubbles but the particles travel backward (+x in body-local)
+    /// and are smaller, brighter, and more turbulent.
+    private let cExhaust = Color(red: 0.65, green: 0.85, blue: 1.00)
+
+    private func drawThrusterExhaust(_ ctx: GraphicsContext, bodyTilt: Double) {
+        let θ = bodyTilt * .pi / 180.0
+        let cosT = cos(θ), sinT = sin(θ)
+
+        // drawDiver applies: translate → rotate(θ CW) → optional Y-flip.
+        // The combined body-local → world transform for a point (bx, by) is:
+        //
+        //   Rotation (CW by θ):
+        //     rx =  bx·cos − by·sin
+        //     ry =  bx·sin + by·cos
+        //
+        //   Y-flip when tilt 90–270 (applied BEFORE rotation in drawing order,
+        //   but AFTER in matrix composition): flip by → −by before rotating.
+        let isFlipped = bodyTilt > 90.0 && bodyTilt < 270.0
+        let ySign: Double = isFlipped ? -1 : 1
+
+        // Nozzle positions in body-local coords (must match ADSGearRenderer):
+        // Pack: x -20..+20, y -28..-14. Nozzle tips past the bell at x ≈ 28.
+        let nozzleTipX: Double = 28
+        let packMidY: Double = -21
+        let nozzles: [(Double, Double)] = [
+            (nozzleTipX, packMidY - 5),
+            (nozzleTipX, packMidY + 5)
+        ]
+
+        /// Transform body-local point to world space.
+        func toWorld(_ bx: Double, _ by: Double) -> CGPoint {
+            let fy = by * ySign          // apply Y-flip
+            let wx = bx * cosT - fy * sinT
+            let wy = bx * sinT + fy * cosT
+            return CGPoint(x: diverCenter.x + wx,
+                           y: diverCenter.y + wy)
+        }
+
+        /// Transform body-local direction vector to world space.
+        func dirToWorld(_ dx: Double, _ dy: Double) -> (CGFloat, CGFloat) {
+            let fy = dy * ySign
+            return (CGFloat(dx * cosT - fy * sinT),
+                    CGFloat(dx * sinT + fy * cosT))
+        }
+
+        // Exhaust direction in body-local: +x (toward feet)
+        let (exDirX, exDirY) = dirToWorld(1, 0)
+        // Spread perpendicular: body-local +y (toward belly)
+        let (spDirX, spDirY) = dirToWorld(0, 1)
+
+        for (nx, ny) in nozzles {
+            let origin = toWorld(nx, ny)
+
+            for i in 0..<8 {
+                let fi = Double(i)
+                let age = fmod(t * 2.5 + fi * 0.28, 2.0)
+                let dist = CGFloat(age) * 40.0
+                let spread = CGFloat(sin(t * 3.8 + fi * 2.3)) * 6.0
+                var r = CGFloat(1.2 + age * 1.8)
+                r = min(r, 6.0)
+                let opacity = max(0.0, 1.0 - age / 1.6) * 0.95
+                guard opacity > 0.01 else { continue }
+
+                let px = origin.x + exDirX * dist + spDirX * spread
+                let py = origin.y + exDirY * dist + spDirY * spread
+                let rect = CGRect(x: px - r, y: py - r, width: r * 2, height: r * 2)
+
+                ctx.fill(Path(ellipseIn: rect),
+                         with: .color(cExhaust.opacity(opacity * 0.65)))
+                ctx.stroke(Path(ellipseIn: rect),
+                           with: .color(cExhaust.opacity(opacity * 0.8)),
+                           lineWidth: 0.7)
+            }
+        }
+    }
+
     private let cBubble = Color(red: 0.80, green: 0.95, blue: 1.00)
 
     private func drawBubbles(_ ctx: GraphicsContext, bodyTilt: Double) {
@@ -401,6 +506,21 @@ private struct DiverScene {
 
 #Preview("Rebreather") {
     ScubaDiverView(appearance: DiverAppearance(suit: .drysuit, fins: .pro, scubaGear: .rebreather))
+        .preferredColorScheme(.dark)
+}
+
+#Preview("ADS — JIM Suit") {
+    ScubaDiverView(appearance: DiverAppearance(ads: .jims))
+        .preferredColorScheme(.dark)
+}
+
+#Preview("ADS — Newtsuit") {
+    ScubaDiverView(appearance: DiverAppearance(ads: .newtsuit))
+        .preferredColorScheme(.dark)
+}
+
+#Preview("ADS — Exosuit") {
+    ScubaDiverView(appearance: DiverAppearance(ads: .exosuit))
         .preferredColorScheme(.dark)
 }
 
