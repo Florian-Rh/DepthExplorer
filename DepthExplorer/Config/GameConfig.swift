@@ -32,24 +32,6 @@ struct LevelDefinition {
         minimumCompletionDepth: 10,
         minimumCompletionTime: 120
     )
-
-    static let levelOne = LevelDefinition(
-        depthLimit: nil,
-        scalingFactor: 100.0,
-        autoSurfaceDepth: 1,
-        autoSurfaceSpeed: 4.0,
-        minimumCompletionDepth: 10,
-        minimumCompletionTime: 60
-    )
-
-    static let levelEnd = LevelDefinition(
-        depthLimit: nil,
-        scalingFactor: 1.0,
-        autoSurfaceDepth: 100,
-        autoSurfaceSpeed: 4.0,
-        minimumCompletionDepth: 10,
-        minimumCompletionTime: 60
-    )
 }
 
 /// Game-wide tuning constants.
@@ -60,11 +42,8 @@ enum GameConstants {
     /// Maximum representable depth in meters (Challenger Deep).
     static let maximumDepth: Double = 11500.0
 
-    /// Scroll speed multiplier (pts per frame at full joystick deflection).
-    static let scrollSpeed: CGFloat = 8.0
-
     /// Scroll speed when apnoe diving (no fins equipped).
-    static let apnoeScrollSpeed: CGFloat = 5.0
+    static let baseVerticalSpeed: CGFloat = 5.0
 
     // MARK: - Diver Movement
 
@@ -106,9 +85,6 @@ enum GameConstants {
     /// Lung capacity in bar when apnoe diving (no scuba gear equipped).
     /// A gameplay abstraction — represents the air a diver can hold in their lungs.
     static let apnoeLungCapacity: Double = 8.0
-
-    /// Standard scuba gear capacity in bar (cylinder + regulator).
-    static let scubaGearCapacity: Double = 200.0
 
     /// Surface air consumption rate in bar per simulated minute.
     /// At depth, actual consumption is `sacRate * ambientPressure`.

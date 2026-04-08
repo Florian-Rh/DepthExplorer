@@ -63,8 +63,8 @@ struct DiveParameters {
     /// 3. Apply skill modifiers (multiplicative, highest level per family only)
     static func from(profile: PlayerProfile) -> DiveParameters {
         // Start with apnoe (no-gear) defaults
-        var scrollSpeed = GameConstants.apnoeScrollSpeed
-        var horizontalSpeed = GameConstants.apnoeHorizontalSpeed
+        var scrollSpeed = GameConstants.baseVerticalSpeed
+        var horizontalSpeed = GameConstants.baseHorizontalSpeed
         var coolingRate = GameConstants.coolingRate
         var earningsMultiplier = 1.0
         var airCapacity = 0.0
