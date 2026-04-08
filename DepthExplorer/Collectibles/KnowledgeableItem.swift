@@ -14,18 +14,11 @@ struct KnowledgeableItem: Identifiable {
     static let allItems: [KnowledgeableItem] = [
         // MARK: Sunlight Zone (0–200m)
         .init(
-            depth: 35,
+            depth: 25,
             name: "Seagrass",
             image: "leaf.fill",
             category: .species,
             description: "Seagrass meadows are underwater flowering plants — not algae — that form dense carpets on sandy and muddy seafloors. They stabilize sediment, absorb carbon dioxide up to 35 times faster than tropical rainforests, and provide nursery grounds for commercially important fish and shellfish species."
-        ),
-        .init(
-            depth: 40,
-            name: "Kelp Forests",
-            image: "tree.fill",
-            category: .oceanography,
-            description: "Giant kelp can grow up to 60 centimeters per day, making it one of the fastest-growing organisms on Earth. Kelp forests provide shelter, food, and nursery habitat for hundreds of species. They anchor to rocky substrates with root-like holdfasts and can form underwater canopies stretching over 45 meters from the seafloor toward the light."
         ),
         .init(
             depth: 45,
@@ -35,18 +28,18 @@ struct KnowledgeableItem: Identifiable {
             description: "Clownfish live in symbiosis with sea anemones, which protect them from predators with their stinging tentacles."
         ),
         .init(
-            depth: 30,
+            depth: 50,
             name: "Sunlight Zone",
             image: "sun.max.fill",
             category: .oceanography,
             description: "The sunlight zone (epipelagic) extends from the surface to 200 meters. It receives enough light for photosynthesis and contains over 90% of all marine life, including coral reefs, seagrass meadows, and most fish species."
         ),
         .init(
-            depth: 50,
-            name: "Plankton",
-            image: "sparkle",
-            category: .species,
-            description: "Plankton are the drifting foundation of ocean life. Phytoplankton — microscopic algae — produce roughly half of all the oxygen on Earth through photosynthesis. Zooplankton, the tiny animals that feed on them, form the base of the marine food web. Together they support everything from sardines to blue whales."
+            depth: 60,
+            name: "Kelp Forests",
+            image: "tree.fill",
+            category: .oceanography,
+            description: "Giant kelp can grow up to 60 centimeters per day, making it one of the fastest-growing organisms on Earth. Kelp forests provide shelter, food, and nursery habitat for hundreds of species. They anchor to rocky substrates with root-like holdfasts and can form underwater canopies stretching over 45 meters from the seafloor toward the light."
         ),
         .init(
             depth: 70,
@@ -54,13 +47,6 @@ struct KnowledgeableItem: Identifiable {
             image: "leaf.fill",
             category: .species,
             description: "Sea fans are soft corals that grow flat, fan-shaped colonies oriented perpendicular to the current to filter passing plankton. Their flexible, protein-based skeletons bend with the water flow rather than snapping. Some species can reach over a meter across and live for hundreds of years."
-        ),
-        .init(
-            depth: 100,
-            name: "Sea Turtle",
-            image: "tortoise",
-            category: .species,
-            description: "Sea turtles can hold their breath for several hours and dive to depths of over 1,000 meters."
         ),
         .init(
             depth: 130,
@@ -86,6 +72,13 @@ struct KnowledgeableItem: Identifiable {
             description: "The twilight zone (mesopelagic, 200–1,000m) receives only faint traces of sunlight. Many creatures here have evolved bioluminescent abilities, and vast numbers of organisms migrate vertically through this zone each day — the largest migration on Earth."
         ),
         .init(
+            depth: 250,
+            name: "Plankton",
+            image: "sparkle",
+            category: .species,
+            description: "Plankton are the drifting foundation of ocean life. Phytoplankton — microscopic algae — produce roughly half of all the oxygen on Earth through photosynthesis. Zooplankton, the tiny animals that feed on them, form the base of the marine food web. Together they support everything from sardines to blue whales."
+        ),
+        .init(
             depth: 300,
             name: "Deep-Sea Trawling",
             image: "exclamationmark.triangle.fill",
@@ -98,6 +91,13 @@ struct KnowledgeableItem: Identifiable {
             image: "figure.dance",
             category: .humanHistory,
             description: "In 2014, Ahmed Gabr set the world record for the deepest scuba dive at 332.35 meters in the Red Sea."
+        ),
+        .init(
+            depth: 400,
+            name: "Sea Turtle",
+            image: "tortoise",
+            category: .species,
+            description: "Sea turtles can hold their breath for several hours and dive to depths of over 1,000 meters."
         ),
         .init(
             depth: 500,
