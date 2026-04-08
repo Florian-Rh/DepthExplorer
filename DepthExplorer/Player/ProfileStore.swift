@@ -234,6 +234,18 @@ final class ProfileStore: ObservableObject {
         save()
     }
 
+    /// Sets the player's XP to an exact value. Debug only.
+    func setExperience(_ amount: Int) {
+        let levelBefore = LevelProgression.from(totalXP: profile.experiencePoints).level
+        profile.experiencePoints = amount
+        let levelAfter = LevelProgression.from(totalXP: profile.experiencePoints).level
+        let levelsGained = levelAfter - levelBefore
+        if levelsGained > 0 {
+            profile.skillPoints += levelsGained
+        }
+        save()
+    }
+
     /// Unlocks all gear items without spending sand dollars. Debug only.
     func unlockAllGear() {
         for gear in GearDefinition.allGear {

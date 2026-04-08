@@ -23,6 +23,18 @@ struct LevelProgression {
         max(0, requiredLevelXP - currentLevelXP)
     }
 
+    /// Total XP needed to reach the start of a given level.
+    static func totalXP(forLevel target: Int) -> Int {
+        guard target > 1 else { return 0 }
+        let baseXP = GameConstants.baseLevelUpXP
+        let scale = GameConstants.levelUpExponent
+        var total = 0
+        for lvl in 1..<target {
+            total += Int(Double(baseXP) * pow(Double(lvl), scale))
+        }
+        return total
+    }
+
     /// Compute the player's level progression from their total XP.
     static func from(totalXP: Int) -> LevelProgression {
         let baseXP = GameConstants.baseLevelUpXP

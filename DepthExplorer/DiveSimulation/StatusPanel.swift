@@ -64,6 +64,26 @@ struct StatusPanel: View {
                 }
                 .font(.system(.caption, design: .monospaced))
 
+                HStack(spacing: 8) {
+                    Text("Set Level:")
+                    Picker("Level", selection: Binding(
+                        get: {
+                            LevelProgression.from(totalXP: viewModel.profileStore.profile.experiencePoints).level
+                        },
+                        set: { newLevel in
+                            let xp = LevelProgression.totalXP(forLevel: newLevel)
+                            viewModel.profileStore.setExperience(xp)
+                        }
+                    )) {
+                        ForEach(1...25, id: \.self) { lvl in
+                            Text("\(lvl)").tag(lvl)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .tint(.green)
+                }
+                .font(.system(.caption, design: .monospaced))
+
                 Button {
                     viewModel.poseidonMode.toggle()
                 } label: {
@@ -95,7 +115,7 @@ struct StatusPanel: View {
                     }
                     .pickerStyle(.menu)
                 }
-                Text("Air: \(String(format: "%.0f", sim.vitals.remainingBar ?? GameConstants.scubaGearCapacity)) / \(Int(GameConstants.scubaGearCapacity)) bar (\(String(format: "%.0f", (sim.vitals.airFraction ?? 1.0) * 100))%)")
+                Text("Air: \(String(format: "%.0f", sim.vitals.remainingBar ?? 0.0)) bar (\(String(format: "%.0f", (sim.vitals.airFraction ?? 1.0) * 100))%)")
                 Text("Ascent: \(String(format: "%.1f", sim.vitals.ascentSpeed ?? 0)) m/s (safe: \(String(format: "%.1f", GameConstants.safeAscentSpeed)) m/s)")
                 Text("Body temp: \(String(format: "%.1f", sim.vitals.bodyTemperature ?? GameConstants.normalBodyTemperature))°C (water: \(String(format: "%.1f", ThermalModel.waterTemperature(atDepth: viewModel.currentDepth)))°C)")
                 Text("pO\u{2082}: \(String(format: "%.2f", ppo2)) atm")
