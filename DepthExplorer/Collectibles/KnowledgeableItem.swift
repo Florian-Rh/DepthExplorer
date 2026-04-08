@@ -14,21 +14,21 @@ struct KnowledgeableItem: Identifiable {
     static let allItems: [KnowledgeableItem] = [
         // MARK: Sunlight Zone (0–200m)
         .init(
-            depth: 5,
+            depth: 35,
             name: "Seagrass",
             image: "leaf.fill",
             category: .species,
             description: "Seagrass meadows are underwater flowering plants — not algae — that form dense carpets on sandy and muddy seafloors. They stabilize sediment, absorb carbon dioxide up to 35 times faster than tropical rainforests, and provide nursery grounds for commercially important fish and shellfish species."
         ),
         .init(
-            depth: 15,
+            depth: 40,
             name: "Kelp Forests",
             image: "tree.fill",
             category: .oceanography,
             description: "Giant kelp can grow up to 60 centimeters per day, making it one of the fastest-growing organisms on Earth. Kelp forests provide shelter, food, and nursery habitat for hundreds of species. They anchor to rocky substrates with root-like holdfasts and can form underwater canopies stretching over 45 meters from the seafloor toward the light."
         ),
         .init(
-            depth: 20,
+            depth: 45,
             name: "Clownfish",
             image: "fish",
             category: .species,
@@ -296,7 +296,7 @@ struct KnowledgeableItem: Identifiable {
     let category: KnowledgeableCategory
     let description: String
     /// Base time in simulated seconds to discover this item (multiplied by pickupSpeedMultiplier).
-    var pickupDuration: TimeInterval = 2.0
+    var pickupDuration: TimeInterval = 1.5
 
     var id: String { name }
 }

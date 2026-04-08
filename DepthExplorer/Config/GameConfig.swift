@@ -118,17 +118,20 @@ enum GameConstants {
     static let sacRate: Double = 1.0
 
     /// Fraction of air remaining at which a caution warning is triggered (25%).
-    static let airWarningFraction: Double = 0.25
+    static let airWarningFraction: Double = 0.35
 
     /// Fraction of air remaining at which a critical warning is triggered (10%).
-    static let airCriticalFraction: Double = 0.10
+    static let airCriticalFraction: Double = 0.15
+
+    /// Determines how sensitive the air consumption is to pressure buildup (1.0 = consumption is proportional to pressure)
+    static let airConsumptionPressureSensitivity: Double = 0.75
 
     // MARK: - DCS / Ascent Speed
 
     /// Safe ascent speed in meters per real second.
     /// This is a game-tuned value, not a real-world constant.
     /// The diver's max vertical speed is roughly scrollSpeed / scalingFactor * 60 ≈ 48 m/s.
-    static let safeAscentSpeed: Double = 20.0
+    static let safeAscentSpeed: Double = 16.0
 
     /// Fraction of safe ascent speed at which a caution warning is triggered.
     static let dcsWarningFraction: Double = 0.8
@@ -181,22 +184,24 @@ enum GameConstants {
 
     /// Cooling rate coefficient. Higher = faster heat loss.
     /// The actual cooling per minute is `(bodyTemp - waterTemp) * coolingRate`.
-    static let coolingRate: Double = 0.02
+    static let coolingRate: Double = 0.015
 
     /// Body temperature (°C) at which a caution warning is triggered.
-    static let hypothermiaWarningThreshold: Double = 36.0
+    static let hypothermiaWarningThreshold: Double = 35.5
 
     /// Body temperature (°C) at which a critical warning is triggered.
     static let hypothermiaCriticalThreshold: Double = 35.0
 
     /// Body temperature (°C) at which the diver is rescued (fatal).
-    static let hypothermiaFatalThreshold: Double = 34.0
+    static let hypothermiaFatalThreshold: Double = 34.5
 
     // MARK: - Discovery & Collectibles
 
     /// Pickup radius in screen points. The diver must be within this distance
     /// (2D Euclidean, in points) of an item to discover or collect it.
-    static let pickupRadius: CGFloat = 80
+    static let pickupRadius: CGFloat = 70
+
+    static let pickupSpeedMultiplier: Double = 1.0
 
     // MARK: - Trash Collection
 
@@ -212,12 +217,12 @@ enum GameConstants {
     static let xpPerSandDollar: Int = 2
 
     /// XP required to reach level 2 (the first level-up).
-    static let baseLevelUpXP: Int = 140
+    static let baseLevelUpXP: Int = 145
 
     /// Polynomial exponent for level-up XP scaling.
     /// XP for level N = baseLevelUpXP × N^levelUpExponent.
     /// e.g. level 2 = 100 × 2^1.5 ≈ 283, level 3 = 100 × 3^1.5 ≈ 520, …
-    static let levelUpExponent: Double = 1.2
+    static let levelUpExponent: Double = 1.1
 
     // MARK: - Gas Mixtures
 
