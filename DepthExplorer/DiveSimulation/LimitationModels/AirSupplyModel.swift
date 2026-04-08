@@ -13,7 +13,7 @@ class AirSupplyModel: ObservableObject, DiveLimitationModel {
 
     private let isPressureSensitive: Bool
 
-    init(capacity: Double = GameConstants.scubaGearCapacity, sacRate: Double = GameConstants.sacRate, warningTolerance: Double = 1.0, isPressureSensitive: Bool = true) {
+    init(capacity: Double, sacRate: Double = GameConstants.sacRate, warningTolerance: Double = 1.0, isPressureSensitive: Bool = true) {
         self.capacity = capacity
         self.sacRate = sacRate
         self.warningTolerance = warningTolerance
@@ -51,7 +51,8 @@ class AirSupplyModel: ObservableObject, DiveLimitationModel {
     /// Consume air for a given simulated time increment at the specified depth.
     private func consume(simulatedSeconds: Int, depthMeters: Int) {
         let ambientPressure = min(1.0 + Double(depthMeters) / 10.0, 51.0) // After 500 meters, air consumtion stops increasing for a more enjoyable gameplay
-        let consumptionPerMinute = isPressureSensitive ? sacRate * ambientPressure : sacRate
+        let dampenedPressure = ambientPressure * GameConstants.airConsumptionPressureSensitivity
+        let consumptionPerMinute = isPressureSensitive ? sacRate * dampenedPressure : sacRate
         let consumed = consumptionPerMinute * (Double(simulatedSeconds) / 60.0)
         remainingBar -= consumed
     }

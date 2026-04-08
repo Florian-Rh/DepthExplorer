@@ -72,11 +72,8 @@ enum GameConstants {
     /// 0 = instant snap, 1 = no movement. Applied as `(1 - smoothing)` per frame.
     static let diverSmoothing: CGFloat = 0.96
 
-    /// Horizontal movement speed (pts per frame at full joystick deflection).
-    static let diverHorizontalSpeed: CGFloat = 4.0
-
-    /// Horizontal movement speed when apnoe diving (no fins equipped).
-    static let apnoeHorizontalSpeed: CGFloat = 2.5
+    /// Horizontal movement speed when diving without extra skills or gear..
+    static let baseHorizontalSpeed: CGFloat = 2.5
 
     /// Screen edge margin for horizontal clamping (pts).
     static let diverEdgeMargin: CGFloat = 30.0
