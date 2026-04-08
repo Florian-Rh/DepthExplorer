@@ -39,7 +39,7 @@ struct ShopView: View {
 /// Segmented control switching between Scuba and Submersible shop sections.
 private struct ShopClassPicker: View {
     @ObservedObject var profileStore: ProfileStore
-    @State private var selectedClass: EquipmentClass = .scuba
+    @State private var selectedClass: EquipmentClass = .submersible
 
     private var scubaCategories: [GearCategory] {
         GearCategory.allCases.filter {

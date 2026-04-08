@@ -44,7 +44,7 @@ struct InventoryView: View {
 /// Two large buttons that switch between Scuba and Submersible loadout lists.
 private struct InventoryClassPicker: View {
     @ObservedObject var profileStore: ProfileStore
-    @State private var selectedClass: EquipmentClass = .scuba
+    @State private var selectedClass: EquipmentClass = .submersible
 
     private var playerLevel: Int {
         LevelProgression.from(totalXP: profileStore.profile.experiencePoints).level
