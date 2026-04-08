@@ -14,6 +14,7 @@ struct HubView: View {
     let discoveredItems: Set<String>
     var initialTab: HubTab = .shop
     @Environment(\.dismiss) private var dismiss
+    @State private var showResetConfirmation = false
 
     var body: some View {
         NavigationStack {
@@ -24,9 +25,23 @@ struct HubView: View {
                 .navigationBarTitleDisplayMode(.inline)
 #endif
                 .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Reset", role: .destructive) {
+                            showResetConfirmation = true
+                        }
+                        .foregroundStyle(.red)
+                    }
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Done") { dismiss() }
                     }
+                }
+                .alert("Reset Game?", isPresented: $showResetConfirmation) {
+                    Button("Cancel", role: .cancel) { }
+                    Button("Reset", role: .destructive) {
+                        profileStore.resetProfile()
+                    }
+                } message: {
+                    Text("This will erase all progress. Your level, equipment, skills, discoveries, and sand dollars will be permanently lost.")
                 }
                 .preferredColorScheme(.dark)
         }
