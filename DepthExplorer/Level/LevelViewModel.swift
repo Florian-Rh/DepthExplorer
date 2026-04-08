@@ -428,7 +428,7 @@ class LevelViewModel: ObservableObject {
             knowledgeInRange.insert(item.name)
 
             let simulatedDt = dt
-            let effectiveDuration = item.pickupDuration * diveParameters.pickupSpeedMultiplier
+            let effectiveDuration = item.pickupDuration
             let increment = effectiveDuration > 0 ? simulatedDt / effectiveDuration : 1.0
             let progress = (knowledgePickupProgress[item.name] ?? 0) + increment
 

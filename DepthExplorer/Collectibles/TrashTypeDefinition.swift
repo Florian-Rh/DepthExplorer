@@ -29,8 +29,8 @@ struct TrashTypeDefinition: Identifiable {
             sandDollarValue: 1.0,
             minDepth: 20,
             maxDepth: 100,
-            respawnTime: 400,
-            maxCount: 25,
+            respawnTime: 600,
+            maxCount: 15,
             pickupDuration: 0.5
         ),
         TrashTypeDefinition(
@@ -40,7 +40,7 @@ struct TrashTypeDefinition: Identifiable {
             minDepth: 30,
             maxDepth: 150,
             respawnTime: 600,
-            maxCount: 20,
+            maxCount: 15,
             pickupDuration: 0.7
         ),
         TrashTypeDefinition(

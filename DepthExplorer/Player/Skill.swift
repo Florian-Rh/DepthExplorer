@@ -111,7 +111,7 @@ struct SkillDefinition: Identifiable {
             let percent = Int((m - 1.0) * 100)
             return "+\(percent)% more Sand Dollars for collected trash"
         case .pickupSpeedMultiplier(let m):
-            let percent = Int((m - 1.0) * 100)
+            let percent = Int((1.0 - m) * 100)
             return "+\(percent)% faster item pickup"
         case .pressureRatingMultiplier(let m):
             let percent = Int((m - 1.0) * 100)
@@ -259,7 +259,7 @@ struct SkillDefinition: Identifiable {
             level: 1,
             name: "Quick Hands",
             description: "Practiced movements let you grab debris faster.",
-            modifier: .pickupSpeedMultiplier(1.20)
+            modifier: .pickupSpeedMultiplier(0.80)
         ),
         SkillDefinition(
             id: "environmentalist.2",
@@ -267,7 +267,7 @@ struct SkillDefinition: Identifiable {
             level: 2,
             name: "Cleanup Routine",
             description: "A systematic approach to collection that speeds up every pickup.",
-            modifier: .pickupSpeedMultiplier(1.50)
+            modifier: .pickupSpeedMultiplier(0.60)
         ),
         SkillDefinition(
             id: "environmentalist.3",
@@ -275,7 +275,7 @@ struct SkillDefinition: Identifiable {
             level: 3,
             name: "Ocean Guardian",
             description: "You've dedicated your life to ocean cleanup. Picking up trash is second nature.",
-            modifier: .pickupSpeedMultiplier(2.00)
+            modifier: .pickupSpeedMultiplier(0.40)
         ),
 
         // Multi-Gas Management
