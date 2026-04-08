@@ -49,7 +49,7 @@ enum DiverRank: String, CaseIterable {
         case .marineSpecialist:
             return "Personal submersibles are now available in the shop"
         case .oceanographer:
-            return "The Bathosphere is now available in the shop"
+            return "Deep Sea exploration vessels is now available in the shop"
         }
     }
 

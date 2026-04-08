@@ -56,7 +56,7 @@ class BatteryPowerModel: ObservableObject, DiveLimitationModel {
         if isMoving {
             batteryMinutesRemaining -= baseDrain * 1.5
         } else {
-            batteryMinutesRemaining -= baseDrain
+            batteryMinutesRemaining -= baseDrain * 0.5
         }
     }
 

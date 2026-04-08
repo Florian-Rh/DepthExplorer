@@ -18,10 +18,16 @@ struct DiverAppearance: Equatable {
     /// The equipped DPV tier, or `nil` for no DPV.
     var dpv: DPVTier?
     /// The equipped atmospheric diving suit tier, or `nil` for no ADS.
-    var ads: ADSTier?
+    var sub: SubmersibleTier?
+    /// The equipped submersible battery tier, or `nil` for no extra battery.
+    var subBattery: SubBatteryTier?
+    /// The equipped submersible thruster tier, or `nil` for no thruster upgrade.
+    var subThruster: SubThrusterTier?
+    /// The equipped submersible storage tier, or `nil` for no extra storage.
+    var subStorage: SubStorageTier?
 
     /// Default appearance: no gear at all (naked diver).
-    static let naked = DiverAppearance(suit: nil, fins: nil, scubaGear: nil, stageTanks: nil, meshBag: nil, liftBag: nil, dpv: nil, ads: nil)
+    static let naked = DiverAppearance(suit: nil, fins: nil, scubaGear: nil, stageTanks: nil, meshBag: nil, liftBag: nil, dpv: nil, sub: nil, subBattery: nil, subThruster: nil, subStorage: nil)
 
     /// Build appearance from a player profile's equipped gear.
     static func from(profile: PlayerProfile) -> DiverAppearance {
@@ -56,9 +62,21 @@ struct DiverAppearance: Equatable {
             case "liftBag.medium":    appearance.liftBag = .medium
             case "liftBag.large":     appearance.liftBag = .large
             // Atmospheric diving suits
-            case "ads.jims":          appearance.ads = .jims
-            case "ads.newtsuit":      appearance.ads = .newtsuit
-            case "ads.exosuit":       appearance.ads = .exosuit
+            case "sub.jims":          appearance.sub = .jims
+            case "sub.newtsuit":      appearance.sub = .newtsuit
+            // Submersible vessels
+            case "sub.titan":         appearance.sub = .titan
+            case "sub.explorer":      appearance.sub = .explorer
+            case "sub.challenger":    appearance.sub = .challenger
+            // Submersible batteries
+            case "sub.battery.standard":  appearance.subBattery = .standard
+            case "sub.battery.extended":  appearance.subBattery = .extended
+            // Submersible thrusters
+            case "sub.thruster.standard": appearance.subThruster = .standard
+            case "sub.thruster.advanced": appearance.subThruster = .advanced
+            // Submersible storage
+            case "sub.storage.standard":  appearance.subStorage = .standard
+            case "sub.storage.large":     appearance.subStorage = .large
             default: break
             }
         }
@@ -124,9 +142,42 @@ enum DPVTier: Equatable {
 
 // MARK: - ADS tiers
 
-enum ADSTier: Equatable {
+enum SubmersibleTier: Equatable {
+    /// Atmospheric diving suits (humanoid hard shells with articulated limbs).
     case jims
     case newtsuit
-    case exosuit
+    /// Submersible vessels (cylindrical/tubular pressure hulls with viewports).
+    case titan
+    case explorer
+    case challenger
+
+    /// Whether this tier is an atmospheric diving suit (humanoid form).
+    var isADS: Bool {
+        switch self {
+        case .jims, .newtsuit: return true
+        case .titan, .explorer, .challenger: return false
+        }
+    }
+}
+
+// MARK: - Submersible battery tiers
+
+enum SubBatteryTier: Equatable {
+    case standard
+    case extended
+}
+
+// MARK: - Submersible thruster tiers
+
+enum SubThrusterTier: Equatable {
+    case standard
+    case advanced
+}
+
+// MARK: - Submersible storage tiers
+
+enum SubStorageTier: Equatable {
+    case standard
+    case large
 }
 

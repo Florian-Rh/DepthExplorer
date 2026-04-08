@@ -7,7 +7,7 @@ enum DiveMode: Equatable {
     /// Standard scuba equipment — compressed gas, pressure-sensitive consumption.
     case scuba
     /// Atmospheric diving suit — hard suit with battery power and depth rating.
-    case ads
+    case submersible
 }
 
 /// Computed gameplay parameters for a single dive, derived from
@@ -54,7 +54,7 @@ struct DiveParameters {
     var hasScubaGear: Bool { diveMode == .scuba }
 
     /// Convenience: whether the diver is using an atmospheric diving suit.
-    var hasADS: Bool { if case .ads = diveMode { return true } else { return false } }
+    var hasSubmersible: Bool { if case .submersible = diveMode { return true } else { return false } }
 
     /// Compute effective dive parameters from the current profile state.
     ///
@@ -69,6 +69,7 @@ struct DiveParameters {
         var earningsMultiplier = 1.0
         var airCapacity = 0.0
         var sacRate = GameConstants.sacRate
+        var pickupSpeedMultiplier = GameConstants.pickupSpeedMultiplier
         var thermalProtection = 0.0
         var warningTolerance = 1.0
         var safeAscentMultiplier = 1.0
@@ -91,14 +92,14 @@ struct DiveParameters {
                 diveMode = .scuba
             case .carryCapacity(let count):
                 carryCapacity += count
-            case .atmosphericDivingSuit(let air, let battery, let pressure, let storage, let speed):
+            case .submersible(let air, let battery, let pressure, let storage, let speed):
                 airCapacity += air
                 pressureRating = pressure
                 batteryMinutes += battery
                 carryCapacity += storage
                 scrollSpeed = speed
                 horizontalSpeed = speed * 0.5
-                diveMode = .ads
+                diveMode = .submersible
             case .batteryCapacity(let minutes):
                 batteryMinutes += minutes
             }
@@ -129,6 +130,10 @@ struct DiveParameters {
                 coolingRate *= multiplier
             case .earningsMuliplier(let multiplier):
                 earningsMultiplier *= multiplier
+            case .pickupSpeedMultiplier(let multiplier):
+                pickupSpeedMultiplier *= multiplier
+            case .pressureRatingMultiplier(let multiplier):
+                pressureRating *= multiplier
             }
         }
 
@@ -139,7 +144,7 @@ struct DiveParameters {
             sacRate: sacRate,
             thermalProtectionFactor: thermalProtection,
             warningThresholdTolerance: warningTolerance,
-            pickupSpeedMultiplier: 1.0,
+            pickupSpeedMultiplier: pickupSpeedMultiplier,
             coolingRate: coolingRate,
             earningsFactor: earningsMultiplier,
             diveMode: diveMode,
@@ -150,15 +155,15 @@ struct DiveParameters {
         )
     }
 
-    /// Default parameters with no gear or skills (apnoe diving).
+    /// Default parameters with no gear or skills.
     static let defaults = DiveParameters(
-        scrollSpeed: GameConstants.apnoeScrollSpeed,
-        diverHorizontalSpeed: GameConstants.apnoeHorizontalSpeed,
+        scrollSpeed: GameConstants.baseVerticalSpeed,
+        diverHorizontalSpeed: GameConstants.baseHorizontalSpeed,
         airCapacity: GameConstants.apnoeLungCapacity,
         sacRate: GameConstants.sacRate,
         thermalProtectionFactor: 0,
         warningThresholdTolerance: 1.0,
-        pickupSpeedMultiplier: 1.0,
+        pickupSpeedMultiplier: GameConstants.pickupSpeedMultiplier,
         coolingRate: GameConstants.coolingRate,
         earningsFactor: 1.0,
         diveMode: .apnoe,

@@ -18,7 +18,7 @@ enum GearCategory: String, Codable, CaseIterable {
     case scubaGear = "tank"
     case stageBottle
     case dpv
-    case atmosphericSuit = "ads"
+    case submersible
     case submersibleBattery
     case submersibleThruster
     case submersibleStorage
@@ -31,7 +31,7 @@ enum GearCategory: String, Codable, CaseIterable {
         case .stageBottle: "Stage Bottles"
         case .dpv: "Dive Propulsion Vehicle"
         case .meshBag: "Mesh Bag"
-        case .atmosphericSuit: "Atmospheric Diving Suit"
+        case .submersible: "Pressure Vessel"
         case .submersibleBattery: "Extra Battery"
         case .submersibleThruster: "Thrusters"
         case .submersibleStorage: "Storage compartments"
@@ -46,7 +46,7 @@ enum GearCategory: String, Codable, CaseIterable {
         case .stageBottle: "cylinder.fill"
         case .dpv: "arrow.right.circle.fill"
         case .meshBag: "bag"
-        case .atmosphericSuit: "shield.checkered"
+        case .submersible: "shield.checkered"
         case .submersibleBattery: "battery.100percent.bolt"
         case .submersibleThruster: "arrow.right.circle.fill"
         case .submersibleStorage: "bag"
@@ -62,7 +62,7 @@ enum GearCategory: String, Codable, CaseIterable {
         case .stageBottle: "No stage bottles"
         case .dpv: "No DPV — swim under your own power"
         case .meshBag: "No bag — carry up to \(GameConstants.defaultCarryCapacity) items"
-        case .atmosphericSuit: "No ADS — use standard diving equipment"
+        case .submersible: "No Submersible — use standard diving equipment"
         case .submersibleBattery: "No extra battery"
         case .submersibleThruster: "No thruster upgrades"
         case .submersibleStorage: "No extra storage"
@@ -77,7 +77,7 @@ enum GearCategory: String, Codable, CaseIterable {
             return .scubaDiver
         case .stageBottle, .dpv:
             return .techDiver
-        case .atmosphericSuit, .submersibleBattery, .submersibleStorage, .submersibleThruster:
+        case .submersible, .submersibleBattery, .submersibleStorage, .submersibleThruster:
             return .marineSpecialist
         }
     }
@@ -86,7 +86,7 @@ enum GearCategory: String, Codable, CaseIterable {
         switch self {
         case .fins, .suit, .scubaGear, .stageBottle, .dpv, .meshBag:
             return .scuba
-        case .atmosphericSuit, .submersibleBattery, .submersibleStorage, .submersibleThruster:
+        case .submersible, .submersibleBattery, .submersibleStorage, .submersibleThruster:
             return .submersible
         }
     }
@@ -103,7 +103,7 @@ enum GearModifier {
     /// Trash carry capacity (number of items per dive).
     case carryCapacity(count: Int)
     /// Atmospheric diving suit: self-contained hard suit with own air, battery, depth rating, and built-in storage.
-    case atmosphericDivingSuit(airCapacity: Double, baseBatteryMinutes: Double, pressureRating: Double, baseStorage: Int, baseSpeed: Double)
+    case submersible(airCapacity: Double, baseBatteryMinutes: Double, pressureRating: Double, baseStorage: Int, baseSpeed: Double)
     /// Extra battery capacity for submersibles
     case batteryCapacity(minutes: Double)
 }
@@ -131,7 +131,7 @@ struct GearDefinition: Identifiable {
             return "\(Int(bar)) bar capacity"
         case .carryCapacity(let count):
             return "Carry up to \(count) items"
-        case .atmosphericDivingSuit(let airCapacity, let batteryMinutes, let pressureRating, let storage, let speed):
+        case .submersible(let airCapacity, let batteryMinutes, let pressureRating, let storage, let speed):
             return "\(Int(airCapacity)) bar air · \(Int(batteryMinutes)) min battery · \(Int(pressureRating)) bar rated · \(storage) storage · speed \(Int(speed))"
         case .batteryCapacity(let minutes):
             return "Increases the suits battery capacity by \(Int(minutes)) minutes"
@@ -160,7 +160,7 @@ struct GearDefinition: Identifiable {
             icon: "shoe.2.fill",
             price: 50,
             requiredLevel: 3,
-            modifier: .movementSpeed(scrollSpeed: 6, horizontalSpeed: 5)
+            modifier: .movementSpeed(scrollSpeed: 6, horizontalSpeed: 4)
         ),
         GearDefinition(
             id: "fins.pro",
@@ -170,7 +170,7 @@ struct GearDefinition: Identifiable {
             icon: "shoe.2.fill",
             price: 150,
             requiredLevel: 6,
-            modifier: .movementSpeed(scrollSpeed: 8, horizontalSpeed: 6)
+            modifier: .movementSpeed(scrollSpeed: 8, horizontalSpeed: 4)
         ),
 
         // Suits
@@ -232,7 +232,7 @@ struct GearDefinition: Identifiable {
             name: "Small Mesh Bag",
             description: "A basic collection bag for small debris.",
             icon: "bag",
-            price: 10,
+            price: 15,
             requiredLevel: 1,
             modifier: .carryCapacity(count: 5)
         ),
@@ -340,7 +340,7 @@ struct GearDefinition: Identifiable {
             icon: "arrow.right.circle.fill",
             price: 300,
             requiredLevel: 10,
-            modifier: .movementSpeed(scrollSpeed: 6, horizontalSpeed: 3)
+            modifier: .movementSpeed(scrollSpeed: 6, horizontalSpeed: 2)
         ),
         GearDefinition(
             id: "dpv.advanced",
@@ -350,39 +350,59 @@ struct GearDefinition: Identifiable {
             icon: "arrow.right.circle.fill",
             price: 500,
             requiredLevel: 13,
-            modifier: .movementSpeed(scrollSpeed: 12, horizontalSpeed: 6)
+            modifier: .movementSpeed(scrollSpeed: 12, horizontalSpeed: 4)
         ),
 
         // Atmospheric Diving Suits
         GearDefinition(
-            id: "ads.jims",
-            category: .atmosphericSuit,
+            id: "sub.jims",
+            category: .submersible,
             name: "JIM Suit",
             description: "The original atmospheric diving suit. A one-atmosphere hard suit that protects against external pressure, allowing dives without decompression.",
             icon: "shield.checkered",
-            price: 800,
+            price: 600,
             requiredLevel: 15,
-            modifier: .atmosphericDivingSuit(airCapacity: 400, baseBatteryMinutes: 45, pressureRating: 200, baseStorage: 10, baseSpeed: 12)
+            modifier: .submersible(airCapacity: 200, baseBatteryMinutes: 60, pressureRating: 400, baseStorage: 10, baseSpeed: 12)
         ),
         GearDefinition(
-            id: "ads.newtsuit",
-            category: .atmosphericSuit,
+            id: "sub.newtsuit",
+            category: .submersible,
             name: "Newtsuit",
             description: "A modern rotary-joint ADS with improved mobility and deeper depth rating. The articulated limbs allow more precise work at extreme depths.",
             icon: "shield.checkered",
-            price: 1500,
+            price: 800,
             requiredLevel: 17,
-            modifier: .atmosphericDivingSuit(airCapacity: 600, baseBatteryMinutes: 60, pressureRating: 300, baseStorage: 15, baseSpeed: 16)
+            modifier: .submersible(airCapacity: 400, baseBatteryMinutes: 90, pressureRating: 600, baseStorage: 15, baseSpeed: 14)
         ),
         GearDefinition(
-            id: "ads.exosuit",
-            category: .atmosphericSuit,
-            name: "Exosuit",
-            description: "A state-of-the-art exoskeleton diving suit with thruster packs and extended life support. Rated for the deepest operational dives.",
+            id: "sub.titan",
+            category: .submersible,
+            name: "Carbon-Fibre Submersible",
+            description: "A personal submersible made of carbon fibre. Light, cheap, but with a major drawback: It gives no indication as to when the hull integreity is compromised.",
+            icon: "shield.checkered",
+            price: 1200,
+            requiredLevel: 19,
+            modifier: .submersible(airCapacity: 600, baseBatteryMinutes: 90, pressureRating: 700, baseStorage: 20, baseSpeed: 16)
+        ),
+        GearDefinition(
+            id: "sub.explorer",
+            category: .submersible,
+            name: "Personal Steel Submarine",
+            description: "A professional deap sea exploration submarine. True and tested technology, but pricy.",
+            icon: "shield.checkered",
+            price: 1500,
+            requiredLevel: 20,
+            modifier: .submersible(airCapacity: 600, baseBatteryMinutes: 90, pressureRating: 1000, baseStorage: 20, baseSpeed: 20)
+        ),
+        GearDefinition(
+            id: "sub.challenger",
+            category: .submersible,
+            name: "Deap Sea Challenger",
+            description: "A vessel specifically designed to reach the deepest trenches in the ocean. Truely a masterpiece of engineering and one of it's kind!",
             icon: "shield.checkered",
             price: 3000,
-            requiredLevel: 19,
-            modifier: .atmosphericDivingSuit(airCapacity: 800, baseBatteryMinutes: 90, pressureRating: 400, baseStorage: 20, baseSpeed: 20)
+            requiredLevel: 22,
+            modifier: .submersible(airCapacity: 600, baseBatteryMinutes: 120, pressureRating: 1200, baseStorage: 20, baseSpeed: 20)
         ),
 
         // Submersible Batteries

@@ -57,7 +57,7 @@ private struct DiverScene {
     private var bobY: CGFloat { CGFloat(sin(t * 1.10) * 15) }
     private var bobX: CGFloat { CGFloat(cos(t * 0.57) * 15) }
 
-    private var hasADS: Bool { appearance.ads != nil }
+    private var hasADS: Bool { appearance.sub != nil }
 
     private var nearKick: Double { hasADS ? 0 : sin(phase) * 15.0 }
     private var nearFlex: Double { -cos(phase) }
@@ -127,8 +127,12 @@ private struct DiverScene {
 
         let rc = renderContext(bodyTilt: bodyTilt, submersed: submersed)
 
-        if let adsTier = appearance.ads {
-            drawADSDiver(dc, render: rc, tier: adsTier)
+        if let subTier = appearance.sub {
+            if subTier.isADS {
+                drawADSDiver(dc, render: rc, tier: subTier)
+            } else {
+                drawVesselSubmersible(dc, render: rc, tier: subTier)
+            }
         } else {
             drawScubaDiver(dc, render: rc)
         }
@@ -137,17 +141,44 @@ private struct DiverScene {
     /// Draws the diver in a standard atmospheric diving suit — a rigid hull
     /// enclosing the body, with thruster nozzles on the back. No fins, no
     /// scuba tank, no kicking animation.
-    private func drawADSDiver(_ dc: GraphicsContext, render: DiverRenderContext, tier: ADSTier) {
-        let adsRenderer = ADSGearRenderer(tier: tier)
+    private func drawADSDiver(_ dc: GraphicsContext, render: DiverRenderContext, tier: SubmersibleTier) {
+        let adsRenderer = ADSGearRenderer(
+            tier: tier,
+            subBattery: appearance.subBattery,
+            subThruster: appearance.subThruster,
+            subStorage: appearance.subStorage
+        )
+
+        // Battery pack behind the hull (on the life support pack)
+        adsRenderer.drawBatteryPack(dc, render: render)
 
         // The ADS hull replaces the body entirely — no BodyRenderer needed.
         adsRenderer.drawHull(dc, render: render)
 
+        // Cargo storage on legs (drawn after hull so it layers on top of thighs)
+        adsRenderer.drawStorage(dc, render: render)
+
         // ADS viewport (replaces the normal head)
         adsRenderer.drawViewport(dc, render: render)
 
-        // Thruster nozzles on top of everything
-        adsRenderer.drawThrusters(dc, render: render)
+        // Thruster nozzles — use upgraded version if available, else default
+        if appearance.subThruster != nil {
+            adsRenderer.drawUpgradedThrusters(dc, render: render)
+        } else {
+            adsRenderer.drawThrusters(dc, render: render)
+        }
+    }
+
+    /// Draws a submersible vessel (Titan, Explorer, Challenger) — a
+    /// cylindrical hull centered on the body origin, with no human body visible.
+    private func drawVesselSubmersible(_ dc: GraphicsContext, render: DiverRenderContext, tier: SubmersibleTier) {
+        let vesselRenderer = SubmersibleVesselRenderer(
+            tier: tier,
+            subBattery: appearance.subBattery,
+            subThruster: appearance.subThruster,
+            subStorage: appearance.subStorage
+        )
+        vesselRenderer.draw(dc, render: render)
     }
 
     /// Normal scuba/apnoe rendering path.
@@ -509,20 +540,50 @@ private struct DiverScene {
         .preferredColorScheme(.dark)
 }
 
-#Preview("ADS — JIM Suit") {
-    ScubaDiverView(appearance: DiverAppearance(ads: .jims))
+#Preview("Sub — JIM Suit") {
+    ScubaDiverView(appearance: DiverAppearance(sub: .jims))
         .preferredColorScheme(.dark)
 }
 
-#Preview("ADS — Newtsuit") {
-    ScubaDiverView(appearance: DiverAppearance(ads: .newtsuit))
+#Preview("Sub — Newtsuit") {
+    ScubaDiverView(appearance: DiverAppearance(sub: .newtsuit))
         .preferredColorScheme(.dark)
 }
 
-#Preview("ADS — Exosuit") {
-    ScubaDiverView(appearance: DiverAppearance(ads: .exosuit))
+#Preview("Sub — Titan") {
+    ScubaDiverView(appearance: DiverAppearance(sub: .titan))
         .preferredColorScheme(.dark)
 }
+
+#Preview("Sub — Newtsuit + All Upgrades") {
+    ScubaDiverView(appearance: DiverAppearance(sub: .newtsuit, subBattery: .extended, subThruster: .advanced, subStorage: .large))
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Sub — JIM + Standard Upgrades") {
+    ScubaDiverView(appearance: DiverAppearance(sub: .jims, subBattery: .standard, subThruster: .standard, subStorage: .standard))
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Vessel — Explorer") {
+    ScubaDiverView(appearance: DiverAppearance(sub: .explorer))
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Vessel — Challenger") {
+    ScubaDiverView(appearance: DiverAppearance(sub: .challenger))
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Vessel — Titan + All Upgrades") {
+    ScubaDiverView(appearance: DiverAppearance(sub: .titan, subBattery: .extended, subThruster: .advanced, subStorage: .large))
+        .preferredColorScheme(.dark)
+}
+#Preview("Vessel — Explorer + Standard Upgrades") {
+    ScubaDiverView(appearance: DiverAppearance(sub: .explorer, subBattery: .standard, subThruster: .standard, subStorage: .standard))
+        .preferredColorScheme(.dark)
+}
+
 
 
 

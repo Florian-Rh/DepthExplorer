@@ -73,7 +73,7 @@ struct LevelView: View {
                             .fill(Color.red.opacity(0.5))
                             .frame(width: screenSize.width, height: 1)
                             .overlay(alignment: .trailing) {
-                                Text("RECORD \(profileStore.profile.recordMaxDepth)m")
+                                Text("PERSONAL DEPTH RECORD: \(profileStore.profile.recordMaxDepth)m")
                                     .font(.system(size: 10, weight: .semibold, design: .monospaced))
                                     .foregroundStyle(.red.opacity(0.7))
                                     .padding(.trailing, 8)
@@ -109,7 +109,7 @@ struct LevelView: View {
                     warnings: viewModel.warningSystem.activeWarnings,
                     isDiving: viewModel.diveSession.state == .diving,
                     hasScubaGear: viewModel.diveParameters.hasScubaGear,
-                    hasADS: viewModel.diveParameters.hasADS,
+                    hasADS: viewModel.diveParameters.hasSubmersible,
                     batteryFraction: viewModel.diveSimulation.vitals.batteryFraction ?? 1.0,
                     depthPressure: viewModel.diveSimulation.vitals.externalPressure ?? 1.0,
                     pressureRating: viewModel.diveParameters.pressureRating,

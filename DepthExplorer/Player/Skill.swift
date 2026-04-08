@@ -4,10 +4,12 @@ import Foundation
 enum SkillFamily: String, Codable, CaseIterable {
     case breathingTechniques
     case finKicking
-    case negotiator
     case coldResistance
+    case negotiator
     case stressManagement
+    case environmentalist
     case multiGasManagement
+    case mechanic
 
     var displayName: String {
         switch self {
@@ -16,7 +18,9 @@ enum SkillFamily: String, Codable, CaseIterable {
         case .coldResistance: "Cold Resistance"
         case .stressManagement: "Stress Management"
         case .negotiator: "Negotiator"
+        case .environmentalist: "Environmentalist"
         case .multiGasManagement: "Multi-Gas Management"
+        case .mechanic: "Mechanic"
         }
     }
 
@@ -27,7 +31,9 @@ enum SkillFamily: String, Codable, CaseIterable {
         case .coldResistance: "snowflake"
         case .stressManagement: "brain.head.profile"
         case .negotiator: "dollarsign.ring.dashed"
+        case .environmentalist: "leaf.fill"
         case .multiGasManagement: "gauge.with.dots.needle.67percent"
+        case .mechanic: "wrench.and.screwdriver.fill"
         }
     }
 
@@ -36,11 +42,12 @@ enum SkillFamily: String, Codable, CaseIterable {
     var minimumLevel: Int? {
         switch self {
         case .breathingTechniques, .finKicking: nil
-        case .negotiator: 3
-        case .coldResistance: 4
-        case .stressManagement: 5
-        // Level 8: Environmentalist
+        case .coldResistance: 3
+        case .negotiator: 4
+        case .stressManagement: 6
+        case .environmentalist: 8
         case .multiGasManagement: 10
+        case .mechanic: 15
         }
     }
 }
@@ -62,6 +69,10 @@ enum SkillModifier {
     /// Multiplier applied to the earnings through trash collection. Values > 1 increase the
     /// amount of Sand Dollars per trash item
     case earningsMuliplier(Double)
+    /// Multiplier applied to item pickup speed. Values > 1 make pickups faster.
+    case pickupSpeedMultiplier(Double)
+    /// Multiplier applied to the submersible's pressure rating. Values > 1 increase depth tolerance.
+    case pressureRatingMultiplier(Double)
 }
 
 /// A single skill within a family, at a specific level.
@@ -99,6 +110,12 @@ struct SkillDefinition: Identifiable {
         case .earningsMuliplier(let m):
             let percent = Int((m - 1.0) * 100)
             return "+\(percent)% more Sand Dollars for collected trash"
+        case .pickupSpeedMultiplier(let m):
+            let percent = Int((m - 1.0) * 100)
+            return "+\(percent)% faster item pickup"
+        case .pressureRatingMultiplier(let m):
+            let percent = Int((m - 1.0) * 100)
+            return "+\(percent)% pressure rating"
         }
     }
 
@@ -235,6 +252,32 @@ struct SkillDefinition: Identifiable {
             modifier: .earningsMuliplier(2.0)
         ),
 
+        // Environmentalist
+        SkillDefinition(
+            id: "environmentalist.1",
+            family: .environmentalist,
+            level: 1,
+            name: "Quick Hands",
+            description: "Practiced movements let you grab debris faster.",
+            modifier: .pickupSpeedMultiplier(1.20)
+        ),
+        SkillDefinition(
+            id: "environmentalist.2",
+            family: .environmentalist,
+            level: 2,
+            name: "Cleanup Routine",
+            description: "A systematic approach to collection that speeds up every pickup.",
+            modifier: .pickupSpeedMultiplier(1.50)
+        ),
+        SkillDefinition(
+            id: "environmentalist.3",
+            family: .environmentalist,
+            level: 3,
+            name: "Ocean Guardian",
+            description: "You've dedicated your life to ocean cleanup. Picking up trash is second nature.",
+            modifier: .pickupSpeedMultiplier(2.00)
+        ),
+
         // Multi-Gas Management
         SkillDefinition(
             id: "multiGasManagement.1",
@@ -259,6 +302,32 @@ struct SkillDefinition: Identifiable {
             name: "Hypoxic Protocols",
             description: "Master hypoxic travel mixes and multi-stage decompression for maximum efficiency.",
             modifier: .safeAscentSpeedMultiplier(1.50)
+        ),
+
+        // Mechanic
+        SkillDefinition(
+            id: "mechanic.1",
+            family: .mechanic,
+            level: 1,
+            name: "Hull Reinforcement",
+            description: "Knowledge of structural engineering lets you reinforce weak points in the pressure hull.",
+            modifier: .pressureRatingMultiplier(1.10)
+        ),
+        SkillDefinition(
+            id: "mechanic.2",
+            family: .mechanic,
+            level: 2,
+            name: "Seal Optimization",
+            description: "Improved gasket and seal maintenance pushes the vessel's depth limits further.",
+            modifier: .pressureRatingMultiplier(1.20)
+        ),
+        SkillDefinition(
+            id: "mechanic.3",
+            family: .mechanic,
+            level: 3,
+            name: "Master Engineer",
+            description: "Total command of submersible systems. You know every bolt and weld by heart.",
+            modifier: .pressureRatingMultiplier(1.35)
         ),
     ]
 }

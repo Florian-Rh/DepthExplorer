@@ -237,7 +237,7 @@ class LevelViewModel: ObservableObject {
                 ThermalModel(protectionFactor: params.thermalProtectionFactor, coolingRate: params.coolingRate, warningTolerance: params.warningThresholdTolerance),
                 DecompressionModel(warningTolerance: params.warningThresholdTolerance, safeAscentSpeedMultiplier: params.safeAscentSpeedMultiplier)
             ]
-        case .ads:
+        case .submersible:
             models = [
                 AirSupplyModel(capacity: params.airCapacity, sacRate: params.sacRate, warningTolerance: params.warningThresholdTolerance, isPressureSensitive: false),
                 ExternalPressureModel(pressureRating: params.pressureRating, warningTolerance: params.warningThresholdTolerance),
@@ -428,7 +428,7 @@ class LevelViewModel: ObservableObject {
             knowledgeInRange.insert(item.name)
 
             let simulatedDt = dt
-            let effectiveDuration = item.pickupDuration / diveParameters.pickupSpeedMultiplier
+            let effectiveDuration = item.pickupDuration * diveParameters.pickupSpeedMultiplier
             let increment = effectiveDuration > 0 ? simulatedDt / effectiveDuration : 1.0
             let progress = (knowledgePickupProgress[item.name] ?? 0) + increment
 
@@ -462,7 +462,7 @@ class LevelViewModel: ObservableObject {
             inRangeIDs.insert(item.id)
 
             // Accumulate hover progress
-            let effectiveDuration = item.typeDef.pickupDuration / diveParameters.pickupSpeedMultiplier
+            let effectiveDuration = item.typeDef.pickupDuration * diveParameters.pickupSpeedMultiplier
             let increment = effectiveDuration > 0 ? dt / effectiveDuration : 1.0
             let progress = (trashPickupProgress[item.id] ?? 0) + increment
 

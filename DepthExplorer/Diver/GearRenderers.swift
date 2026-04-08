@@ -1349,7 +1349,10 @@ struct StageTankGearRenderer: GearRenderer {
 /// Split into three draw passes so `ScubaDiverView` can layer the body
 /// between the hull (behind) and the viewport + thrusters (in front).
 struct ADSGearRenderer {
-    let tier: ADSTier
+    let tier: SubmersibleTier
+    var subBattery: SubBatteryTier?
+    var subThruster: SubThrusterTier?
+    var subStorage: SubStorageTier?
 
     // MARK: - Palette
 
@@ -1357,7 +1360,7 @@ struct ADSGearRenderer {
         switch tier {
         case .jims:     return Color(red: 0.85, green: 0.85, blue: 0.82) // White/silver
         case .newtsuit: return Color(red: 0.78, green: 0.68, blue: 0.20) // Classic yellow
-        case .exosuit:  return Color(red: 0.90, green: 0.90, blue: 0.90) // Near black
+        default:        return Color(red: 0.90, green: 0.90, blue: 0.90) // Fallback (not used for vessels)
         }
     }
 
@@ -1365,7 +1368,7 @@ struct ADSGearRenderer {
         switch tier {
         case .jims:     return Color(red: 0.58, green: 0.50, blue: 0.12)
         case .newtsuit: return Color(red: 0.60, green: 0.60, blue: 0.58)
-        case .exosuit:  return Color(red: 0.65, green: 0.28, blue: 0.06)
+        default:        return Color(red: 0.50, green: 0.50, blue: 0.50)
         }
     }
 
@@ -1373,7 +1376,7 @@ struct ADSGearRenderer {
         switch tier {
         case .jims:     return Color(red: 0.92, green: 0.84, blue: 0.40)
         case .newtsuit: return Color(red: 0.96, green: 0.96, blue: 0.94)
-        case .exosuit:  return Color(red: 1.00, green: 0.60, blue: 0.30)
+        default:        return Color(red: 0.80, green: 0.80, blue: 0.80)
         }
     }
 
@@ -1398,7 +1401,7 @@ struct ADSGearRenderer {
         switch tier {
         case .jims:     return 1.0
         case .newtsuit: return 1.08
-        case .exosuit:  return 1.15
+        default:        return 1.15
         }
     }
 
@@ -1648,4 +1651,756 @@ struct ADSGearRenderer {
             )
         }
     }
+
+    // MARK: - Extra Battery Pack (drawn behind hull, on life support pack)
+
+    /// Draws an additional battery unit bolted onto the life support pack.
+    /// Standard: a single battery box on the left side.
+    /// Extended: a wider battery array spanning both sides.
+    func drawBatteryPack(_ ctx: GraphicsContext, render: DiverRenderContext) {
+        guard let battery = subBattery else { return }
+        let sc = hullScale
+        let batteryColor = Color(red: 0.22, green: 0.32, blue: 0.18)
+        let batteryHighlight = Color(red: 0.35, green: 0.50, blue: 0.28)
+        let boltColor = Color(red: 0.55, green: 0.55, blue: 0.50)
+
+        // Life support pack spans x: -20*sc..+20*sc, y: -28*sc..-14*sc
+        // Battery sits above the pack (further from belly, i.e. more negative y)
+        switch battery {
+        case .standard:
+            // Single battery box on the left side of the pack
+            let boxRect = CGRect(x: -18 * sc, y: -36 * sc, width: 20 * sc, height: 7 * sc)
+            ctx.fill(Path(roundedRect: boxRect, cornerRadius: 3 * sc),
+                     with: .color(batteryColor))
+            ctx.stroke(Path(roundedRect: boxRect, cornerRadius: 3 * sc),
+                       with: .color(Color.black.opacity(0.4)), lineWidth: 1.0)
+            // Charge indicator stripe
+            ctx.fill(Path(roundedRect: CGRect(x: boxRect.minX + 3, y: boxRect.minY + 2,
+                                              width: boxRect.width * 0.6, height: 3 * sc),
+                          cornerRadius: 1),
+                     with: .color(batteryHighlight.opacity(0.6)))
+            // Mounting bolts
+            for bx in [boxRect.minX + 3, boxRect.maxX - 3] {
+                ctx.fill(Path(ellipseIn: CGRect(x: bx - 1.5, y: boxRect.maxY - 3,
+                                                width: 3, height: 3)),
+                         with: .color(boltColor))
+            }
+
+        case .extended:
+            // Wide battery array spanning the full width above the pack
+            let boxRect = CGRect(x: -20 * sc, y: -38 * sc, width: 40 * sc, height: 9 * sc)
+            ctx.fill(Path(roundedRect: boxRect, cornerRadius: 4 * sc),
+                     with: .color(batteryColor))
+            ctx.stroke(Path(roundedRect: boxRect, cornerRadius: 4 * sc),
+                       with: .color(Color.black.opacity(0.4)), lineWidth: 1.2)
+            // Two charge indicator stripes
+            for i in 0..<2 {
+                let stripeY = boxRect.minY + 2 + CGFloat(i) * 4 * sc
+                ctx.fill(Path(roundedRect: CGRect(x: boxRect.minX + 4, y: stripeY,
+                                                  width: boxRect.width - 8, height: 2.5 * sc),
+                              cornerRadius: 1),
+                         with: .color(batteryHighlight.opacity(0.5)))
+            }
+            // Mounting bolts at four corners
+            for bx in [boxRect.minX + 4, boxRect.maxX - 4] {
+                for by in [boxRect.minY + 3, boxRect.maxY - 3] {
+                    ctx.fill(Path(ellipseIn: CGRect(x: bx - 1.5, y: by - 1.5,
+                                                    width: 3, height: 3)),
+                             with: .color(boltColor))
+                }
+            }
+        }
+    }
+
+    // MARK: - Upgraded Thrusters (replaces default thrusters when equipped)
+
+    /// Draws upgraded thruster assemblies — larger nozzles with visible cowling.
+    /// Standard: wider nozzle bells with heat vanes.
+    /// Advanced: triple-nozzle clusters with a housing fairing.
+    func drawUpgradedThrusters(_ ctx: GraphicsContext, render: DiverRenderContext) {
+        guard let thruster = subThruster else { return }
+        let sc = hullScale
+        let packRightEdge = 20 * sc
+        let packMidY = (-28 * sc + -14 * sc) / 2
+
+        switch thruster {
+        case .standard:
+            // Wider dual nozzles with heat dissipation vanes
+            let nozzleR: CGFloat = 7 * sc
+            let nozzlePositions: [CGPoint] = [
+                CGPoint(x: packRightEdge, y: packMidY - 6 * sc),
+                CGPoint(x: packRightEdge, y: packMidY + 6 * sc)
+            ]
+            for pos in nozzlePositions {
+                var nc = ctx
+                nc.translateBy(x: pos.x, y: pos.y)
+
+                // Housing cowl
+                let cowlRect = CGRect(x: -4 * sc, y: -nozzleR * 0.8,
+                                      width: 6 * sc, height: nozzleR * 1.6)
+                nc.fill(Path(roundedRect: cowlRect, cornerRadius: 2 * sc),
+                        with: .color(hullShade.opacity(0.7)))
+
+                // Wider nozzle bell
+                var bell = Path()
+                bell.move(to: CGPoint(x: 0, y: -nozzleR * 0.5))
+                bell.addLine(to: CGPoint(x: 10 * sc, y: -nozzleR))
+                bell.addQuadCurve(
+                    to: CGPoint(x: 10 * sc, y: nozzleR),
+                    control: CGPoint(x: 13 * sc, y: 0)
+                )
+                bell.addLine(to: CGPoint(x: 0, y: nozzleR * 0.5))
+                bell.closeSubpath()
+                nc.fill(bell, with: .color(thrusterMetal))
+                nc.stroke(bell, with: .color(Color.black.opacity(0.3)), lineWidth: 1.0)
+
+                // Heat vanes
+                for vy in stride(from: -nozzleR * 0.6, through: nozzleR * 0.6, by: nozzleR * 0.4) {
+                    var vane = Path()
+                    vane.move(to: CGPoint(x: 2 * sc, y: vy))
+                    vane.addLine(to: CGPoint(x: 8 * sc, y: vy))
+                    nc.stroke(vane, with: .color(Color.black.opacity(0.2)), lineWidth: 0.7)
+                }
+
+                // Inner void
+                nc.fill(
+                    Path(ellipseIn: CGRect(x: 9 * sc, y: -nozzleR * 0.45,
+                                           width: nozzleR * 0.5, height: nozzleR * 0.9)),
+                    with: .color(Color.black.opacity(0.45))
+                )
+            }
+
+        case .advanced:
+            // Triple nozzle clusters with fairing
+            let clusterOffsets: [CGFloat] = [packMidY - 7 * sc, packMidY, packMidY + 7 * sc]
+            let nozzleR: CGFloat = 4.5 * sc
+
+            // Fairing housing behind nozzles
+            let fairingRect = CGRect(x: packRightEdge - 3 * sc,
+                                     y: packMidY - 12 * sc,
+                                     width: 8 * sc, height: 24 * sc)
+            ctx.fill(Path(roundedRect: fairingRect, cornerRadius: 3 * sc),
+                     with: .color(hullColor.opacity(0.8)))
+            ctx.stroke(Path(roundedRect: fairingRect, cornerRadius: 3 * sc),
+                       with: .color(hullShade.opacity(0.5)), lineWidth: 1.0)
+
+            for cy in clusterOffsets {
+                var nc = ctx
+                nc.translateBy(x: packRightEdge + 2 * sc, y: cy)
+
+                var bell = Path()
+                bell.move(to: CGPoint(x: 0, y: -nozzleR * 0.55))
+                bell.addLine(to: CGPoint(x: 8 * sc, y: -nozzleR))
+                bell.addQuadCurve(
+                    to: CGPoint(x: 8 * sc, y: nozzleR),
+                    control: CGPoint(x: 10 * sc, y: 0)
+                )
+                bell.addLine(to: CGPoint(x: 0, y: nozzleR * 0.55))
+                bell.closeSubpath()
+                nc.fill(bell, with: .color(thrusterMetal))
+                nc.stroke(bell, with: .color(Color.black.opacity(0.35)), lineWidth: 0.8)
+
+                // Inner void
+                nc.fill(
+                    Path(ellipseIn: CGRect(x: 7 * sc, y: -nozzleR * 0.4,
+                                           width: nozzleR * 0.5, height: nozzleR * 0.8)),
+                    with: .color(Color.black.opacity(0.5))
+                )
+            }
+        }
+    }
+
+    // MARK: - Cargo Storage (drawn on legs/hips)
+
+    /// Draws external cargo racks or pods attached to the suit's leg segments.
+    /// Standard: a frame rack on the near-side thigh.
+    /// Large: sealed cargo pods on both thighs.
+    func drawStorage(_ ctx: GraphicsContext, render: DiverRenderContext) {
+        guard let storage = subStorage else { return }
+        let sc = hullScale
+        let rackColor = Color(red: 0.40, green: 0.38, blue: 0.35)
+        let podColor = Color(red: 0.50, green: 0.45, blue: 0.35)
+        let podHighlight = Color(red: 0.62, green: 0.55, blue: 0.42)
+        let clampColor = Color(red: 0.30, green: 0.30, blue: 0.34)
+
+        switch storage {
+        case .standard:
+            // Frame rack on the near-side thigh
+            drawCargoRack(ctx, hip: render.nearHip, kickAngle: render.nearKick,
+                          scale: 1.0, alpha: 1.0, sc: sc,
+                          rackColor: rackColor, clampColor: clampColor)
+
+        case .large:
+            // Sealed cargo pods on both thighs
+            drawCargoPod(ctx, hip: render.nearHip, kickAngle: render.nearKick,
+                         scale: 1.0, alpha: 1.0, sc: sc,
+                         podColor: podColor, podHighlight: podHighlight, clampColor: clampColor)
+            drawCargoPod(ctx, hip: render.farHip, kickAngle: render.farKick,
+                         scale: 0.91, alpha: 0.7, sc: sc,
+                         podColor: podColor, podHighlight: podHighlight, clampColor: clampColor)
+        }
+    }
+
+    private func drawCargoRack(_ ctx: GraphicsContext, hip: CGPoint,
+                                kickAngle: Double, scale: CGFloat, alpha: Double,
+                                sc: CGFloat, rackColor: Color, clampColor: Color) {
+        var lc = ctx
+        lc.translateBy(x: hip.x, y: hip.y)
+        lc.scaleBy(x: scale, y: scale)
+        lc.rotate(by: .degrees(-90 + kickAngle))
+
+        // Rack sits on the outer side of the thigh (positive y = belly side)
+        let rackRect = CGRect(x: -9 * sc, y: 14 * sc, width: 22 * sc, height: 10 * sc)
+        // Frame rails
+        lc.stroke(Path(roundedRect: rackRect, cornerRadius: 2 * sc),
+                  with: .color(rackColor.opacity(alpha)),
+                  style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
+        // Cross bars
+        var cross1 = Path()
+        cross1.move(to: CGPoint(x: rackRect.minX + 3, y: rackRect.minY))
+        cross1.addLine(to: CGPoint(x: rackRect.maxX - 3, y: rackRect.maxY))
+        var cross2 = Path()
+        cross2.move(to: CGPoint(x: rackRect.maxX - 3, y: rackRect.minY))
+        cross2.addLine(to: CGPoint(x: rackRect.minX + 3, y: rackRect.maxY))
+        lc.stroke(cross1, with: .color(rackColor.opacity(alpha * 0.7)), lineWidth: 0.8)
+        lc.stroke(cross2, with: .color(rackColor.opacity(alpha * 0.7)), lineWidth: 0.8)
+        // Mounting clamps
+        for cx in [rackRect.minX + 2, rackRect.maxX - 2] {
+            lc.fill(Path(roundedRect: CGRect(x: cx - 2, y: rackRect.minY - 2,
+                                             width: 4, height: 4), cornerRadius: 1),
+                    with: .color(clampColor.opacity(alpha)))
+        }
+    }
+
+    private func drawCargoPod(_ ctx: GraphicsContext, hip: CGPoint,
+                               kickAngle: Double, scale: CGFloat, alpha: Double,
+                               sc: CGFloat, podColor: Color, podHighlight: Color,
+                               clampColor: Color) {
+        var lc = ctx
+        lc.translateBy(x: hip.x, y: hip.y)
+        lc.scaleBy(x: scale, y: scale)
+        lc.rotate(by: .degrees(-90 + kickAngle))
+
+        // Pod on the outer side of the thigh
+        let podRect = CGRect(x: -10 * sc, y: 13 * sc, width: 26 * sc, height: 12 * sc)
+        lc.fill(Path(roundedRect: podRect, cornerRadius: 4 * sc),
+                with: .color(podColor.opacity(alpha)))
+        lc.stroke(Path(roundedRect: podRect, cornerRadius: 4 * sc),
+                  with: .color(Color.black.opacity(0.35 * alpha)), lineWidth: 1.2)
+        // Highlight stripe
+        lc.fill(Path(roundedRect: CGRect(x: podRect.minX + 3, y: podRect.minY + 2,
+                                         width: podRect.width - 6, height: 3 * sc),
+                     cornerRadius: 1),
+                with: .color(podHighlight.opacity(0.4 * alpha)))
+        // Hydraulic clamps at the ends
+        for cx in [podRect.minX + 3, podRect.maxX - 3] {
+            lc.fill(Path(roundedRect: CGRect(x: cx - 2.5, y: podRect.minY - 3,
+                                             width: 5, height: 5), cornerRadius: 1.5),
+                    with: .color(clampColor.opacity(alpha)))
+        }
+        // Seal line across the middle
+        var seal = Path()
+        seal.move(to: CGPoint(x: podRect.minX + 5, y: podRect.midY))
+        seal.addLine(to: CGPoint(x: podRect.maxX - 5, y: podRect.midY))
+        lc.stroke(seal, with: .color(Color.black.opacity(0.15 * alpha)),
+                  style: StrokeStyle(lineWidth: 0.7, lineCap: .round))
+    }
 }
+// MARK: - Submersible Vessel Renderer
+
+/// Draws a submersible vessel (Titan, Explorer, Challenger) — a cylindrical
+/// pressure hull with hemispherical end caps, a front viewport, and rear thrusters.
+/// Unlike the ADS renderer, these are not humanoid suits but enclosed vessels.
+///
+/// The vessel is oriented with the long axis along body-local x
+/// (head-end = −x = bow, feet-end = +x = stern).
+struct SubmersibleVesselRenderer {
+    let tier: SubmersibleTier
+    var subBattery: SubBatteryTier?
+    var subThruster: SubThrusterTier?
+    var subStorage: SubStorageTier?
+
+    // MARK: - Dimensions
+
+    /// Overall hull length (along x axis).
+    private var hullLength: CGFloat {
+        switch tier {
+        case .titan:      return 160
+        case .explorer:   return 180
+        case .challenger: return 200
+        default:          return 160
+        }
+    }
+
+    /// Hull radius (half-height of the cylindrical cross section).
+    private var hullRadius: CGFloat {
+        switch tier {
+        case .titan:      return 28
+        case .explorer:   return 32
+        case .challenger: return 36
+        default:          return 28
+        }
+    }
+
+    // MARK: - Palette
+
+    /// Main hull body color.
+    private var hullColor: Color {
+        switch tier {
+        case .titan:      return Color(red: 0.92, green: 0.92, blue: 0.90) // White carbon fibre
+        case .explorer:   return Color(red: 0.45, green: 0.48, blue: 0.52) // Steel grey
+        case .challenger: return Color(red: 0.88, green: 0.60, blue: 0.10) // Deep-sea yellow
+        default:          return Color.gray
+        }
+    }
+
+    /// Darker accent for shadows, seams, outlines.
+    private var hullShade: Color {
+        switch tier {
+        case .titan:      return Color(red: 0.60, green: 0.60, blue: 0.58)
+        case .explorer:   return Color(red: 0.28, green: 0.30, blue: 0.34)
+        case .challenger: return Color(red: 0.62, green: 0.40, blue: 0.05)
+        default:          return Color.gray
+        }
+    }
+
+    /// Highlight color for sheens.
+    private var hullHighlight: Color {
+        switch tier {
+        case .titan:      return Color(red: 1.00, green: 1.00, blue: 0.98)
+        case .explorer:   return Color(red: 0.65, green: 0.68, blue: 0.72)
+        case .challenger: return Color(red: 1.00, green: 0.80, blue: 0.35)
+        default:          return Color.white
+        }
+    }
+
+    /// End cap color (titanium for Titan, steel for others).
+    private var endCapColor: Color {
+        switch tier {
+        case .titan:      return Color(red: 0.55, green: 0.56, blue: 0.58) // Titanium grey
+        case .explorer:   return Color(red: 0.35, green: 0.37, blue: 0.40) // Dark steel
+        case .challenger: return Color(red: 0.50, green: 0.50, blue: 0.48) // Polished steel
+        default:          return Color.gray
+        }
+    }
+
+    private var viewportGlass: Color {
+        Color(red: 0.25, green: 0.70, blue: 0.88).opacity(0.55)
+    }
+
+    private var viewportFrame: Color {
+        Color(red: 0.22, green: 0.22, blue: 0.26)
+    }
+
+    private var thrusterMetal: Color {
+        Color(red: 0.28, green: 0.28, blue: 0.32)
+    }
+
+    // MARK: - Full Draw
+
+    /// Draws the complete submersible vessel centered on the body origin.
+    func draw(_ ctx: GraphicsContext, render: DiverRenderContext) {
+        let halfL = hullLength / 2
+        let r = hullRadius
+
+        // --- Main cylindrical hull ---
+        let bodyRect = CGRect(x: -halfL + r, y: -r, width: hullLength - r * 2, height: r * 2)
+        ctx.fill(
+            Path(roundedRect: bodyRect, cornerRadius: 4),
+            with: .color(hullColor)
+        )
+
+        // Top highlight strip along the hull
+        ctx.fill(
+            Path(roundedRect: CGRect(x: bodyRect.minX + 4, y: -r,
+                                     width: bodyRect.width - 8, height: r * 0.35),
+                 cornerRadius: 2),
+            with: .color(hullHighlight.opacity(0.3))
+        )
+
+        // Bottom shadow strip
+        ctx.fill(
+            Path(roundedRect: CGRect(x: bodyRect.minX + 4, y: r - r * 0.3,
+                                     width: bodyRect.width - 8, height: r * 0.25),
+                 cornerRadius: 2),
+            with: .color(hullShade.opacity(0.25))
+        )
+
+        // Hull outline
+        ctx.stroke(
+            Path(roundedRect: bodyRect, cornerRadius: 4),
+            with: .color(hullShade.opacity(0.5)), lineWidth: 1.5
+        )
+
+        // --- Bow end cap (hemispherical, at −x) ---
+        let bowCapRect = CGRect(x: -halfL - 2, y: -r, width: r + 4, height: r * 2)
+        ctx.fill(Path(ellipseIn: bowCapRect), with: .color(endCapColor))
+        ctx.stroke(Path(ellipseIn: bowCapRect), with: .color(hullShade.opacity(0.5)), lineWidth: 1.2)
+        // Highlight on the cap
+        ctx.fill(
+            Path(ellipseIn: CGRect(x: bowCapRect.minX + 4, y: -r * 0.4,
+                                   width: r * 0.4, height: r * 0.5)),
+            with: .color(Color.white.opacity(0.2))
+        )
+
+        // --- Stern end cap (at +x) ---
+        let sternCapRect = CGRect(x: halfL - r - 2, y: -r, width: r + 4, height: r * 2)
+        ctx.fill(Path(ellipseIn: sternCapRect), with: .color(endCapColor))
+        ctx.stroke(Path(ellipseIn: sternCapRect), with: .color(hullShade.opacity(0.5)), lineWidth: 1.2)
+
+        // --- Viewport on the bow ---
+        drawViewport(ctx, bowX: -halfL)
+
+        // --- Hull seams (ring joints along the cylinder) ---
+        let seamCount = tier == .challenger ? 5 : (tier == .explorer ? 4 : 3)
+        for i in 1...seamCount {
+            let frac = CGFloat(i) / CGFloat(seamCount + 1)
+            let seamX = bodyRect.minX + bodyRect.width * frac
+            var seam = Path()
+            seam.move(to: CGPoint(x: seamX, y: -r + 3))
+            seam.addLine(to: CGPoint(x: seamX, y: r - 3))
+            ctx.stroke(seam, with: .color(hullShade.opacity(0.25)),
+                       style: StrokeStyle(lineWidth: 0.8, lineCap: .round))
+        }
+
+        // --- Titan-specific: carbon fibre weave pattern ---
+        if tier == .titan {
+            drawCarbonFibrePattern(ctx, rect: bodyRect)
+        }
+
+        // --- Explorer/Challenger: rivets and hull plating ---
+        if tier == .explorer || tier == .challenger {
+            drawRivets(ctx, rect: bodyRect)
+        }
+
+        // --- Conning tower / sail (Explorer and Challenger) ---
+        if tier == .explorer || tier == .challenger {
+            drawConningTower(ctx)
+        }
+
+        // --- Battery pack on the hull ---
+        drawBatteryPack(ctx)
+
+        // --- Thrusters at the stern ---
+        if subThruster != nil {
+            drawUpgradedThrusters(ctx)
+        } else {
+            drawThrusters(ctx)
+        }
+
+        // --- Cargo storage underneath ---
+        drawStorage(ctx)
+    }
+
+    // MARK: - Viewport
+
+    private func drawViewport(_ ctx: GraphicsContext, bowX: CGFloat) {
+        let vpCenterX = bowX + hullRadius * 0.3
+
+        switch tier {
+        case .titan:
+            // Titan: single small circular viewport (the famous acrylic cone window)
+            let vpR: CGFloat = 10
+            ctx.fill(Path(ellipseIn: CGRect(x: vpCenterX - vpR, y: -vpR, width: vpR * 2, height: vpR * 2)),
+                     with: .color(viewportFrame))
+            ctx.fill(Path(ellipseIn: CGRect(x: vpCenterX - vpR + 2, y: -vpR + 2,
+                                            width: vpR * 2 - 4, height: vpR * 2 - 4)),
+                     with: .color(viewportGlass))
+            // Specular highlight
+            ctx.fill(Path(ellipseIn: CGRect(x: vpCenterX - vpR + 3, y: -vpR + 3,
+                                            width: 5, height: 5)),
+                     with: .color(Color.white.opacity(0.35)))
+
+        case .explorer:
+            // Explorer: wider rectangular viewport with rounded corners
+            let vpW: CGFloat = 14
+            let vpH: CGFloat = 22
+            let vpRect = CGRect(x: vpCenterX - vpW / 2, y: -vpH / 2, width: vpW, height: vpH)
+            ctx.fill(Path(roundedRect: vpRect, cornerRadius: 5), with: .color(viewportFrame))
+            let glassRect = CGRect(x: vpRect.minX + 2, y: vpRect.minY + 2,
+                                   width: vpRect.width - 4, height: vpRect.height - 4)
+            ctx.fill(Path(roundedRect: glassRect, cornerRadius: 3), with: .color(viewportGlass))
+            ctx.fill(Path(roundedRect: CGRect(x: glassRect.minX + 2, y: glassRect.minY + 2,
+                                              width: 5, height: 6), cornerRadius: 2),
+                     with: .color(Color.white.opacity(0.3)))
+
+        case .challenger:
+            // Challenger: large hemispherical viewport dome
+            let vpR: CGFloat = 16
+            ctx.fill(Path(ellipseIn: CGRect(x: vpCenterX - vpR, y: -vpR,
+                                            width: vpR * 2, height: vpR * 2)),
+                     with: .color(viewportFrame))
+            ctx.fill(Path(ellipseIn: CGRect(x: vpCenterX - vpR + 2.5, y: -vpR + 2.5,
+                                            width: vpR * 2 - 5, height: vpR * 2 - 5)),
+                     with: .color(viewportGlass))
+            ctx.fill(Path(ellipseIn: CGRect(x: vpCenterX - vpR + 4, y: -vpR + 4,
+                                            width: 7, height: 7)),
+                     with: .color(Color.white.opacity(0.35)))
+
+        default: break
+        }
+    }
+
+    // MARK: - Carbon Fibre Pattern (Titan)
+
+    private func drawCarbonFibrePattern(_ ctx: GraphicsContext, rect: CGRect) {
+        let spacing: CGFloat = 8
+        // Diagonal lines in two directions to simulate weave
+        for xOff in stride(from: rect.minX, through: rect.maxX, by: spacing) {
+            var line1 = Path()
+            line1.move(to: CGPoint(x: xOff, y: rect.minY + 4))
+            line1.addLine(to: CGPoint(x: xOff + spacing * 2, y: rect.maxY - 4))
+            ctx.stroke(line1, with: .color(Color.black.opacity(0.04)), lineWidth: 0.5)
+
+            var line2 = Path()
+            line2.move(to: CGPoint(x: xOff + spacing, y: rect.minY + 4))
+            line2.addLine(to: CGPoint(x: xOff - spacing, y: rect.maxY - 4))
+            ctx.stroke(line2, with: .color(Color.black.opacity(0.04)), lineWidth: 0.5)
+        }
+    }
+
+    // MARK: - Rivets (Explorer / Challenger)
+
+    private func drawRivets(_ ctx: GraphicsContext, rect: CGRect) {
+        let r = hullRadius
+        let rivetColor = Color(red: 0.40, green: 0.40, blue: 0.42)
+        let rivetR: CGFloat = 1.5
+        // Two rows of rivets along the top and bottom edges
+        for yPos in [-r + 6, r - 6] {
+            for xOff in stride(from: rect.minX + 10, to: rect.maxX - 5, by: 14) {
+                ctx.fill(Path(ellipseIn: CGRect(x: xOff - rivetR, y: yPos - rivetR,
+                                                width: rivetR * 2, height: rivetR * 2)),
+                         with: .color(rivetColor.opacity(0.5)))
+            }
+        }
+    }
+
+    // MARK: - Conning Tower (Explorer / Challenger)
+
+    private func drawConningTower(_ ctx: GraphicsContext) {
+        let towerW: CGFloat = tier == .challenger ? 30 : 24
+        let towerH: CGFloat = tier == .challenger ? 18 : 14
+        let towerX: CGFloat = -hullLength * 0.1 // Slightly forward of center
+
+        let towerRect = CGRect(x: towerX - towerW / 2, y: -hullRadius - towerH + 2,
+                                width: towerW, height: towerH)
+        ctx.fill(Path(roundedRect: towerRect, cornerRadius: 4),
+                 with: .color(hullColor.opacity(0.95)))
+        ctx.stroke(Path(roundedRect: towerRect, cornerRadius: 4),
+                   with: .color(hullShade.opacity(0.5)), lineWidth: 1.2)
+
+        // Tower viewport
+        let tvpR: CGFloat = 4
+        ctx.fill(Path(ellipseIn: CGRect(x: towerRect.minX + 3, y: towerRect.midY - tvpR,
+                                         width: tvpR * 2, height: tvpR * 2)),
+                 with: .color(viewportFrame))
+        ctx.fill(Path(ellipseIn: CGRect(x: towerRect.minX + 4.5, y: towerRect.midY - tvpR + 1.5,
+                                         width: tvpR * 2 - 3, height: tvpR * 2 - 3)),
+                 with: .color(viewportGlass))
+
+        // Top highlight
+        ctx.fill(Path(roundedRect: CGRect(x: towerRect.minX + 3, y: towerRect.minY + 1,
+                                           width: towerRect.width - 6, height: 3),
+                       cornerRadius: 1),
+                 with: .color(hullHighlight.opacity(0.25)))
+    }
+
+    // MARK: - Thrusters
+
+    private func drawThrusters(_ ctx: GraphicsContext) {
+        let sternX = hullLength / 2
+        let nozzleR: CGFloat = 6
+        let positions: [CGFloat] = [-hullRadius * 0.4, hullRadius * 0.4]
+
+        for yPos in positions {
+            var nc = ctx
+            nc.translateBy(x: sternX, y: yPos)
+
+            // Nozzle bell
+            var bell = Path()
+            bell.move(to: CGPoint(x: 0, y: -nozzleR * 0.6))
+            bell.addLine(to: CGPoint(x: 10, y: -nozzleR))
+            bell.addQuadCurve(to: CGPoint(x: 10, y: nozzleR), control: CGPoint(x: 13, y: 0))
+            bell.addLine(to: CGPoint(x: 0, y: nozzleR * 0.6))
+            bell.closeSubpath()
+            nc.fill(bell, with: .color(thrusterMetal))
+            nc.stroke(bell, with: .color(Color.black.opacity(0.3)), lineWidth: 1.0)
+
+            // Inner void
+            nc.fill(Path(ellipseIn: CGRect(x: 8, y: -nozzleR * 0.45,
+                                            width: nozzleR * 0.6, height: nozzleR * 0.9)),
+                    with: .color(Color.black.opacity(0.45)))
+        }
+    }
+
+    private func drawUpgradedThrusters(_ ctx: GraphicsContext) {
+        guard let thruster = subThruster else { return }
+        let sternX = hullLength / 2
+
+        switch thruster {
+        case .standard:
+            let nozzleR: CGFloat = 8
+            let positions: [CGFloat] = [-hullRadius * 0.45, hullRadius * 0.45]
+            for yPos in positions {
+                var nc = ctx
+                nc.translateBy(x: sternX, y: yPos)
+
+                // Housing cowl
+                nc.fill(Path(roundedRect: CGRect(x: -5, y: -nozzleR * 0.8,
+                                                  width: 7, height: nozzleR * 1.6),
+                              cornerRadius: 2),
+                        with: .color(hullShade.opacity(0.7)))
+
+                var bell = Path()
+                bell.move(to: CGPoint(x: 0, y: -nozzleR * 0.5))
+                bell.addLine(to: CGPoint(x: 12, y: -nozzleR))
+                bell.addQuadCurve(to: CGPoint(x: 12, y: nozzleR), control: CGPoint(x: 15, y: 0))
+                bell.addLine(to: CGPoint(x: 0, y: nozzleR * 0.5))
+                bell.closeSubpath()
+                nc.fill(bell, with: .color(thrusterMetal))
+                nc.stroke(bell, with: .color(Color.black.opacity(0.3)), lineWidth: 1.0)
+
+                // Heat vanes
+                for vy in stride(from: -nozzleR * 0.6, through: nozzleR * 0.6, by: nozzleR * 0.4) {
+                    var vane = Path()
+                    vane.move(to: CGPoint(x: 2, y: vy))
+                    vane.addLine(to: CGPoint(x: 10, y: vy))
+                    nc.stroke(vane, with: .color(Color.black.opacity(0.2)), lineWidth: 0.7)
+                }
+
+                nc.fill(Path(ellipseIn: CGRect(x: 10, y: -nozzleR * 0.4,
+                                                width: nozzleR * 0.5, height: nozzleR * 0.8)),
+                        with: .color(Color.black.opacity(0.45)))
+            }
+
+        case .advanced:
+            let nozzleR: CGFloat = 5
+            let clusterOffsets: [CGFloat] = [-hullRadius * 0.5, 0, hullRadius * 0.5]
+
+            // Fairing
+            let fairingRect = CGRect(x: sternX - 3, y: -hullRadius * 0.65,
+                                     width: 10, height: hullRadius * 1.3)
+            ctx.fill(Path(roundedRect: fairingRect, cornerRadius: 3),
+                     with: .color(hullColor.opacity(0.8)))
+            ctx.stroke(Path(roundedRect: fairingRect, cornerRadius: 3),
+                       with: .color(hullShade.opacity(0.5)), lineWidth: 1.0)
+
+            for cy in clusterOffsets {
+                var nc = ctx
+                nc.translateBy(x: sternX + 3, y: cy)
+
+                var bell = Path()
+                bell.move(to: CGPoint(x: 0, y: -nozzleR * 0.55))
+                bell.addLine(to: CGPoint(x: 9, y: -nozzleR))
+                bell.addQuadCurve(to: CGPoint(x: 9, y: nozzleR), control: CGPoint(x: 11, y: 0))
+                bell.addLine(to: CGPoint(x: 0, y: nozzleR * 0.55))
+                bell.closeSubpath()
+                nc.fill(bell, with: .color(thrusterMetal))
+                nc.stroke(bell, with: .color(Color.black.opacity(0.35)), lineWidth: 0.8)
+
+                nc.fill(Path(ellipseIn: CGRect(x: 8, y: -nozzleR * 0.4,
+                                                width: nozzleR * 0.5, height: nozzleR * 0.8)),
+                        with: .color(Color.black.opacity(0.5)))
+            }
+        }
+    }
+
+    // MARK: - Battery Pack
+
+    private func drawBatteryPack(_ ctx: GraphicsContext) {
+        guard let battery = subBattery else { return }
+        let batteryColor = Color(red: 0.22, green: 0.32, blue: 0.18)
+        let batteryHighlight = Color(red: 0.35, green: 0.50, blue: 0.28)
+        let boltColor = Color(red: 0.55, green: 0.55, blue: 0.50)
+
+        // Battery sits on top of the hull (−y direction)
+        switch battery {
+        case .standard:
+            let boxRect = CGRect(x: -20, y: -hullRadius - 8, width: 24, height: 7)
+            ctx.fill(Path(roundedRect: boxRect, cornerRadius: 3), with: .color(batteryColor))
+            ctx.stroke(Path(roundedRect: boxRect, cornerRadius: 3),
+                       with: .color(Color.black.opacity(0.4)), lineWidth: 1.0)
+            ctx.fill(Path(roundedRect: CGRect(x: boxRect.minX + 3, y: boxRect.minY + 2,
+                                              width: boxRect.width * 0.6, height: 3),
+                          cornerRadius: 1),
+                     with: .color(batteryHighlight.opacity(0.6)))
+            for bx in [boxRect.minX + 3, boxRect.maxX - 3] {
+                ctx.fill(Path(ellipseIn: CGRect(x: bx - 1.5, y: boxRect.maxY - 3,
+                                                width: 3, height: 3)),
+                         with: .color(boltColor))
+            }
+
+        case .extended:
+            let boxRect = CGRect(x: -28, y: -hullRadius - 10, width: 44, height: 9)
+            ctx.fill(Path(roundedRect: boxRect, cornerRadius: 4), with: .color(batteryColor))
+            ctx.stroke(Path(roundedRect: boxRect, cornerRadius: 4),
+                       with: .color(Color.black.opacity(0.4)), lineWidth: 1.2)
+            for i in 0..<2 {
+                let stripeY = boxRect.minY + 2 + CGFloat(i) * 4
+                ctx.fill(Path(roundedRect: CGRect(x: boxRect.minX + 4, y: stripeY,
+                                                  width: boxRect.width - 8, height: 2.5),
+                              cornerRadius: 1),
+                         with: .color(batteryHighlight.opacity(0.5)))
+            }
+            for bx in [boxRect.minX + 4, boxRect.maxX - 4] {
+                for by in [boxRect.minY + 3, boxRect.maxY - 3] {
+                    ctx.fill(Path(ellipseIn: CGRect(x: bx - 1.5, y: by - 1.5,
+                                                    width: 3, height: 3)),
+                             with: .color(boltColor))
+                }
+            }
+        }
+    }
+
+    // MARK: - Cargo Storage
+
+    private func drawStorage(_ ctx: GraphicsContext) {
+        guard let storage = subStorage else { return }
+        let podColor = Color(red: 0.50, green: 0.45, blue: 0.35)
+        let podHighlight = Color(red: 0.62, green: 0.55, blue: 0.42)
+        let clampColor = Color(red: 0.30, green: 0.30, blue: 0.34)
+
+        // Storage pods underneath the hull (+y direction)
+        switch storage {
+        case .standard:
+            let podRect = CGRect(x: -15, y: hullRadius, width: 30, height: 10)
+            ctx.fill(Path(roundedRect: podRect, cornerRadius: 4), with: .color(podColor))
+            ctx.stroke(Path(roundedRect: podRect, cornerRadius: 4),
+                       with: .color(Color.black.opacity(0.35)), lineWidth: 1.0)
+            ctx.fill(Path(roundedRect: CGRect(x: podRect.minX + 3, y: podRect.minY + 2,
+                                              width: podRect.width - 6, height: 3),
+                          cornerRadius: 1),
+                     with: .color(podHighlight.opacity(0.4)))
+            for cx in [podRect.minX + 4, podRect.maxX - 4] {
+                ctx.fill(Path(roundedRect: CGRect(x: cx - 2, y: podRect.minY - 2,
+                                                  width: 4, height: 4), cornerRadius: 1),
+                         with: .color(clampColor))
+            }
+
+        case .large:
+            for xOff: CGFloat in [-25, 15] {
+                let podRect = CGRect(x: xOff, y: hullRadius, width: 28, height: 12)
+                ctx.fill(Path(roundedRect: podRect, cornerRadius: 4), with: .color(podColor))
+                ctx.stroke(Path(roundedRect: podRect, cornerRadius: 4),
+                           with: .color(Color.black.opacity(0.35)), lineWidth: 1.2)
+                ctx.fill(Path(roundedRect: CGRect(x: podRect.minX + 3, y: podRect.minY + 2,
+                                                  width: podRect.width - 6, height: 3),
+                              cornerRadius: 1),
+                         with: .color(podHighlight.opacity(0.4)))
+                // Clamps
+                for cx in [podRect.minX + 4, podRect.maxX - 4] {
+                    ctx.fill(Path(roundedRect: CGRect(x: cx - 2.5, y: podRect.minY - 3,
+                                                      width: 5, height: 5), cornerRadius: 1.5),
+                             with: .color(clampColor))
+                }
+                // Seal line
+                var seal = Path()
+                seal.move(to: CGPoint(x: podRect.minX + 5, y: podRect.midY))
+                seal.addLine(to: CGPoint(x: podRect.maxX - 5, y: podRect.midY))
+                ctx.stroke(seal, with: .color(Color.black.opacity(0.15)),
+                           style: StrokeStyle(lineWidth: 0.7, lineCap: .round))
+            }
+        }
+    }
+}
+
